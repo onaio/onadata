@@ -25,14 +25,19 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import AuthenticationFailed, NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from two_factor.utils import default_device
 
-from onadata.libs.authentication import SSOHeaderAuthentication
+from onadata.libs.authentication import (
+    SSOHeaderAuthentication,
+    add_login_attempt,
+    assert_not_locked_out,
+    get_client_ip,
+)
 
 RECOVERY_CODE_COUNT = 10
 
@@ -288,8 +293,20 @@ class TOTPViewSet(ViewSet):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if user.check_password(str(request.data.get("password", ""))):
-            return None
+        # Guesses here spend the login form's allowance, or this endpoint
+        # would be a way around the lockout instead of a second lock on the
+        # same password.
+        ip_address, username = get_client_ip(request), user.username
+        try:
+            assert_not_locked_out(ip_address, username)
+            if user.check_password(str(request.data.get("password", ""))):
+                return None
+            add_login_attempt(ip_address, username)
+        except AuthenticationFailed as lockout:
+            return Response(
+                {"error": str(lockout.detail), "reason": "locked_out"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         # ``reason`` so a client can tell this refusal from the step-up one
         # above it: both are 403, but one is answered by typing a password and
         # the other by a code, and offering the wrong prompt strands the user.

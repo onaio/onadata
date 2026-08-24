@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test import RequestFactory, override_settings
 from django.views.debug import SafeExceptionReporterFilter
 
@@ -67,9 +68,7 @@ def current_code(hex_key, step=30, digits=6):
 # enrolment mechanics rather than whichever way the running deployment has it
 # set -- the local stack turns it on, CI does not. The cases that are about
 # the password say so individually.
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False
-)
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False)
 class TestTOTPViewSet(TestAbstractViewSet):
     """The endpoints act on the authenticated user and nobody else."""
 
@@ -127,9 +126,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         Always passes the password so the helper works either way: it is
         ignored unless the deployment asks for one, and required when it does.
         """
-        started = self._post_session(
-            "enroll_start", {"password": self.login_password}
-        )
+        started = self._post_session("enroll_start", {"password": self.login_password})
         self.assertEqual(started.status_code, 201)
         device = TOTPDevice.objects.get(
             user=self.user, name=TOTP_DEVICE_NAME, confirmed=False
@@ -770,9 +767,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
     @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_first_enrolment_accepts_the_account_password(self):
-        response = self._post_session(
-            "enroll_start", {"password": self.login_password}
-        )
+        response = self._post_session("enroll_start", {"password": self.login_password})
 
         self.assertEqual(response.status_code, 201)
         self.assertIn("otpauthUri", response.data)
@@ -783,6 +778,44 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 403)
         self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+
+    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
+    def test_enrolment_password_failures_count_towards_the_login_lockout(self):
+        """Guesses here spend the same allowance as guesses at the login form.
+
+        Both doors open on one password, so a budget of its own here would be
+        a way around the lockout rather than a second lock.
+        """
+        user = User.objects.create_user(
+            "enrolmentlockout", "enrolmentlockout@example.com", "correct-password"
+        )
+        # The counter lives in the cache, which the test runner does not roll
+        # back, so it would otherwise outlast this test.
+        self.addCleanup(cache.clear)
+        view = TOTPViewSet.as_view({"post": "enroll_start"})
+
+        def start_enrolment(password):
+            return view(
+                self.factory.post("/", data={"password": password}, **self._sso(user))
+            )
+
+        # The probe at the end says nothing unless this is accepted first.
+        self.assertEqual(start_enrolment("correct-password").status_code, 201)
+        TOTPDevice.objects.filter(user=user).delete()
+
+        with patch(
+            "onadata.libs.authentication.send_account_lockout_email.apply_async"
+        ):
+            for attempt in range(settings.MAX_LOGIN_ATTEMPTS):
+                self.assertEqual(
+                    start_enrolment("wrong-password").status_code, 403, attempt
+                )
+
+            refused = start_enrolment("correct-password")
+
+        self.assertEqual(refused.status_code, 403)
+        self.assertEqual(refused.data["reason"], "locked_out")
+        self.assertFalse(TOTPDevice.objects.filter(user=user).exists())
 
     @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_an_account_with_no_password_cannot_enrol(self):
@@ -832,9 +865,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         with DEBUG off because the reporter's filter is inert when it is on.
         """
         secret = "sup3r-s3cret-pw"  # nosec B105 - test fixture, not a credential
-        request = RequestFactory().post(
-            "/", data={"password": secret}, **self._sso()
-        )
+        request = RequestFactory().post("/", data={"password": secret}, **self._sso())
 
         TOTPViewSet.as_view({"post": "enroll_start"})(request)
 
@@ -915,9 +946,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
             )
 
         self.assertEqual(viewed.status_code, 200)
-        self.assertEqual(
-            sorted(viewed.data["codes"]), sorted(generated.data["codes"])
-        )
+        self.assertEqual(sorted(viewed.data["codes"]), sorted(generated.data["codes"]))
         self.assertEqual(
             self._get_status().data["recoveryCodes"],
             {"generated": True, "remaining": RECOVERY_CODE_COUNT},
@@ -972,7 +1001,6 @@ class TestTOTPViewSet(TestAbstractViewSet):
             )
 
         self.assertEqual(response.status_code, 404)
-
 
 
 @override_settings(ENABLE_TWO_FACTOR=False)
