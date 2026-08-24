@@ -94,14 +94,18 @@ def _known_audiences() -> frozenset:
     return frozenset(getattr(settings, "TWO_FACTOR_STEP_UP_AUDIENCES", ()))
 
 
-def _totp_device(user, confirmed=True):
+def _totp_device(user, confirmed=True, lock=False):
     """The user's authenticator, or None.
 
     Newest first, so the answer cannot depend on the order Postgres returns
     rows in should a second confirmed device ever survive.
+
+    ``lock`` holds the row until the transaction ends, for callers that go on
+    to spend the code or change the device.
     """
+    devices = TOTPDevice.objects.select_for_update() if lock else TOTPDevice.objects
     return (
-        TOTPDevice.objects.filter(user=user, name=TOTP_DEVICE_NAME, confirmed=confirmed)
+        devices.filter(user=user, name=TOTP_DEVICE_NAME, confirmed=confirmed)
         .order_by("-id")
         .first()
     )
@@ -420,24 +424,29 @@ class TOTPViewSet(ViewSet):
         refusal = self._require_login_session(request)
         if refusal is not None:
             return refusal
-        device = _totp_device(request.user, confirmed=False)
-        if device is None:
-            return Response(
-                {"error": "Start setting up an authenticator before confirming it."},
-                status=status.HTTP_409_CONFLICT,
-            )
         code = str(request.data.get("code", "")).strip()
-        if not device.verify_token(code):
-            return Response(
-                {
-                    "error": "That code is not valid. Check the time on your device "
-                    "and try the current code."
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        # One transaction: an authenticator that confirmed but whose recovery
-        # codes did not is one lost phone away from a locked account.
+        # One transaction, with the pending row locked before the code is
+        # spent: a device that confirmed but whose recovery codes did not is
+        # one lost phone from a locked account, and racing callers would each
+        # be handed a set of which only the last survives.
         with transaction.atomic():
+            device = _totp_device(request.user, confirmed=False, lock=True)
+            if device is None:
+                return Response(
+                    {
+                        "error": "Start setting up an authenticator before "
+                        "confirming it."
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+            if not device.verify_token(code):
+                return Response(
+                    {
+                        "error": "That code is not valid. Check the time on your "
+                        "device and try the current code."
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             # default_device() answers with the first confirmed device named
             # "default", not the newest, so an incumbent left behind stays the
             # device the login wizard challenges on. Matched by name across
