@@ -41,6 +41,14 @@ from onadata.libs.authentication import (
 
 RECOVERY_CODE_COUNT = 10
 
+#: Lowercase base32, matching what the codes are encoded with.
+RECOVERY_CODE_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567"
+
+#: 64 bits, which base32 renders as 13 characters. django-otp's own generator
+#: draws 5 bytes; that is unguessable against the per-device backoff, but the
+#: backoff is a setting and this leaves the codes standing on their own.
+RECOVERY_CODE_BYTES = 8
+
 #: Not free-form labels. two_factor matches "default" to decide whether to
 #: ask for a second factor at all; "backup" is this module's own, and only has
 #: to agree between the code that writes the recovery set and the code that
@@ -173,6 +181,16 @@ def _verify_code(user, code: str, method: str = "") -> bool:
     return any(check(user, code) for check in VERIFY_METHODS.values())
 
 
+def _recovery_token() -> str:
+    """A recovery code, lowercase to match how they are compared."""
+    return (
+        base64.b32encode(secrets.token_bytes(RECOVERY_CODE_BYTES))
+        .decode()
+        .rstrip("=")
+        .lower()
+    )
+
+
 def _regenerate_recovery_codes(user) -> list:
     """Replace the recovery set and return the new codes.
 
@@ -185,9 +203,7 @@ def _regenerate_recovery_codes(user) -> list:
             user=user, name=RECOVERY_DEVICE_NAME, confirmed=True
         )
         return [
-            StaticToken.objects.create(
-                device=device, token=StaticToken.random_token()
-            ).token
+            StaticToken.objects.create(device=device, token=_recovery_token()).token
             for _ in range(RECOVERY_CODE_COUNT)
         ]
 
