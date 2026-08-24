@@ -111,9 +111,13 @@ def _totp_device(user, confirmed=True, lock=False):
     )
 
 
-def _recovery_device(user):
-    """The user's recovery-code set, or None."""
-    return StaticDevice.objects.filter(user=user, name=RECOVERY_DEVICE_NAME).first()
+def _recovery_device(user, lock=False):
+    """The user's recovery-code set, or None.
+
+    ``lock`` as in ``_totp_device``.
+    """
+    devices = StaticDevice.objects.select_for_update() if lock else StaticDevice.objects
+    return devices.filter(user=user, name=RECOVERY_DEVICE_NAME).first()
 
 
 def _has_second_factor(user) -> bool:
@@ -135,12 +139,7 @@ def _verify_totp(user, code: str) -> bool:
     ``--threads 1`` does not serialise them.
     """
     with transaction.atomic():
-        device = (
-            TOTPDevice.objects.select_for_update()
-            .filter(user=user, name=TOTP_DEVICE_NAME, confirmed=True)
-            .order_by("-id")
-            .first()
-        )
+        device = _totp_device(user, lock=True)
         return device is not None and device.verify_token(code)
 
 
@@ -154,11 +153,7 @@ def _verify_recovery(user, code: str) -> bool:
     exactly, so the login wizard and this path would otherwise disagree.
     """
     with transaction.atomic():
-        recovery = (
-            StaticDevice.objects.select_for_update()
-            .filter(user=user, name=RECOVERY_DEVICE_NAME)
-            .first()
-        )
+        recovery = _recovery_device(user, lock=True)
         return recovery is not None and recovery.verify_token(code.lower())
 
 
