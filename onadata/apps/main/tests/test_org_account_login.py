@@ -9,6 +9,8 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.test import RequestFactory, TestCase, override_settings
 
 import jwt
+from django_otp.plugins.otp_totp.models import TOTPDevice
+from oidc.viewsets import SSO_COOKIE_NAME
 from rest_framework import status
 
 from onadata.apps.api.tools import create_organization
@@ -144,6 +146,23 @@ class TestBlockOrgAccountLogin(TestCase):
         )
         self.assertIsInstance(response, HttpResponseRedirect)
         self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+
+    @patch("oidc.viewsets.login")
+    def test_oidc_does_not_issue_sso_cookie_before_local_mfa(self, mock_login):
+        """Federated first-factor success must enter the local OTP challenge."""
+        TOTPDevice.objects.create(
+            user=self.regular,
+            name="default",
+            confirmed=True,
+        )
+        request = RequestFactory().get("/oidc/microsoft/callback")
+
+        response = OnaOpenIDConnectViewset().generate_successful_response(
+            request, self.regular
+        )
+
+        self.assertNotIn(SSO_COOKIE_NAME, response.cookies)
+        mock_login.assert_not_called()
 
     # -- Bearer token (defensive) ------------------------------------------
 

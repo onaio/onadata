@@ -11,7 +11,9 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core import mail
 from django.test import RequestFactory, override_settings
+from django.urls import reverse
 from django.views.debug import SafeExceptionReporterFilter
 
 import jwt
@@ -784,6 +786,51 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 403)
         self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
 
+    @override_settings(
+        TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True,
+        MAX_LOGIN_ATTEMPTS=3,
+        LOCKOUT_TIME=1800,
+    )
+    def test_enrolment_password_failures_trigger_the_login_lockout(self):
+        """The enrolment password must not expose a separate brute-force budget."""
+        user = User.objects.create_user(
+            "enrolmentlockout",
+            "enrolmentlockout@example.com",
+            "correct-password",
+        )
+        view = TOTPViewSet.as_view({"post": "enroll_start"})
+
+        def start_enrolment(password):
+            request = self.factory.post(
+                "/",
+                data={"password": password},
+                **self._sso(user),
+            )
+            return view(request)
+
+        with patch(
+            "onadata.libs.authentication.send_account_lockout_email.apply_async"
+        ):
+            for _ in range(settings.MAX_LOGIN_ATTEMPTS):
+                response = start_enrolment("wrong-password")
+                self.assertEqual(response.status_code, 403)
+
+            response = start_enrolment("correct-password")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(TOTPDevice.objects.filter(user=user).exists())
+
+    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
+    def test_django_login_session_can_start_enrolment(self):
+        """Password-login sessions are supported without an SSO credential."""
+        response = self.client.post(
+            reverse("totp-enroll-start"),
+            {"password": self.login_password},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("otpauthUri", response.json())
+
     @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_an_account_with_no_password_cannot_enrol(self):
         """Having no password is not a way past the password.
@@ -973,6 +1020,115 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_recovery_codes_are_only_readable_when_generated(self):
+        """A later step-up must not disclose durable login credentials."""
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        self.assertEqual(generated.status_code, 201)
+
+        with next_totp_window():
+            viewed = self.client.post(
+                "/api/v1/totp/recovery/",
+                {"code": current_code(device.key)},
+                **self.extra,
+            )
+
+        body = viewed.content.decode(errors="replace")
+        for code in generated.data["codes"]:
+            self.assertNotIn(code, body)
+
+    def test_recovery_codes_are_not_stored_in_plaintext(self):
+        """A database read must not yield credentials usable at login."""
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        self.assertEqual(generated.status_code, 201)
+
+        self.assertFalse(
+            StaticToken.objects.filter(token__in=generated.data["codes"]).exists()
+        )
+
+    def test_recovery_codes_have_at_least_64_bits_of_randomness(self):
+        """Base32 needs 13 characters to carry a 64-bit random value."""
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        self.assertEqual(generated.status_code, 201)
+
+        for code in generated.data["codes"]:
+            self.assertGreaterEqual(len(code), 13)
+
+    def test_enrolment_is_written_to_the_security_audit_log(self):
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            self._enroll()
+
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-enrolled", actions)
+
+    def test_failed_verification_is_written_to_the_security_audit_log(self):
+        self._enroll()
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            response = self._verify({"code": "000000", "method": "totp"})
+
+        self.assertEqual(response.status_code, 403)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-verification-failed", actions)
+
+    def test_enrolment_notifies_the_account_owner(self):
+        mail.outbox = []
+
+        self._enroll()
+
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "enrolling a factor did not notify the account owner",
+        )
+
+    def test_disabling_two_factor_notifies_the_account_owner(self):
+        device = self._enroll()
+        mail.outbox = []
+        with next_totp_window():
+            response = self._post_with_api_key(
+                "disable", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "disabling a factor did not notify the account owner",
+        )
+
+
+@override_settings(ENABLE_TWO_FACTOR=True)
+class SecureTwoFactorDefaultsTestCase(TestAbstractViewSet):
+    """Security-sensitive factor changes fail closed by default."""
+
+    def test_an_ordinary_sso_credential_cannot_start_first_enrolment(self):
+        """An active session is not recent primary-credential proof."""
+        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
+        token = jwt.encode(
+            {"email": self.user.email},
+            config["JWT_SECRET_KEY"],
+            algorithm=config["JWT_ALGORITHM"],
+        )
+        request = self.factory.post("/", data={}, HTTP_SSO=token)
+
+        response = TOTPViewSet.as_view({"post": "enroll_start"})(request)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
 
 
 @override_settings(ENABLE_TWO_FACTOR=False)

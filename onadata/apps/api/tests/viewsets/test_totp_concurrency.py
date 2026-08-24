@@ -13,17 +13,21 @@ fixture at all.
 """
 import threading
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection
 from django.test import TransactionTestCase, override_settings
 
+import jwt
 from django_otp.oath import totp
 from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.viewsets.totp_viewset import (
     RECOVERY_DEVICE_NAME,
     TOTP_DEVICE_NAME,
+    TOTPViewSet,
     _verify_recovery,
     _verify_totp,
 )
@@ -133,4 +137,71 @@ class TotpCodeConcurrencyTestCase(TransactionTestCase):
             sum(results),
             1,
             f"the code verified {sum(results)} times; one code, one use",
+        )
+
+
+@override_settings(
+    ENABLE_TWO_FACTOR=True,
+    TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False,
+)
+class EnrollmentConfirmationConcurrencyTestCase(TransactionTestCase):
+    """A pending authenticator can be confirmed by exactly one request."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.create_user(
+            "enrolmentraceprobe",
+            "enrolmentrace@example.com",
+            "pw-9F3kz",
+        )
+        self.device = TOTPDevice.objects.create(
+            user=self.user,
+            name=TOTP_DEVICE_NAME,
+            confirmed=False,
+        )
+
+    def test_one_pending_code_confirms_one_enrolment(self):
+        """Racing confirmations must not receive competing recovery sets."""
+        code = f"{totp(self.device.bin_key, self.device.step, self.device.t0):06d}"
+        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
+        sso = jwt.encode(
+            {"email": self.user.email},
+            config["JWT_SECRET_KEY"],
+            algorithm=config["JWT_ALGORITHM"],
+        )
+        barrier = threading.Barrier(CONCURRENT)
+        results = []
+        errors = []
+        guard = threading.Lock()
+
+        def worker():
+            try:
+                request = APIRequestFactory().post(
+                    "/",
+                    data={"code": code},
+                    HTTP_SSO=sso,
+                )
+                barrier.wait(timeout=10)
+                response = TOTPViewSet.as_view({"post": "enroll_confirm"})(request)
+                with guard:
+                    results.append(response.status_code)
+            except Exception as exc:  # pylint: disable=broad-except
+                with guard:
+                    errors.append(exc)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=worker) for _ in range(CONCURRENT)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+
+        self.assertFalse(any(thread.is_alive() for thread in threads))
+        self.assertFalse(errors, errors)
+        self.assertEqual(len(results), CONCURRENT)
+        self.assertEqual(
+            results.count(200),
+            1,
+            f"{results.count(200)} racing confirmations succeeded",
         )
