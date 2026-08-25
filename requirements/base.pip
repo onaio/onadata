@@ -12,7 +12,7 @@ analytics-python==1.4.post1
     # via onadata
 appoptics-metrics==5.1.0
     # via onadata
-asgiref==3.11.1
+asgiref==3.12.1
     # via
     #   django
     #   django-cors-headers
@@ -37,17 +37,17 @@ cached-property==2.0.1
     # via tableschema
 celery==5.6.3
     # via onadata
-certifi==2026.6.17
+certifi==2026.7.22
     # via
     #   requests
     #   sentry-sdk
-cffi==2.0.0
+cffi==2.1.1
     # via cryptography
-chardet==7.4.3
+chardet==7.6.0
     # via
     #   dataflows-tabulator
     #   datapackage
-charset-normalizer==3.4.7
+charset-normalizer==3.5.1
     # via requests
 click==8.4.2
     # via
@@ -114,7 +114,7 @@ django-cors-headers==4.9.0
     # via onadata
 django-csp==4.0
     # via onadata
-django-debug-toolbar==7.0.0
+django-debug-toolbar==7.1.1
     # via onadata
 django-digest @ git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92
     # via -r requirements/base.in
@@ -130,7 +130,7 @@ django-multidb-router @ git+https://github.com/onaio/django-multidb-router.git@f
     # via -r requirements/base.in
 django-nose==1.4.7
     # via onadata
-django-oauth-toolkit==3.3.0
+django-oauth-toolkit==3.4.0
     # via onadata
 django-ordered-model==3.7.4
     # via onadata
@@ -182,7 +182,7 @@ future==1.0.0
     # via python-json2xlsclient
 geojson==3.3.0
     # via onadata
-google-auth==2.55.0
+google-auth==2.56.3
     # via
     #   google-auth-oauthlib
     #   onadata
@@ -192,7 +192,7 @@ greenlet==3.5.2
     # via sqlalchemy
 hiredis==3.4.0
     # via redis
-httplib2==0.31.2
+httplib2==0.32.0
     # via onadata
 idna==3.18
     # via
@@ -251,13 +251,13 @@ openpyxl==3.1.5
     #   dataflows-tabulator
     #   onadata
     #   pyxform
-packaging==26.2
+packaging==26.3
     # via
     #   django-csp
     #   kombu
 paho-mqtt==2.1.0
     # via onadata
-pillow==12.2.0
+pillow==12.3.0
     # via
     #   elaphe3
     #   onadata
@@ -299,7 +299,7 @@ python-json2xlsclient @ git+https://github.com/onaio/python-json2xlsclient.git@6
     # via -r requirements/base.in
 python-memcached==1.62
     # via onadata
-pytz==2026.2
+pytz==2026.3.post1
     # via
     #   django-query-builder
     #   fleming
@@ -332,13 +332,13 @@ requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rfc3986==2.0.0
     # via tableschema
-rpds-py==2026.5.1
+rpds-py==2026.6.3
     # via
     #   jsonschema
     #   referencing
 s3transfer==0.19.0
     # via boto3
-sentry-sdk==2.63.0
+sentry-sdk==2.68.0
     # via onadata
 simplejson==4.1.1
     # via onadata
@@ -353,17 +353,17 @@ six==1.17.0
     #   tableschema
 sqlalchemy==2.0.51
     # via dataflows-tabulator
-sqlparse==0.5.5
+sqlparse==0.6.0
     # via
     #   django
     #   django-debug-toolbar
 tableschema==1.21.0
     # via datapackage
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   jwcrypto
     #   sqlalchemy
-tzdata==2026.2
+tzdata==2026.3
     # via kombu
 tzlocal==5.4.3
     # via celery
@@ -392,7 +392,7 @@ vine==5.1.0
     #   kombu
 wcwidth==0.8.1
     # via prompt-toolkit
-wrapt==2.2.2
+wrapt==2.3.0
     # via deprecated
 xlrd==2.0.1
     # via

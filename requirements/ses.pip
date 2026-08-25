@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements/ses.pip requirements/ses.in
 #
-asgiref==3.11.1
+asgiref==3.12.1
     # via django
 boto==2.49.0
     # via -r requirements/ses.in
@@ -30,7 +30,7 @@ s3transfer==0.19.0
     # via boto3
 six==1.17.0
     # via python-dateutil
-sqlparse==0.5.5
+sqlparse==0.6.0
     # via django
 urllib3==2.7.0
     # via
