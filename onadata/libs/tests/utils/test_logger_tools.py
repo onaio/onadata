@@ -10,6 +10,7 @@ from io import BytesIO
 from unittest.mock import Mock, patch
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
@@ -23,11 +24,13 @@ from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import Instance, InstanceHistory
+from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.kms.tools import encrypt_xform
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
@@ -1514,3 +1517,41 @@ class PublishXLSFormTestCase(TestBase):
         self.assertEqual(updated_dd.pk, active_xform.pk)
         active_xform.refresh_from_db()
         self.assertEqual(active_xform.title, "Fruits updated")
+
+    def test_replace_managed_form_registers_new_version_key(self):
+        """Replacing a managed form registers the new version against its key."""
+        org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=ContentType.objects.get_for_model(org),
+            object_id=org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        project = get_user_default_project(org.user)
+        text_xls_form = (
+            "survey\r\n"
+            ",type,name,label\r\n"
+            ",text,fruit,Fruit\r\n"
+            "settings\r\n"
+            ",form_title,id_string\r\n"
+            ",Fruits,fruits\r\n"
+        )
+        xls_file = ContentFile(text_xls_form.encode(), name="fruits.csv")
+        dd = publish_xls_form(xls_file, org.user, project, None, self.user)
+        encrypt_xform(XForm.objects.get(pk=dd.pk), encrypted_by=self.user)
+        updated_text_xls_form = text_xls_form.replace(",Fruits,", ",Fruits updated,")
+        xls_file = ContentFile(updated_text_xls_form.encode(), name="fruits.csv")
+
+        updated_dd = publish_xls_form(xls_file, org.user, project, "fruits", self.user)
+
+        xform = XForm.objects.get(pk=updated_dd.pk)
+        self.assertEqual(xform.title, "Fruits updated")
+        self.assertTrue(
+            xform.kms_keys.filter(
+                version=xform.version, kms_key=kms_key, encrypted_by=self.user
+            ).exists()
+        )

@@ -1120,8 +1120,19 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
         dd = DataDictionary.objects.get(
             user=user, id_string=id_string, project=project, deleted_at__isnull=True
         )
+        # The managed key encrypting the current version carries over to
+        # the new version
+        kms_key = (
+            dd.kms_keys.filter(version=dd.version).latest("date_created").kms_key
+            if dd.is_managed
+            else None
+        )
         dd.xls = xls_file
         dd.save()
+        if kms_key is not None:
+            dd.kms_keys.create(
+                version=dd.version, kms_key=kms_key, encrypted_by=created_by
+            )
     else:
         dd = DataDictionary.objects.create(
             created_by=created_by or user, user=user, xls=xls_file, project=project
