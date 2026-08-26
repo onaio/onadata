@@ -205,7 +205,7 @@ def get_enketo_urls(
         data=values,
         auth=(settings.ENKETO_API_TOKEN, ""),
         verify=getattr(settings, "VERIFY_SSL", True),
-        timeout=20,
+        timeout=getattr(settings, "ENKETO_API_TIMEOUT", 20),
     )
     resp_content = response.content
     resp_content = (

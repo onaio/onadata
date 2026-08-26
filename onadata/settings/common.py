@@ -102,6 +102,8 @@ ENKETO_URL = "https://enketo.ona.io/"
 ENKETO_API_ALL_SURVEY_LINKS_PATH = "/api_v2/survey/all"
 ENKETO_API_INSTANCE_PATH = "/api_v2/instance"
 ENKETO_API_TOKEN = ""
+# seconds to wait for Enketo API responses before failing
+ENKETO_API_TIMEOUT = 20
 ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v2/instance/iframe"
 ENKETO_API_SALT = "secretsalt"
 VERIFY_SSL = True

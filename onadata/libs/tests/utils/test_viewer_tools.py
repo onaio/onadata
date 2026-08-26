@@ -24,6 +24,7 @@ from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults,
     get_client_ip,
     get_enketo_attachment_params,
+    get_enketo_urls,
     get_form,
     get_form_url,
     handle_enketo_error,
@@ -111,6 +112,31 @@ class TestViewerTools(TestBase):
         kwargs = {"name": "bla"}
         defaults = generate_enketo_form_defaults(self.xform, **kwargs)
         self.assertEqual(defaults, {})
+
+    @override_settings(ENKETO_API_TOKEN="abc", ENKETO_API_TIMEOUT=5)
+    @patch("onadata.libs.utils.viewer_tools.requests.post")
+    def test_get_enketo_urls_uses_configured_timeout(self, mock_post):
+        """get_enketo_urls() sends the ENKETO_API_TIMEOUT setting to Enketo."""
+        mock_post.return_value = Mock(
+            status_code=200, content=b'{"url": "https://enketo.ona.io/::abc"}'
+        )
+
+        data = get_enketo_urls("https://example.com/enketo/1", "test_form")
+
+        self.assertEqual(data, {"url": "https://enketo.ona.io/::abc"})
+        self.assertEqual(mock_post.call_args.kwargs["timeout"], 5)
+
+    @override_settings(ENKETO_API_TOKEN="abc")
+    @patch("onadata.libs.utils.viewer_tools.requests.post")
+    def test_get_enketo_urls_default_timeout(self, mock_post):
+        """get_enketo_urls() defaults to a 20 second timeout."""
+        mock_post.return_value = Mock(
+            status_code=200, content=b'{"url": "https://enketo.ona.io/::abc"}'
+        )
+
+        get_enketo_urls("https://example.com/enketo/1", "test_form")
+
+        self.assertEqual(mock_post.call_args.kwargs["timeout"], 20)
 
     def test_get_form(self):
         """Test get_form()."""
