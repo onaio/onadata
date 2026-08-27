@@ -12,7 +12,7 @@ analytics-python==1.4.post1
     # via onadata
 appoptics-metrics==5.1.0
     # via onadata
-asgiref==3.11.1
+asgiref==3.12.1
     # via
     #   django
     #   django-cors-headers
@@ -25,11 +25,11 @@ backoff==1.10.0
     # via analytics-python
 billiard==4.2.4
     # via celery
-boto3==1.43.36
+boto3==1.43.79
     # via
     #   dataflows-tabulator
     #   valigetta
-botocore==1.43.36
+botocore==1.43.79
     # via
     #   boto3
     #   s3transfer
@@ -37,17 +37,17 @@ cached-property==2.0.1
     # via tableschema
 celery==5.6.3
     # via onadata
-certifi==2026.6.17
+certifi==2026.7.22
     # via
     #   requests
     #   sentry-sdk
-cffi==2.0.0
+cffi==2.1.1
     # via cryptography
-chardet==7.4.3
+chardet==7.6.0
     # via
     #   dataflows-tabulator
     #   datapackage
-charset-normalizer==3.4.7
+charset-normalizer==3.5.1
     # via requests
 click==8.4.2
     # via
@@ -66,7 +66,7 @@ click-repl==0.3.0
     # via celery
 codetiming==1.4.0
     # via -r requirements/base.in
-cryptography==49.0.0
+cryptography==50.0.0
     # via
     #   google-auth
     #   jwcrypto
@@ -88,7 +88,7 @@ deprecated==1.3.1
     # via onadata
 dict2xml==1.7.8
     # via onadata
-django==5.2.15
+django==5.2.17
     # via
     #   django-activity-stream
     #   django-cors-headers
@@ -114,7 +114,7 @@ django-cors-headers==4.9.0
     # via onadata
 django-csp==4.0
     # via onadata
-django-debug-toolbar==7.0.0
+django-debug-toolbar==7.1.1
     # via onadata
 django-digest @ git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92
     # via -r requirements/base.in
@@ -124,7 +124,7 @@ django-formtools==2.7
     # via
     #   djangorestframework-gis
     #   onadata
-django-guardian==3.3.2
+django-guardian==3.3.3
     # via
     #   djangorestframework-guardian
     #   onadata
@@ -132,7 +132,7 @@ django-multidb-router @ git+https://github.com/onaio/django-multidb-router.git@f
     # via -r requirements/base.in
 django-nose==1.4.7
     # via onadata
-django-oauth-toolkit==3.3.0
+django-oauth-toolkit==3.4.1
     # via onadata
 django-ordered-model==3.7.4
 django-otp==1.7.0
@@ -156,7 +156,7 @@ django-two-factor-auth==1.18.1
     # via onadata
 django-templated-email==3.1.1
     # via onadata
-djangorestframework==3.17.1
+djangorestframework==3.17.2
     # via
     #   djangorestframework-csv
     #   djangorestframework-gis
@@ -190,23 +190,24 @@ future==1.0.0
     # via python-json2xlsclient
 geojson==3.3.0
     # via onadata
-google-auth==2.55.0
+google-auth==2.57.0
     # via
     #   google-auth-oauthlib
     #   onadata
-google-auth-oauthlib==1.4.0
+google-auth-oauthlib==1.4.1
     # via onadata
-greenlet==3.5.2
+greenlet==3.5.5
     # via sqlalchemy
-hiredis==3.4.0
+hiredis==3.4.1
     # via redis
-httplib2==0.31.2
+httplib2==0.32.0
     # via onadata
-idna==3.18
+idna==3.19
     # via
     #   -r requirements/base.in
+    #   onadata
     #   requests
-ijson==3.5.0
+ijson==3.5.1
     # via dataflows-tabulator
 inflection==0.5.1
     # via djangorestframework-jsonapi
@@ -236,9 +237,9 @@ lark==1.3.1
     # via pyxform
 linear-tsv==1.1.0
     # via dataflows-tabulator
-lxml==6.1.1
+lxml==6.1.2
     # via onadata
-markdown==3.10.2
+markdown==3.10.3
     # via onadata
 modilabs-python-utils==0.1.5
     # via onadata
@@ -246,7 +247,7 @@ monotonic==1.6
     # via analytics-python
 nose==1.3.7
     # via django-nose
-numpy==2.5.0
+numpy==2.5.2
     # via onadata
 oauthlib==3.3.1
     # via
@@ -259,21 +260,21 @@ openpyxl==3.1.5
     #   dataflows-tabulator
     #   onadata
     #   pyxform
-packaging==26.2
+packaging==26.3
     # via
     #   django-csp
     #   kombu
 paho-mqtt==2.1.0
     # via onadata
-pillow==12.2.0
+pillow==12.3.0
     # via
     #   elaphe3
     #   onadata
-prompt-toolkit==3.0.52
+prompt-toolkit==3.0.53
     # via click-repl
 psycopg2-binary==2.9.12
     # via onadata
-pyasn1==0.6.3
+pyasn1==0.6.4
     # via pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
@@ -309,7 +310,7 @@ python-json2xlsclient @ git+https://github.com/onaio/python-json2xlsclient.git@6
     # via -r requirements/base.in
 python-memcached==1.62
     # via onadata
-pytz==2026.2
+pytz==2026.3.post1
     # via
     #   django-query-builder
     #   fleming
@@ -319,7 +320,7 @@ pyxform==4.5.0
     #   pyfloip
 recaptcha-client==1.0.6
     # via onadata
-redis[hiredis]==8.0.1
+redis[hiredis]==8.1.0
     # via
     #   django-redis
     #   onadata
@@ -342,13 +343,13 @@ requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rfc3986==2.0.0
     # via tableschema
-rpds-py==2026.5.1
+rpds-py==2026.6.3
     # via
     #   jsonschema
     #   referencing
-s3transfer==0.19.0
+s3transfer==0.19.2
     # via boto3
-sentry-sdk==2.63.0
+sentry-sdk==2.68.1
     # via onadata
 simplejson==4.1.1
     # via onadata
@@ -361,21 +362,21 @@ six==1.17.0
     #   linear-tsv
     #   python-dateutil
     #   tableschema
-sqlalchemy==2.0.51
+sqlalchemy==2.0.52
     # via dataflows-tabulator
-sqlparse==0.5.5
+sqlparse==0.6.0
     # via
     #   django
     #   django-debug-toolbar
 tableschema==1.21.0
     # via datapackage
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   jwcrypto
     #   sqlalchemy
-tzdata==2026.2
+tzdata==2026.3
     # via kombu
-tzlocal==5.4.3
+tzlocal==5.4.4
     # via celery
 ujson==5.13.0
     # via onadata
@@ -389,6 +390,8 @@ urllib3==2.7.0
     # via
     #   -r requirements/base.in
     #   botocore
+    #   django-oauth-toolkit
+    #   onadata
     #   requests
     #   sentry-sdk
 uwsgi==2.0.31
@@ -400,9 +403,9 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-wcwidth==0.8.1
+wcwidth==0.8.2
     # via prompt-toolkit
-wrapt==2.2.2
+wrapt==2.3.0
     # via deprecated
 xlrd==2.0.1
     # via

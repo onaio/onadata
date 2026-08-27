@@ -3,6 +3,105 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.26.0(2026-08-26)*
+--------------------
+- feat(entities): support restoring a soft-deleted EntityList
+  [@kelvin-muchiri]
+  `PR #3179 https://github.com/onaio/onadata/pull/3179`
+- feat(entities): create/update Entities from repeats
+  [@kelvin-muchiri]
+  `PR #3186 https://github.com/onaio/onadata/pull/3186`
+- feat(entities): create/update Entities in multiple lists
+  [@kelvin-muchiri]
+  `PR #3187 https://github.com/onaio/onadata/pull/3187`
+- fix: preserve managed encryption status when rebuilding survey from XLSForm
+  [@kelvin-muchiri]
+  `PR #3191 https://github.com/onaio/onadata/pull/3191`
+- Fix UserActivity creation with read replicas
+  [@ukanga]
+  `PR #3189 https://github.com/onaio/onadata/pull/3189`
+- fix: record submitting user on decrypted attachments
+  [@kelvin-muchiri]
+  `PR #3194 https://github.com/onaio/onadata/pull/3194`
+- fix: wrap entity mutations in a transaction
+  [@kelvin-muchiri]
+  `PR #3195 https://github.com/onaio/onadata/pull/3195`
+- Enforce PKCE S256 for authorization code flows
+  [@ukanga]
+  `PR #3192 https://github.com/onaio/onadata/pull/3192`
+- Sign Azure original image attachment URLs
+  [@ukanga]
+  `PR #3198 https://github.com/onaio/onadata/pull/3198`
+- fix: coerce trigger lists to tuples when rebuilding survey from JSON
+  [@kelvin-muchiri]
+  `PR #3197 https://github.com/onaio/onadata/pull/3197`
+- Publish security fixes
+  [@ukanga]
+  `PR #3203 https://github.com/onaio/onadata/pull/3203`
+- Fix CSV import delimiter detection
+  [@ukanga]
+  `PR #3199 https://github.com/onaio/onadata/pull/3199`
+- Enforce active organization visibility for projects and forms
+  [@ukanga]
+  `PR #3178 https://github.com/onaio/onadata/pull/3178`
+- fix: preserve encrypted submission ciphertext when form encryption is off
+  [@kelvin-muchiri]
+  `PR #3206 https://github.com/onaio/onadata/pull/3206`
+- Fix AttributeError during CSV import with legacy XLSForm JSON
+  [@ukanga]
+  `PR #3202 https://github.com/onaio/onadata/pull/3202`
+- Fix flaky test in test_abstract_viewset.py
+  [@ukanga]
+  `PR #3204 https://github.com/onaio/onadata/pull/3204`
+- fix: soft delete suffix handling and name reuse for EntityList and XForm
+  [@kelvin-muchiri]
+  `PR #3183 https://github.com/onaio/onadata/pull/3183`
+- ci: run checks for security branch pull requests
+  [@ukanga]
+  `PR #3208 https://github.com/onaio/onadata/pull/3208`
+- fix(exports): make SAV locale independent of host
+  [@ukanga]
+  `PR #3210 https://github.com/onaio/onadata/pull/3210`
+- chore: bump pre-commit hooks for Python 3.13
+  [@ukanga]
+  `PR #3213 https://github.com/onaio/onadata/pull/3213`
+- feat(messaging): audit log profile changes
+  [@kelvin-muchiri]
+  `PR #3217 https://github.com/onaio/onadata/pull/3217`
+- fix(messaging): record audit events for encryption keys and entity lists
+  [@kelvin-muchiri]
+  `PR #3219 https://github.com/onaio/onadata/pull/3219`
+- perf: add composite xform_id date indexes to Instance
+  [@kelvin-muchiri]
+  `PR #3209 https://github.com/onaio/onadata/pull/3209`
+- feat(api): send instance_attachments with enketo edit URL requests
+  [@kelvin-muchiri]
+  `PR #3212 https://github.com/onaio/onadata/pull/3212`
+- test: fix the ordering and encoding assumptions failing CI
+  [@FrankApiyo]
+  `PR #3220 https://github.com/onaio/onadata/pull/3220`
+- Preserve metadata filenames in signed URLs
+  [@ukanga]
+  `PR #3218 https://github.com/onaio/onadata/pull/3218`
+- fix: scope submission edit URLs to the submission
+  [@kelvin-muchiri]
+  `PR #3222 https://github.com/onaio/onadata/pull/3222`
+- chore(ci): bump docker/login-action from 3.7.0 to 4.2.0
+  [@dependabot[bot]]
+  `PR #3147 https://github.com/onaio/onadata/pull/3147`
+- chore(ci): bump actions/cache from 4.3.0 to 6.1.0
+  [@dependabot[bot]]
+  `PR #3150 https://github.com/onaio/onadata/pull/3150`
+- chore(ci): bump actions/setup-python from 5.6.0 to 7.0.0
+  [@dependabot[bot]]
+  `PR #3148 https://github.com/onaio/onadata/pull/3148`
+- chore(ci): bump aws-actions/configure-aws-credentials from ff717079ee2060e4bcee96c4779b553acc87447c to 7474bc4690e29a8392af63c5b98e7449536d5c3a
+  [@dependabot[bot]]
+  `PR #3151 https://github.com/onaio/onadata/pull/3151`
+- chore(deps): update pinned dependencies
+  [@kelvin-muchiri]
+  `PR #3232 https://github.com/onaio/onadata/pull/3232`
+
 v5.23.0(2026-07-20)
 -------------------
 - feat(entities): capture audit log on EntityList deletion
