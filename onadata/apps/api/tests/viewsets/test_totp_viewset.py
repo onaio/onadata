@@ -1048,6 +1048,77 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_enrolment_is_written_to_the_security_audit_log(self):
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            self._enroll()
+
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-enrolled", actions)
+
+    def test_failed_verification_is_written_to_the_security_audit_log(self):
+        self._enroll()
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            response = self._verify({"code": "000000", "method": "totp"})
+
+        self.assertEqual(response.status_code, 403)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-verification-failed", actions)
+
+    def test_disabling_two_factor_is_written_to_the_security_audit_log(self):
+        device = self._enroll()
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            with next_totp_window():
+                response = self._post_with_api_key(
+                    "disable", {"code": current_code(device.key)}
+                )
+
+        self.assertEqual(response.status_code, 200)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-disabled", actions)
+
+    def test_regenerating_recovery_codes_is_written_to_the_security_audit_log(self):
+        device = self._enroll()
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            with next_totp_window():
+                response = self._post_with_api_key(
+                    "recovery_generate", {"code": current_code(device.key)}
+                )
+
+        self.assertEqual(response.status_code, 201)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-recovery-codes-generated", actions)
+
+    def test_viewing_recovery_codes_is_written_to_the_security_audit_log(self):
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        self.assertEqual(generated.status_code, 201)
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            with next_totp_window():
+                viewed = self._post_with_api_key(
+                    "recovery_view", {"code": current_code(device.key)}
+                )
+
+        self.assertEqual(viewed.status_code, 200)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-recovery-codes-viewed", actions)
+
 
 @override_settings(ENABLE_TWO_FACTOR=False)
 class DisabledTOTPViewSetTestCase(TestAbstractViewSet):

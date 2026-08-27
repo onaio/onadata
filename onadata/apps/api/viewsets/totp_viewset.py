@@ -16,6 +16,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext as _
 from django.views.decorators.debug import sensitive_post_parameters, sensitive_variables
 
 import qrcode
@@ -38,6 +39,8 @@ from onadata.libs.authentication import (
     assert_not_locked_out,
     get_client_ip,
 )
+from onadata.libs.utils.log import Actions, audit_log
+from onadata.libs.utils.two_factor import record_verification_failure
 
 RECOVERY_CODE_COUNT = 10
 
@@ -275,6 +278,7 @@ class TOTPViewSet(ViewSet):
             return None
         if _verify_code(request.user, str(request.data.get("code", "")).strip()):
             return None
+        record_verification_failure(request, request.user, {"audience": audience})
         return Response(
             {
                 "error": "That code is not valid. Enter a current code from your "
@@ -455,6 +459,16 @@ class TOTPViewSet(ViewSet):
             device.confirmed = True
             device.save(update_fields=["confirmed"])
             codes = _regenerate_recovery_codes(request.user)
+        # After the transaction: neither the log entry nor the email can be
+        # rolled back, so neither may describe an enrolment that was.
+        audit_log(
+            Actions.TWO_FACTOR_ENROLLED,
+            request.user,
+            request.user,
+            _("Two-factor authentication enabled."),
+            {},
+            request,
+        )
         return Response({"enrolled": True, "codes": codes})
 
     @action(detail=False, methods=["post"], url_path="disable")
@@ -472,6 +486,14 @@ class TOTPViewSet(ViewSet):
             # standing that nothing here can verify, so never removable.
             for device in devices_for_user(request.user, confirmed=None):
                 device.delete()
+        audit_log(
+            Actions.TWO_FACTOR_DISABLED,
+            request.user,
+            request.user,
+            _("Two-factor authentication disabled."),
+            {},
+            request,
+        )
         return Response({"enrolled": False})
 
     @action(detail=False, methods=["post"], url_path="recovery/generate")
@@ -485,11 +507,17 @@ class TOTPViewSet(ViewSet):
         refusal = self._require_code(request, "recovery-generate")
         if refusal is not None:
             return refusal
-        # The only time these are readable.
-        return Response(
-            {"codes": _regenerate_recovery_codes(request.user)},
-            status=status.HTTP_201_CREATED,
+        codes = _regenerate_recovery_codes(request.user)
+        audit_log(
+            Actions.TWO_FACTOR_RECOVERY_CODES_GENERATED,
+            request.user,
+            request.user,
+            _("Two-factor recovery codes replaced."),
+            {},
+            request,
         )
+        # The only time these are readable.
+        return Response({"codes": codes}, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["post"], url_path="recovery")
     def recovery_view(self, request):
@@ -507,6 +535,14 @@ class TOTPViewSet(ViewSet):
                 {"error": "No recovery codes have been generated."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        audit_log(
+            Actions.TWO_FACTOR_RECOVERY_CODES_VIEWED,
+            request.user,
+            request.user,
+            _("Two-factor recovery codes viewed."),
+            {},
+            request,
+        )
         return Response(
             {"codes": list(recovery.token_set.values_list("token", flat=True))}
         )
@@ -537,6 +573,9 @@ class TOTPViewSet(ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not _verify_code(request.user, code, method):
+            record_verification_failure(
+                request, request.user, {"audience": audience, "method": method}
+            )
             return Response(
                 {"error": "That code is not valid."},
                 status=status.HTTP_403_FORBIDDEN,
