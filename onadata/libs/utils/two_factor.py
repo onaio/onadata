@@ -4,16 +4,28 @@ Shared by the API viewset and the login wizard.
 """
 
 from django.conf import settings
-from django.core.cache import cache
 from django.utils.translation import gettext as _
 
+from onadata.libs.utils.cache_tools import (
+    safe_cache_add,
+    safe_cache_delete,
+    safe_cache_incr,
+)
 from onadata.libs.utils.log import Actions, audit_log
 
 FAILURE_COUNT_CACHE_PREFIX = "two-factor-failures"
 
 
+def _failure_key(user) -> str:
+    return f"{FAILURE_COUNT_CACHE_PREFIX}:{user.pk}"
+
+
 def notify_owner(user, event, **context):
-    """Email the account owner about a change to their second factor."""
+    """Email the account owner about a change to their second factor.
+
+    A broker outage must not fail the request whose state already committed,
+    so an enqueue failure is swallowed rather than raised back to the caller.
+    """
     if not user.email:
         return
     # Lazy: the login wizard reaches this module, and the task module imports
@@ -23,9 +35,12 @@ def notify_owner(user, event, **context):
     from onadata.libs.utils.email import get_two_factor_email_data
 
     email_data = get_two_factor_email_data(user.username, event, **context)
-    send_two_factor_changed_email.apply_async(
-        args=[user.email, email_data["message_txt"], email_data["subject"]]
-    )
+    try:
+        send_two_factor_changed_email.apply_async(
+            args=[user.email, email_data["message_txt"], email_data["subject"]]
+        )
+    except Exception:  # pylint: disable=broad-except
+        pass
 
 
 def record_verification_failure(request, user, audit):
@@ -41,21 +56,28 @@ def record_verification_failure(request, user, audit):
     _alert_on_repeated_failures(user)
 
 
+def clear_verification_failures(user):
+    """Drop the failure run once the user proves a factor, so a later slip
+    does not alert on a burst that was already resolved."""
+    safe_cache_delete(_failure_key(user))
+
+
 def _alert_on_repeated_failures(user):
     """One owner email per window once failures reach the threshold.
 
-    The window opens at the first failure: ``cache.add`` sets the expiry only
-    when the key is absent, and ``incr`` preserves it. Alerting on the exact
+    The window opens at the first failure: ``add`` sets the expiry only when
+    the key is absent, and ``incr`` preserves it. Alerting on the exact
     threshold count keeps it to one email per window however long the run of
-    failures continues.
+    failures continues. Cache access goes through the safe wrappers so a
+    missing key or an unreachable backend cannot turn a 403 into a 500.
     """
     threshold = getattr(settings, "TWO_FACTOR_FAILURE_ALERT_THRESHOLD", 10)
     if not threshold:
         return
     window = getattr(settings, "TWO_FACTOR_FAILURE_ALERT_WINDOW", 1800)
-    key = f"{FAILURE_COUNT_CACHE_PREFIX}:{user.pk}"
-    cache.add(key, 0, window)
-    if cache.incr(key) == threshold:
+    key = _failure_key(user)
+    safe_cache_add(key, 0, window)
+    if safe_cache_incr(key) == threshold:
         notify_owner(
             user,
             "failed_attempts",

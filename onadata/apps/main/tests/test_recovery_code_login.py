@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tests for the recovery-code step of the login wizard."""
+
+from django.core.cache import cache
 from django.test import Client
 from django.urls import reverse
 
@@ -26,6 +28,11 @@ class RecoveryCodeStepTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
+        # The lockout counter lives in the cache, which the runner does not
+        # roll back; clear it so a failed code here does not leak onto the
+        # shared user in the next test.
+        cache.clear()
+        self.addCleanup(cache.clear)
         self.url = reverse("two_factor:login")
         self.client = Client()
         TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)

@@ -15,6 +15,17 @@ from onadata.apps.main.forms import (
 )
 
 
+def _error_codes(validation_error):
+    """The set of error codes carried by a ValidationError, in either form."""
+    if hasattr(validation_error, "error_dict"):
+        return {
+            error.code
+            for errors in validation_error.error_dict.values()
+            for error in errors
+        }
+    return {error.code for error in validation_error.error_list}
+
+
 def _default_remember_to_off(form):
     """Make "don't ask again on this device" a choice rather than a default.
 
@@ -50,7 +61,17 @@ def _enforce_lockout(form, request, step):
 
         try:
             return inner_clean()
-        except forms.ValidationError:
+        except forms.ValidationError as validation_error:
+            # Skip only a genuinely incomplete submission. django-otp raises
+            # ``token_required`` when the field is empty or malformed (its
+            # value never reached ``cleaned_data``), and that is not an
+            # attempt -- the credentials step skips an incomplete submission
+            # the same way. A wrong code (``invalid_token``) and a throttle
+            # refusal that stands in for one (``n_failed_attempts``) are real
+            # attempts and must still spend the bounded login allowance, or
+            # django-otp's unbounded per-device backoff becomes the only limit.
+            if "token_required" in _error_codes(validation_error):
+                raise
             # Lazy for the same reason as above. Recorded before the lockout
             # counter so hitting the threshold cannot skip the audit entry.
             two_factor = importlib.import_module("onadata.libs.utils.two_factor")

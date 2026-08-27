@@ -13,6 +13,7 @@ import io
 import secrets
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import transaction
 from django.utils.decorators import method_decorator
@@ -24,7 +25,7 @@ from django_otp import devices_for_user
 from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework import status
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.exceptions import AuthenticationFailed, NotFound
 from rest_framework.permissions import IsAuthenticated
@@ -40,7 +41,11 @@ from onadata.libs.authentication import (
     get_client_ip,
 )
 from onadata.libs.utils.log import Actions, audit_log
-from onadata.libs.utils.two_factor import notify_owner, record_verification_failure
+from onadata.libs.utils.two_factor import (
+    clear_verification_failures,
+    notify_owner,
+    record_verification_failure,
+)
 
 RECOVERY_CODE_COUNT = 10
 
@@ -166,21 +171,32 @@ VERIFY_METHODS = {
 }
 
 
+def _method_for_code(code: str) -> str:
+    """The one factor a code could belong to, by shape.
+
+    A TOTP code is six digits; a recovery code is base32 and never is. Routing
+    on that keeps a recovery attempt off the TOTP device's throttle (and a TOTP
+    attempt off the recovery set), so one factor's failures never lock the
+    other -- ``TOTPDevice.verify_token`` counts a non-numeric code as a failed
+    attempt against the authenticator the user never touched.
+    """
+    return "totp" if code.isdigit() and len(code) == 6 else "recovery"
+
+
 def _verify_code(user, code: str, method: str = "") -> bool:
-    """Whether ``code`` proves the named factor -- or, unnamed, any factor.
+    """Whether ``code`` proves the named factor -- or, unnamed, the one it fits.
 
     Recovery codes count: someone who lost their authenticator still has to be
     able to turn it off. A caller that names a ``method`` is checked against
-    that factor alone, so factor kinds stay distinguishable as more are added.
+    that factor alone; unnamed, the code is routed to the single factor its
+    shape allows, never tried against both.
     """
     if not code:
         return False
-    if method:
-        # Unknown method is "not verified", never a KeyError, for callers
-        # that forward one; verify() rejects it with a 400 before reaching here.
-        check = VERIFY_METHODS.get(method)
-        return check is not None and check(user, code)
-    return any(check(user, code) for check in VERIFY_METHODS.values())
+    # Unknown method is "not verified", never a KeyError, for callers that
+    # forward one; verify() rejects it with a 400 before reaching here.
+    check = VERIFY_METHODS.get(method or _method_for_code(code))
+    return check is not None and check(user, code)
 
 
 def _recovery_token() -> str:
@@ -200,6 +216,10 @@ def _regenerate_recovery_codes(user) -> list:
     would make the remaining count a lie.
     """
     with transaction.atomic():
+        # Serialise on the user row: locking the recovery device would not
+        # cover two callers who both find none yet and each create one, whom
+        # delete-then-create under READ COMMITTED leaves with two live sets.
+        get_user_model().objects.select_for_update().get(pk=user.pk)
         StaticDevice.objects.filter(user=user, name=RECOVERY_DEVICE_NAME).delete()
         device = StaticDevice.objects.create(
             user=user, name=RECOVERY_DEVICE_NAME, confirmed=True
@@ -231,7 +251,15 @@ def _enrollment_payload(device) -> dict:
 class TOTPViewSet(ViewSet):
     """Enroll, disable and verify the authenticator for the calling user."""
 
-    authentication_classes = (SSOHeaderAuthentication, TokenAuthentication)
+    # SessionAuthentication so a user signed in through the login wizard (which
+    # issues a Django session, not the SSO cookie) can manage their own factor;
+    # it also re-applies CSRF for that cookie-borne path, which the others,
+    # being header/JWT credentials, do not need.
+    authentication_classes = (
+        SSOHeaderAuthentication,
+        SessionAuthentication,
+        TokenAuthentication,
+    )
     permission_classes = (IsAuthenticated,)
     renderer_classes = (JSONRenderer,)
 
@@ -265,6 +293,36 @@ class TOTPViewSet(ViewSet):
             raise NotFound("Two-factor authentication is not enabled.")
         super().initial(request, *args, **kwargs)
 
+    def _locked_out_response(self, request):
+        """A locked-out Response if failed codes have spent the login
+        allowance, else None.
+
+        Bounds every code-checking route by onadata's ``LOCKOUT_TIME``, so a
+        caller spamming wrong codes -- with a stolen token, this endpoint's own
+        weakness -- meets a defined lockout rather than django-otp's per-device
+        backoff, which is uncapped and effectively permanent. Keyed on the same
+        username as the login form, so the two share one allowance.
+        """
+        try:
+            assert_not_locked_out(get_client_ip(request), request.user.username)
+        except AuthenticationFailed as lockout:
+            return Response(
+                {"error": str(lockout.detail), "reason": "locked_out"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
+    def _spend_code_attempt(self, request):
+        """Count a failed code against the bounded login allowance.
+
+        A threshold hit raises, which the next request sees as ``locked_out``;
+        the current response stays the standard invalid-code message.
+        """
+        try:
+            add_login_attempt(get_client_ip(request), request.user.username)
+        except AuthenticationFailed:
+            pass
+
     def _require_code(self, request, audience: str):
         """Reject unless the request carries a current second factor.
 
@@ -272,13 +330,17 @@ class TOTPViewSet(ViewSet):
         stolen session could switch 2FA off. A grant from a recent ``verify``
         counts, but only one earned for this same ``audience``.
         """
+        locked = self._locked_out_response(request)
+        if locked is not None:
+            return locked
         if _spend_grant(
-            request.user, audience, str(request.data.get("grant", "")).strip()
+            request.user, audience, str(request.data.get("grant") or "").strip()
         ):
             return None
-        if _verify_code(request.user, str(request.data.get("code", "")).strip()):
+        if _verify_code(request.user, str(request.data.get("code") or "").strip()):
             return None
         record_verification_failure(request, request.user, {"audience": audience})
+        self._spend_code_attempt(request)
         return Response(
             {
                 "error": "That code is not valid. Enter a current code from your "
@@ -315,12 +377,17 @@ class TOTPViewSet(ViewSet):
         # Guesses here spend the login form's allowance, or this endpoint
         # would be a way around the lockout instead of a second lock on the
         # same password.
+        password = str(request.data.get("password") or "")
         ip_address, username = get_client_ip(request), user.username
         try:
             assert_not_locked_out(ip_address, username)
-            if user.check_password(str(request.data.get("password", ""))):
+            if user.check_password(password):
                 return None
-            add_login_attempt(ip_address, username)
+            # An absent password is an incomplete request, not a wrong guess;
+            # the login form draws the same line, so a client probing for the
+            # required ``reason`` does not burn the shared allowance.
+            if password:
+                add_login_attempt(ip_address, username)
         except AuthenticationFailed as lockout:
             return Response(
                 {"error": str(lockout.detail), "reason": "locked_out"},
@@ -423,7 +490,7 @@ class TOTPViewSet(ViewSet):
         refusal = self._require_login_session(request)
         if refusal is not None:
             return refusal
-        code = str(request.data.get("code", "")).strip()
+        code = str(request.data.get("code") or "").strip()
         # One transaction, with the pending row locked before the code is
         # spent: a device that confirmed but whose recovery codes did not is
         # one lost phone from a locked account, and racing callers would each
@@ -439,6 +506,19 @@ class TOTPViewSet(ViewSet):
                     status=status.HTTP_409_CONFLICT,
                 )
             if not device.verify_token(code):
+                # Audited for a complete trail, but not through
+                # record_verification_failure: a mistyped confirmation is the
+                # enrolling owner fumbling their own new code, so it should not
+                # feed the owner-alert counter meant for attempts against a
+                # live factor.
+                audit_log(
+                    Actions.TWO_FACTOR_VERIFICATION_FAILED,
+                    request.user,
+                    request.user,
+                    _("Two-factor verification failed."),
+                    {"step": "enroll-confirm"},
+                    request,
+                )
                 return Response(
                     {
                         "error": "That code is not valid. Check the time on your "
@@ -448,8 +528,8 @@ class TOTPViewSet(ViewSet):
                 )
             # default_device() answers with the first confirmed device named
             # "default", not the newest, so an incumbent left behind stays the
-            # device the login wizard challenges on. Matched by name across
-            # every class, the way disable() is.
+            # device the login wizard challenges on. It is removed by name,
+            # the classes this module manages, below.
             for superseded in devices_for_user(request.user, confirmed=True):
                 if (
                     superseded.name == TOTP_DEVICE_NAME
@@ -559,7 +639,10 @@ class TOTPViewSet(ViewSet):
         recognises: minting a grant for an unknown operation would spend the
         user's code on something they can never redeem.
         """
-        code = str(request.data.get("code", "")).strip()
+        locked = self._locked_out_response(request)
+        if locked is not None:
+            return locked
+        code = str(request.data.get("code") or "").strip()
         audience = str(request.data.get("audience", "")).strip()
         if audience not in _known_audiences():
             # Static message: audience is unbounded caller input.
@@ -579,10 +662,12 @@ class TOTPViewSet(ViewSet):
             record_verification_failure(
                 request, request.user, {"audience": audience, "method": method}
             )
+            self._spend_code_attempt(request)
             return Response(
                 {"error": "That code is not valid."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        clear_verification_failures(request.user)
         return Response(
             {"verified": True, "grant": _issue_grant(request.user, audience)}
         )

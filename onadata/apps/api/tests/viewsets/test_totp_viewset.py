@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.cache import cache
 from django.test import RequestFactory, override_settings
+from django.urls import reverse
 from django.views.debug import SafeExceptionReporterFilter
 
 import jwt
@@ -77,6 +78,11 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
     def setUp(self):
         super().setUp()
+        # The login lockout and failure-alert counters live in the cache, which
+        # the test runner does not roll back; clear it so a failed code in one
+        # test does not leak a count onto the shared user in the next.
+        cache.clear()
+        self.addCleanup(cache.clear)
         self.view = TOTPViewSet.as_view(
             {
                 "get": "totp_status",
@@ -1223,6 +1229,76 @@ class TestTOTPViewSet(TestAbstractViewSet):
             [message for message in mail.outbox if self.user.email in message.to],
             [],
         )
+
+    @override_settings(MAX_LOGIN_ATTEMPTS=3, LOCKOUT_TIME=1800)
+    @patch("onadata.libs.authentication.send_account_lockout_email.apply_async")
+    def test_repeated_failed_verifications_spend_the_login_lockout(self, _mock):
+        """A stolen credential spamming wrong codes meets onadata's bounded
+        lockout, not django-otp's uncapped per-device backoff."""
+        self._enroll()
+
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS):
+            wrong = self._verify({"code": "000000"})
+            self.assertEqual(wrong.status_code, 403)
+            self.assertNotEqual(wrong.data.get("reason"), "locked_out")
+
+        locked = self._verify({"code": "000000"})
+        self.assertEqual(locked.status_code, 403)
+        self.assertEqual(locked.data["reason"], "locked_out")
+
+    @override_settings(MAX_LOGIN_ATTEMPTS=3, LOCKOUT_TIME=1800)
+    @patch("onadata.libs.authentication.send_account_lockout_email.apply_async")
+    def test_the_disable_code_path_shares_the_login_lockout(self, _mock):
+        """The lockout is shared across the code-checking routes, so it cannot
+        be spent separately on each."""
+        self._enroll()
+
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS):
+            self.assertEqual(
+                self._post_with_api_key("disable", {"code": "000000"}).status_code,
+                403,
+            )
+
+        locked = self._post_with_api_key("disable", {"code": "000000"})
+        self.assertEqual(locked.status_code, 403)
+        self.assertEqual(locked.data["reason"], "locked_out")
+
+    def test_a_recovery_attempt_does_not_throttle_the_authenticator(self):
+        """A wrong recovery code throttles the recovery set, never the
+        authenticator the user still holds -- the code is routed by shape, so a
+        non-numeric attempt never reaches the TOTP device to increment it."""
+        device = self._enroll()
+
+        for _ in range(3):
+            self.assertEqual(
+                self._verify({"code": "wrongrecoverycode"}).status_code, 403
+            )
+
+        device.refresh_from_db()
+        self.assertEqual(device.throttling_failure_count, 0)
+
+    @override_settings(
+        TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True, MAX_LOGIN_ATTEMPTS=3
+    )
+    @patch("onadata.libs.authentication.send_account_lockout_email.apply_async")
+    def test_a_missing_enrolment_password_does_not_spend_the_lockout(self, _mock):
+        """Probing for the required reason with no password is an incomplete
+        request, not a wrong guess, so it does not burn the shared allowance."""
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS + 1):
+            response = self._post_session("enroll_start", {})
+            self.assertEqual(response.data["reason"], "password_required")
+
+        enrolled = self._post_session("enroll_start", {"password": self.login_password})
+        self.assertEqual(enrolled.status_code, 201)
+
+    def test_a_login_session_can_reach_the_endpoints(self):
+        """A user signed in through the wizard holds a Django session, not the
+        SSO cookie; the viewset must still let them manage their own factor."""
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("totp-totp-status"))
+
+        self.assertEqual(response.status_code, 200)
 
 
 @override_settings(ENABLE_TWO_FACTOR=False)
