@@ -85,6 +85,20 @@ def get_account_lockout_email_data(username, ip_address, end=False):
     return email_data
 
 
+def get_two_factor_email_data(username, enabled):
+    """Generates the email notifying a change to the account's second factor"""
+    state = "enabled" if enabled else "disabled"
+    ctx_dict = {
+        "username": username,
+        "support_email": getattr(settings, "SUPPORT_EMAIL", "support@example.com"),
+    }
+
+    return {
+        "subject": render_to_string(f"two_factor/{state}_email_subject.txt"),
+        "message_txt": render_to_string(f"two_factor/{state}.txt", ctx_dict),
+    }
+
+
 def get_account_deactivation_email_data(
     email, username, days_remaining, deactivation_date
 ):

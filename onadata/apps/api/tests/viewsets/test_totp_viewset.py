@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core import mail
 from django.core.cache import cache
 from django.test import RequestFactory, override_settings
 from django.views.debug import SafeExceptionReporterFilter
@@ -1047,6 +1048,51 @@ class TestTOTPViewSet(TestAbstractViewSet):
             )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_enrolment_is_written_to_the_security_audit_log(self):
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            self._enroll()
+
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-enrolled", actions)
+
+    def test_failed_verification_is_written_to_the_security_audit_log(self):
+        self._enroll()
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            response = self._verify({"code": "000000", "method": "totp"})
+
+        self.assertEqual(response.status_code, 403)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-verification-failed", actions)
+
+    def test_enrolment_notifies_the_account_owner(self):
+        mail.outbox = []
+
+        self._enroll()
+
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "enrolling a factor did not notify the account owner",
+        )
+
+    def test_disabling_two_factor_notifies_the_account_owner(self):
+        device = self._enroll()
+        mail.outbox = []
+        with next_totp_window():
+            response = self._post_with_api_key(
+                "disable", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "disabling a factor did not notify the account owner",
+        )
 
 
 @override_settings(ENABLE_TWO_FACTOR=False)

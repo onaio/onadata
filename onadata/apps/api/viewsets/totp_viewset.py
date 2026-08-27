@@ -16,6 +16,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext as _
 from django.views.decorators.debug import sensitive_post_parameters, sensitive_variables
 
 import qrcode
@@ -32,12 +33,15 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from two_factor.utils import default_device
 
+from onadata.apps.api.tasks import send_two_factor_changed_email
 from onadata.libs.authentication import (
     SSOHeaderAuthentication,
     add_login_attempt,
     assert_not_locked_out,
     get_client_ip,
 )
+from onadata.libs.utils.email import get_two_factor_email_data
+from onadata.libs.utils.log import Actions, audit_log
 
 RECOVERY_CODE_COUNT = 10
 
@@ -207,6 +211,32 @@ def _regenerate_recovery_codes(user) -> list:
         ]
 
 
+def _audit_verification_failure(request, audit: dict):
+    """Record a failed second-factor check where an operator can see it."""
+    audit_log(
+        Actions.TWO_FACTOR_VERIFICATION_FAILED,
+        request.user,
+        request.user,
+        _("Two-factor verification failed."),
+        audit,
+        request,
+    )
+
+
+def _notify_owner(user, enabled: bool):
+    """Tell the account owner their second factor changed.
+
+    Whoever made the change -- owner or intruder -- the owner finds out.
+    Skipped when the account has no address to reach.
+    """
+    if not user.email:
+        return
+    email_data = get_two_factor_email_data(user.username, enabled)
+    send_two_factor_changed_email.apply_async(
+        args=[user.email, email_data["message_txt"], email_data["subject"]]
+    )
+
+
 def _enrollment_payload(device) -> dict:
     """One secret in three renderings: QR, URI, and base32 to type by hand.
 
@@ -275,6 +305,7 @@ class TOTPViewSet(ViewSet):
             return None
         if _verify_code(request.user, str(request.data.get("code", "")).strip()):
             return None
+        _audit_verification_failure(request, {"audience": audience})
         return Response(
             {
                 "error": "That code is not valid. Enter a current code from your "
@@ -455,6 +486,17 @@ class TOTPViewSet(ViewSet):
             device.confirmed = True
             device.save(update_fields=["confirmed"])
             codes = _regenerate_recovery_codes(request.user)
+        # After the transaction: neither the log entry nor the email can be
+        # rolled back, so neither may describe an enrolment that was.
+        audit_log(
+            Actions.TWO_FACTOR_ENROLLED,
+            request.user,
+            request.user,
+            _("Two-factor authentication enabled."),
+            {},
+            request,
+        )
+        _notify_owner(request.user, enabled=True)
         return Response({"enrolled": True, "codes": codes})
 
     @action(detail=False, methods=["post"], url_path="disable")
@@ -472,6 +514,7 @@ class TOTPViewSet(ViewSet):
             # standing that nothing here can verify, so never removable.
             for device in devices_for_user(request.user, confirmed=None):
                 device.delete()
+        _notify_owner(request.user, enabled=False)
         return Response({"enrolled": False})
 
     @action(detail=False, methods=["post"], url_path="recovery/generate")
@@ -537,6 +580,9 @@ class TOTPViewSet(ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not _verify_code(request.user, code, method):
+            _audit_verification_failure(
+                request, {"audience": audience, "method": method}
+            )
             return Response(
                 {"error": "That code is not valid."},
                 status=status.HTTP_403_FORBIDDEN,
