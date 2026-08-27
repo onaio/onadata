@@ -8,6 +8,8 @@ urllib3>=2.7.0
 # Two-factor authentication. Bounded below 2 because this is the login path:
 # a major release should be adopted deliberately, not by the next re-compile.
 django-two-factor-auth>=1.18,<2
+# In INSTALLED_APPS and imported directly, so pinned here, not left transitive.
+django-otp>=1.7,<2
 # Imported directly by onadata.apps.api.viewsets.totp_viewset to render the
 # enrolment QR, so declared here rather than relied on as a transitive.
 qrcode>=8,<9
