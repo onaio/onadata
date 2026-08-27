@@ -476,6 +476,11 @@ class TOTPViewSet(ViewSet):
         if refusal is not None:
             return refusal
         with transaction.atomic():
+            # Serialise on the user row, as _regenerate_recovery_codes does:
+            # two racing starts would otherwise each delete-then-create under
+            # READ COMMITTED and leave two pending devices, so a later confirm
+            # verifies against one while the caller was shown the other.
+            get_user_model().objects.select_for_update().get(pk=request.user.pk)
             TOTPDevice.objects.filter(
                 user=request.user, name=TOTP_DEVICE_NAME, confirmed=False
             ).delete()

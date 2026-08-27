@@ -207,3 +207,56 @@ class EnrolmentConfirmationConcurrencyTestCase(TransactionTestCase):
                 )
             ),
         )
+
+
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False)
+class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
+    """Racing starts leave one pending device, not one per worker.
+
+    Each start deletes the prior pending device and creates a new one;
+    unlocked, two callers under READ COMMITTED both survive, so a later
+    confirm verifies against one while the caller was shown the other.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.create_user(
+            "startrace", "startrace@example.com", "pw-9F3kz"
+        )
+
+    def test_racing_starts_leave_one_pending_device(self):
+        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
+        sso = jwt.encode(
+            {"email": self.user.email},
+            config["JWT_SECRET_KEY"],
+            algorithm=config["JWT_ALGORITHM"],
+        )
+        barrier = threading.Barrier(CONCURRENT)
+        responses = []
+        guard = threading.Lock()
+
+        def worker():
+            try:
+                request = APIRequestFactory().post("/", data={}, HTTP_SSO=sso)
+                barrier.wait(timeout=10)
+                response = TOTPViewSet.as_view({"post": "enroll_start"})(request)
+                with guard:
+                    responses.append(response)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=worker) for _ in range(CONCURRENT)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+
+        self.assertEqual(len(responses), CONCURRENT, "a worker did not finish")
+        self.assertEqual({response.status_code for response in responses}, {201})
+        self.assertEqual(
+            TOTPDevice.objects.filter(
+                user=self.user, name=TOTP_DEVICE_NAME, confirmed=False
+            ).count(),
+            1,
+            "racing starts left more than one pending device",
+        )
