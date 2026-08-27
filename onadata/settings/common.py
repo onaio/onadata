@@ -161,10 +161,13 @@ TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
 # Demand the account password before a first authenticator enrolment, where
 # there is no factor yet for ``_require_code`` to challenge.
 #
-# Off by default: a deployment whose users authenticate elsewhere may hold
-# password hashes nobody knows, and demanding one there would bar enrolment
-# outright. Deployments where the password is the account's own turn it on.
-TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = False
+# On by default: without it, an SSO credential alone can enrol an authenticator
+# and lock the owner out of their own second factor, so the safe default is to
+# require recent primary-credential proof. A deployment whose users hold no
+# usable local password (identity lives entirely in an IdP) turns it off
+# deliberately, accepting that trade -- or owns the factor federally, per
+# ``STEP_UP``.
+TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = True
 
 # Email the account owner after this many failed second-factor checks within
 # TWO_FACTOR_FAILURE_ALERT_WINDOW seconds -- one email per window. 0 disables

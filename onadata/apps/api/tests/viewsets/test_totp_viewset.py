@@ -1301,6 +1301,43 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
 
+@override_settings(ENABLE_TWO_FACTOR=True)
+class SecureEnrolmentDefaultTestCase(TestAbstractViewSet):
+    """First enrolment demands the account password by default.
+
+    The password setting is left unpinned on purpose: this asserts the
+    shipped default is fail-closed, so an SSO credential alone cannot enrol a
+    factor and lock the owner out of their own second factor.
+    """
+
+    def _sso(self):
+        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
+        token = jwt.encode(
+            {"email": self.user.email},
+            config["JWT_SECRET_KEY"],
+            algorithm=config["JWT_ALGORITHM"],
+        )
+        return {"HTTP_SSO": token}
+
+    def test_an_sso_session_alone_cannot_start_first_enrolment(self):
+        request = self.factory.post("/", data={}, **self._sso())
+
+        response = TOTPViewSet.as_view({"post": "enroll_start"})(request)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["reason"], "password_required")
+        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+
+    def test_the_account_password_starts_first_enrolment(self):
+        request = self.factory.post(
+            "/", data={"password": self.login_password}, **self._sso()
+        )
+
+        response = TOTPViewSet.as_view({"post": "enroll_start"})(request)
+
+        self.assertEqual(response.status_code, 201)
+
+
 @override_settings(ENABLE_TWO_FACTOR=False)
 class DisabledTOTPViewSetTestCase(TestAbstractViewSet):
     """With ``ENABLE_TWO_FACTOR`` off there is no enrolment.
