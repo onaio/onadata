@@ -18,20 +18,27 @@ from django.urls import reverse
 from django.views.debug import SafeExceptionReporterFilter
 
 import jwt
-from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
+from django_otp.plugins.otp_static.models import StaticDevice
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework.authtoken.models import Token
 from two_factor.utils import default_device
 
+from onadata.apps.api.models.hashed_recovery_device import (
+    HashedRecoveryCode,
+    HashedRecoveryDevice,
+    hash_recovery_code,
+)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.totp_viewset import (
-    RECOVERY_CODE_ALPHABET,
     RECOVERY_CODE_COUNT,
     RECOVERY_DEVICE_NAME,
     TOTP_DEVICE_NAME,
     TOTPViewSet,
     _verify_recovery,
 )
+
+#: Lowercase base32, the alphabet recovery codes are drawn from.
+RECOVERY_CODE_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567"
 
 #: Any test spending two codes must move between windows: django-otp records
 #: the counter a code was used at and refuses it again.
@@ -180,20 +187,19 @@ class TestTOTPViewSet(TestAbstractViewSet):
         status_body = self._get_status().data
         self.assertTrue(status_body["methods"])
 
-    def test_recovery_codes_are_the_set_two_factors_backup_step_reads(self):
-        """One recovery set, and it is the one the login wizard reads.
+    def test_enrolment_creates_a_hashed_recovery_set(self):
+        """Enrolment leaves one recovery device holding the code hashes.
 
-        The wizard's backup step takes ``staticdevice_set.first()`` without
-        filtering on the name, so the set this module writes has to be the
-        user's only static device or the wizard can verify against the wrong
-        one.
+        The wizard reads this same device by name on its backup step, so the
+        set the API writes is the set the login path verifies against.
         """
         self._enroll()
 
         self.assertEqual(RECOVERY_DEVICE_NAME, "backup")
-        device = self.user.staticdevice_set.first()
-        self.assertIsNotNone(device)
-        self.assertEqual(device.token_set.count(), RECOVERY_CODE_COUNT)
+        device = HashedRecoveryDevice.objects.get(
+            user=self.user, name=RECOVERY_DEVICE_NAME
+        )
+        self.assertEqual(device.codes.count(), RECOVERY_CODE_COUNT)
 
     def test_status_reports_nothing_before_enrollment(self):
         response = self._get_status()
@@ -343,7 +349,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
-        self.assertFalse(StaticDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(HashedRecoveryDevice.objects.filter(user=self.user).exists())
 
     def test_recovery_codes_need_an_authenticator_first(self):
         response = self._post_with_api_key("recovery_generate", {"code": "000000"})
@@ -364,12 +370,12 @@ class TestTOTPViewSet(TestAbstractViewSet):
             {"generated": True, "remaining": RECOVERY_CODE_COUNT},
         )
 
-    def test_recovery_codes_carry_at_least_64_bits_of_randomness(self):
-        """Base32 spends 5 bits a character, so 64 bits needs 13 of them.
+    def test_recovery_codes_carry_at_least_112_bits_of_randomness(self):
+        """Base32 spends 5 bits a character, so 112 bits needs 23 of them.
 
-        Rate limiting is what actually makes these unguessable -- see the
-        throttling test below -- but the entropy is the half that holds if
-        the throttle is ever turned off.
+        112 is the threshold at which ASVS permits a plain keyed hash rather
+        than a slow password hash for a stored lookup secret, which is how
+        these are stored.
         """
         device = self._enroll()
         with next_totp_window():
@@ -379,7 +385,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
 
         for code in response.data["codes"]:
-            self.assertGreaterEqual(len(code), 13, code)
+            self.assertGreaterEqual(len(code), 23, code)
             self.assertTrue(set(code) <= set(RECOVERY_CODE_ALPHABET), code)
 
     def test_wrong_recovery_codes_are_throttled(self):
@@ -391,11 +397,13 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """
         self._enroll()
         with next_totp_window():
-            self._post_with_api_key(
+            generated = self._post_with_api_key(
                 "recovery_generate",
                 {"code": current_code(default_device(self.user).key)},
             )
-        device = StaticDevice.objects.get(user=self.user, name=RECOVERY_DEVICE_NAME)
+        device = HashedRecoveryDevice.objects.get(
+            user=self.user, name=RECOVERY_DEVICE_NAME
+        )
         self.assertTrue(device.throttling_enabled, "backoff is off; codes stand alone")
 
         # Five misses rather than one: the delay doubles each time, so this
@@ -403,10 +411,13 @@ class TestTOTPViewSet(TestAbstractViewSet):
         for miss in range(5):
             self.assertFalse(_verify_recovery(self.user, f"not-a-code{miss}"))
 
-        # A real code, refused only because the misses started the backoff.
-        spendable = device.token_set.first().token
+        # A real code, refused only because the misses started the backoff, and
+        # still unspent afterwards.
+        spendable = generated.data["codes"][0]
         self.assertFalse(_verify_recovery(self.user, spendable))
-        self.assertTrue(device.token_set.filter(token=spendable).exists())
+        self.assertTrue(
+            device.codes.filter(code_hash=hash_recovery_code(spendable)).exists()
+        )
 
     def test_regenerating_replaces_rather_than_appends(self):
         """Spent codes left behind would make the remaining count a lie."""
@@ -421,7 +432,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
             )
 
         self.assertEqual(
-            StaticToken.objects.filter(device__user=self.user).count(),
+            HashedRecoveryCode.objects.filter(device__user=self.user).count(),
             RECOVERY_CODE_COUNT,
         )
         self.assertFalse(set(first.data["codes"]) & set(second.data["codes"]))
@@ -441,6 +452,25 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 201)
         self.assertTrue(StaticDevice.objects.filter(pk=unrelated.pk).exists())
+
+    def test_recovery_codes_are_not_stored_in_plaintext(self):
+        """The database holds only keyed hashes, never a code a reader could
+        replay: no stored value equals a code the user was shown, and each
+        stored value is that code's hash."""
+        device = self._enroll()
+        with next_totp_window():
+            codes = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            ).data["codes"]
+
+        stored = set(
+            HashedRecoveryCode.objects.filter(device__user=self.user).values_list(
+                "code_hash", flat=True
+            )
+        )
+        self.assertEqual(len(stored), RECOVERY_CODE_COUNT)
+        self.assertFalse(stored & set(codes), "a plaintext code is in the database")
+        self.assertEqual(stored, {hash_recovery_code(code) for code in codes})
 
     def test_a_recovery_code_can_stand_in_for_the_authenticator(self):
         """Someone who has lost their phone still has to be able to turn 2FA
@@ -577,7 +607,8 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(device.name, TOTP_DEVICE_NAME)
         self.assertEqual(
-            StaticDevice.objects.get(user=self.user).name, RECOVERY_DEVICE_NAME
+            HashedRecoveryDevice.objects.get(user=self.user).name,
+            RECOVERY_DEVICE_NAME,
         )
 
     def test_verify_issues_a_grant_the_next_call_can_spend(self):
@@ -983,75 +1014,28 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["verified"])
 
-    def test_viewing_returns_the_codes_that_still_work(self):
-        """The same set, not a new one -- viewing must not invalidate."""
-        device = self._enroll()
-        with next_totp_window():
-            generated = self._post_with_api_key(
-                "recovery_generate", {"code": current_code(device.key)}
-            )
-        # The comparison below is only meaningful if a set was really issued:
-        # two empty lists would match and prove nothing.
-        self.assertEqual(generated.status_code, 201)
-        with next_totp_window():
-            viewed = self._post_with_api_key(
-                "recovery_view", {"code": current_code(device.key)}
-            )
+    def test_viewing_never_returns_the_codes(self):
+        """Show-once: the set is reported as a count, never re-displayed.
 
-        self.assertEqual(viewed.status_code, 200)
-        self.assertEqual(sorted(viewed.data["codes"]), sorted(generated.data["codes"]))
-        self.assertEqual(
-            self._get_status().data["recoveryCodes"],
-            {"generated": True, "remaining": RECOVERY_CODE_COUNT},
-        )
-
-    def test_viewing_refuses_without_a_current_code(self):
-        """Session alone is not enough -- these are the last-resort secret."""
-        device = self._enroll()
-        with next_totp_window():
-            generated = self._post_with_api_key(
-                "recovery_generate", {"code": current_code(device.key)}
-            )
-        # Refusing to show nothing would pass this test for the wrong reason.
-        self.assertEqual(generated.status_code, 201)
+        The codes are stored only as hashes, so there is nothing to return --
+        viewing hands back how many remain, not the codes, and requires no
+        code because nothing secret is disclosed.
+        """
+        self._enroll()
 
         response = self._post_with_api_key("recovery_view")
 
-        self.assertEqual(response.status_code, 403)
-        self.assertNotIn("codes", response.data)
-
-    def test_viewing_accepts_a_grant_minted_for_it(self):
-        """A caller spends a grant rather than re-prompting for a code."""
-        device = self._enroll()
-        with next_totp_window():
-            generated = self._post_with_api_key(
-                "recovery_generate", {"code": current_code(device.key)}
-            )
-        self.assertEqual(generated.status_code, 201)
-        with next_totp_window():
-            verified = self._post_with_api_key(
-                "verify",
-                {"code": current_code(device.key), "audience": "recovery-view"},
-            )
-        self.assertEqual(verified.status_code, 200)
-
-        response = self._post_with_api_key(
-            "recovery_view", {"grant": verified.data["grant"]}
-        )
-
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["codes"]), RECOVERY_CODE_COUNT)
+        self.assertNotIn("codes", response.data)
+        self.assertEqual(response.data["remaining"], RECOVERY_CODE_COUNT)
 
     def test_viewing_a_set_that_was_never_generated_is_a_404(self):
         # Enrolment issues a set of its own, so drop it: the case under test
         # is an account whose codes are gone, not one that never enrolled.
-        device = self._enroll()
-        StaticDevice.objects.filter(user=self.user).delete()
+        self._enroll()
+        HashedRecoveryDevice.objects.filter(user=self.user).delete()
 
-        with next_totp_window():
-            response = self._post_with_api_key(
-                "recovery_view", {"code": current_code(device.key)}
-            )
+        response = self._post_with_api_key("recovery_view")
 
         self.assertEqual(response.status_code, 404)
 
@@ -1151,26 +1135,6 @@ class TestTOTPViewSet(TestAbstractViewSet):
         }
         self.assertIn("two-factor-recovery-codes-generated", actions)
 
-    def test_viewing_recovery_codes_is_written_to_the_security_audit_log(self):
-        device = self._enroll()
-        with next_totp_window():
-            generated = self._post_with_api_key(
-                "recovery_generate", {"code": current_code(device.key)}
-            )
-        self.assertEqual(generated.status_code, 201)
-
-        with self.assertLogs("audit_logger", level="DEBUG") as captured:
-            with next_totp_window():
-                viewed = self._post_with_api_key(
-                    "recovery_view", {"code": current_code(device.key)}
-                )
-
-        self.assertEqual(viewed.status_code, 200)
-        actions = {
-            getattr(record, "formhub_action", None) for record in captured.records
-        }
-        self.assertIn("two-factor-recovery-codes-viewed", actions)
-
     def test_regenerating_recovery_codes_notifies_the_account_owner(self):
         device = self._enroll()
         mail.outbox = []
@@ -1184,29 +1148,6 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertTrue(
             any(self.user.email in message.to for message in mail.outbox),
             "replacing the recovery set did not notify the account owner",
-        )
-
-    def test_viewing_recovery_codes_does_not_notify_the_account_owner(self):
-        """Viewing is audited but deliberately not emailed -- re-reading the
-        unspent set is a supported flow, and mailing on every read would bury
-        the notifications that mark actual credential changes."""
-        device = self._enroll()
-        with next_totp_window():
-            generated = self._post_with_api_key(
-                "recovery_generate", {"code": current_code(device.key)}
-            )
-        self.assertEqual(generated.status_code, 201)
-        mail.outbox = []
-
-        with next_totp_window():
-            viewed = self._post_with_api_key(
-                "recovery_view", {"code": current_code(device.key)}
-            )
-
-        self.assertEqual(viewed.status_code, 200)
-        self.assertEqual(
-            [message for message in mail.outbox if self.user.email in message.to],
-            [],
         )
 
     @override_settings(

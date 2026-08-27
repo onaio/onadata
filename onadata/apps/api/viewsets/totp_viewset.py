@@ -22,7 +22,6 @@ from django.views.decorators.debug import sensitive_post_parameters, sensitive_v
 
 import qrcode
 from django_otp import devices_for_user
-from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
@@ -34,6 +33,13 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from two_factor.utils import default_device
 
+from onadata.apps.api.models.hashed_recovery_device import (
+    RECOVERY_CODE_COUNT,
+    HashedRecoveryCode,
+    HashedRecoveryDevice,
+    generate_recovery_code,
+    hash_recovery_code,
+)
 from onadata.libs.authentication import (
     SSOHeaderAuthentication,
     add_login_attempt,
@@ -46,16 +52,6 @@ from onadata.libs.utils.two_factor import (
     notify_owner,
     record_verification_failure,
 )
-
-RECOVERY_CODE_COUNT = 10
-
-#: Lowercase base32, matching what the codes are encoded with.
-RECOVERY_CODE_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567"
-
-#: 64 bits, which base32 renders as 13 characters. django-otp's own generator
-#: draws 5 bytes; that is unguessable against the per-device backoff, but the
-#: backoff is a setting and this leaves the codes standing on their own.
-RECOVERY_CODE_BYTES = 8
 
 #: Not free-form labels. two_factor matches "default" to decide whether to
 #: ask for a second factor at all; "backup" is this module's own, and only has
@@ -124,7 +120,11 @@ def _recovery_device(user, lock=False):
 
     ``lock`` as in ``_totp_device``.
     """
-    devices = StaticDevice.objects.select_for_update() if lock else StaticDevice.objects
+    devices = (
+        HashedRecoveryDevice.objects.select_for_update()
+        if lock
+        else HashedRecoveryDevice.objects
+    )
     return devices.filter(user=user, name=RECOVERY_DEVICE_NAME).first()
 
 
@@ -155,14 +155,13 @@ def _verify_recovery(user, code: str) -> bool:
     """Check ``code`` against the recovery set, spending it once.
 
     Locked for the same reason as ``_verify_totp``, and a worse outcome here:
-    unlocked, one single-use code is honoured once per racing caller.
-
-    Case folded because the generator emits lowercase and django-otp compares
-    exactly, so the login wizard and this path would otherwise disagree.
+    unlocked, one single-use code is honoured once per racing caller. The
+    device hashes and case-folds the code itself, so the wizard's backup step
+    and this path compare the same way.
     """
     with transaction.atomic():
         recovery = _recovery_device(user, lock=True)
-        return recovery is not None and recovery.verify_token(code.lower())
+        return recovery is not None and recovery.verify_token(code)
 
 
 VERIFY_METHODS = {
@@ -199,35 +198,31 @@ def _verify_code(user, code: str, method: str = "") -> bool:
     return check is not None and check(user, code)
 
 
-def _recovery_token() -> str:
-    """A recovery code, lowercase to match how they are compared."""
-    return (
-        base64.b32encode(secrets.token_bytes(RECOVERY_CODE_BYTES))
-        .decode()
-        .rstrip("=")
-        .lower()
-    )
-
-
 def _regenerate_recovery_codes(user) -> list:
-    """Replace the recovery set and return the new codes.
+    """Replace the recovery set and return the new plaintext codes once.
 
-    Replace rather than append: codes are single-use, so keeping spent ones
-    would make the remaining count a lie.
+    The codes are returned here and never again: only their keyed hashes are
+    stored, so this is the one moment they exist in plaintext. Replace rather
+    than append -- codes are single-use, so keeping spent ones would make the
+    remaining count a lie.
     """
     with transaction.atomic():
         # Serialise on the user row: locking the recovery device would not
         # cover two callers who both find none yet and each create one, whom
         # delete-then-create under READ COMMITTED leaves with two live sets.
         get_user_model().objects.select_for_update().get(pk=user.pk)
-        StaticDevice.objects.filter(user=user, name=RECOVERY_DEVICE_NAME).delete()
-        device = StaticDevice.objects.create(
+        HashedRecoveryDevice.objects.filter(
+            user=user, name=RECOVERY_DEVICE_NAME
+        ).delete()
+        device = HashedRecoveryDevice.objects.create(
             user=user, name=RECOVERY_DEVICE_NAME, confirmed=True
         )
-        return [
-            StaticToken.objects.create(device=device, token=_recovery_token()).token
-            for _ in range(RECOVERY_CODE_COUNT)
-        ]
+        codes = [generate_recovery_code() for _ in range(RECOVERY_CODE_COUNT)]
+        HashedRecoveryCode.objects.bulk_create(
+            HashedRecoveryCode(device=device, code_hash=hash_recovery_code(code))
+            for code in codes
+        )
+        return codes
 
 
 def _enrollment_payload(device) -> dict:
@@ -455,7 +450,7 @@ class TOTPViewSet(ViewSet):
                 ),
                 "recoveryCodes": {
                     "generated": recovery is not None,
-                    "remaining": 0 if recovery is None else recovery.token_set.count(),
+                    "remaining": 0 if recovery is None else recovery.codes.count(),
                 },
             }
         )
@@ -613,30 +608,25 @@ class TOTPViewSet(ViewSet):
 
     @action(detail=False, methods=["post"], url_path="recovery")
     def recovery_view(self, request):
-        """Return the recovery codes that have not been spent yet.
+        """Report how many recovery codes remain, never the codes themselves.
 
-        POST, not GET: the proof travels in the body, and neither a grant nor
-        a code belongs in a URL or an access log.
+        The codes are stored only as keyed hashes, so they cannot be re-read:
+        they are shown once, when generated. A caller that has lost them
+        generates a fresh set. No code or grant is required because nothing
+        secret is disclosed.
         """
-        refusal = self._require_code(request, "recovery-view")
-        if refusal is not None:
-            return refusal
         recovery = _recovery_device(request.user)
         if recovery is None:
             return Response(
                 {"error": "No recovery codes have been generated."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        audit_log(
-            Actions.TWO_FACTOR_RECOVERY_CODES_VIEWED,
-            request.user,
-            request.user,
-            _("Two-factor recovery codes viewed."),
-            {},
-            request,
-        )
         return Response(
-            {"codes": list(recovery.token_set.values_list("token", flat=True))}
+            {
+                "remaining": recovery.codes.count(),
+                "detail": "Recovery codes are shown only when generated. "
+                "Generate a new set if you have lost them.",
+            }
         )
 
     @action(detail=False, methods=["post"], url_path="verify")

@@ -169,6 +169,12 @@ TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
 # ``STEP_UP``.
 TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = True
 
+# The key recovery codes are hashed under before storage. Set a dedicated,
+# stable secret in production: it is what a database reader lacks, and rotating
+# it invalidates every printed recovery code. Unset, the codes are still hashed
+# -- under SECRET_KEY -- rather than stored in plaintext.
+TWO_FACTOR_RECOVERY_PEPPER = os.environ.get("TWO_FACTOR_RECOVERY_PEPPER", "")
+
 # Email the account owner after this many failed second-factor checks within
 # TWO_FACTOR_FAILURE_ALERT_WINDOW seconds -- one email per window. 0 disables
 # the alert.

@@ -20,10 +20,14 @@ from django.test import TransactionTestCase, override_settings
 
 import jwt
 from django_otp.oath import totp
-from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework.test import APIRequestFactory
 
+from onadata.apps.api.models.hashed_recovery_device import (
+    HashedRecoveryCode,
+    HashedRecoveryDevice,
+    hash_recovery_code,
+)
 from onadata.apps.api.viewsets.totp_viewset import (
     RECOVERY_DEVICE_NAME,
     TOTP_DEVICE_NAME,
@@ -45,10 +49,12 @@ class RecoveryCodeConcurrencyTestCase(TransactionTestCase):
         self.user = User.objects.create_user(
             "raceprobe", "race@example.com", "pw-9F3kz"
         )
-        device = StaticDevice.objects.create(
+        device = HashedRecoveryDevice.objects.create(
             user=self.user, name=RECOVERY_DEVICE_NAME, confirmed=True
         )
-        StaticToken.objects.create(device=device, token=RECOVERY_CODE)
+        HashedRecoveryCode.objects.create(
+            device=device, code_hash=hash_recovery_code(RECOVERY_CODE)
+        )
 
     def _spend_concurrently(self):
         barrier = threading.Barrier(CONCURRENT)
@@ -87,7 +93,9 @@ class RecoveryCodeConcurrencyTestCase(TransactionTestCase):
             f"the code was accepted {sum(results)} times; it is single-use",
         )
         self.assertFalse(
-            StaticToken.objects.filter(token=RECOVERY_CODE).exists(),
+            HashedRecoveryCode.objects.filter(
+                code_hash=hash_recovery_code(RECOVERY_CODE)
+            ).exists(),
             "the spent code should be gone",
         )
 
@@ -198,12 +206,13 @@ class EnrolmentConfirmationConcurrencyTestCase(TransactionTestCase):
             len(won), 1, f"{len(won)} racing confirmations were each told they won"
         )
         # The half that bites: the set the winner was shown is the set that
-        # actually survived, so the codes on the user's screen are the live ones.
+        # actually survived, so the codes on the user's screen are the live
+        # ones -- compared through the hash, since only hashes are stored.
         self.assertEqual(
-            set(won[0].data["codes"]),
+            {hash_recovery_code(code) for code in won[0].data["codes"]},
             set(
-                StaticToken.objects.filter(device__user=self.user).values_list(
-                    "token", flat=True
+                HashedRecoveryCode.objects.filter(device__user=self.user).values_list(
+                    "code_hash", flat=True
                 )
             ),
         )
