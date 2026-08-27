@@ -16,6 +16,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext as _
 from django.views.decorators.debug import sensitive_post_parameters, sensitive_variables
 
 import qrcode
@@ -32,14 +33,25 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from two_factor.utils import default_device
 
+from onadata.apps.api.tasks import send_two_factor_changed_email
 from onadata.libs.authentication import (
     SSOHeaderAuthentication,
     add_login_attempt,
     assert_not_locked_out,
     get_client_ip,
 )
+from onadata.libs.utils.email import get_two_factor_email_data
+from onadata.libs.utils.log import Actions, audit_log
 
 RECOVERY_CODE_COUNT = 10
+
+#: Lowercase base32, matching what the codes are encoded with.
+RECOVERY_CODE_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567"
+
+#: 64 bits, which base32 renders as 13 characters. django-otp's own generator
+#: draws 5 bytes; that is unguessable against the per-device backoff, but the
+#: backoff is a setting and this leaves the codes standing on their own.
+RECOVERY_CODE_BYTES = 8
 
 #: Not free-form labels. two_factor matches "default" to decide whether to
 #: ask for a second factor at all; "backup" is this module's own, and only has
@@ -86,22 +98,30 @@ def _known_audiences() -> frozenset:
     return frozenset(getattr(settings, "TWO_FACTOR_STEP_UP_AUDIENCES", ()))
 
 
-def _totp_device(user, confirmed=True):
+def _totp_device(user, confirmed=True, lock=False):
     """The user's authenticator, or None.
 
     Newest first, so the answer cannot depend on the order Postgres returns
     rows in should a second confirmed device ever survive.
+
+    ``lock`` holds the row until the transaction ends, for callers that go on
+    to spend the code or change the device.
     """
+    devices = TOTPDevice.objects.select_for_update() if lock else TOTPDevice.objects
     return (
-        TOTPDevice.objects.filter(user=user, name=TOTP_DEVICE_NAME, confirmed=confirmed)
+        devices.filter(user=user, name=TOTP_DEVICE_NAME, confirmed=confirmed)
         .order_by("-id")
         .first()
     )
 
 
-def _recovery_device(user):
-    """The user's recovery-code set, or None."""
-    return StaticDevice.objects.filter(user=user, name=RECOVERY_DEVICE_NAME).first()
+def _recovery_device(user, lock=False):
+    """The user's recovery-code set, or None.
+
+    ``lock`` as in ``_totp_device``.
+    """
+    devices = StaticDevice.objects.select_for_update() if lock else StaticDevice.objects
+    return devices.filter(user=user, name=RECOVERY_DEVICE_NAME).first()
 
 
 def _has_second_factor(user) -> bool:
@@ -123,12 +143,7 @@ def _verify_totp(user, code: str) -> bool:
     ``--threads 1`` does not serialise them.
     """
     with transaction.atomic():
-        device = (
-            TOTPDevice.objects.select_for_update()
-            .filter(user=user, name=TOTP_DEVICE_NAME, confirmed=True)
-            .order_by("-id")
-            .first()
-        )
+        device = _totp_device(user, lock=True)
         return device is not None and device.verify_token(code)
 
 
@@ -142,11 +157,7 @@ def _verify_recovery(user, code: str) -> bool:
     exactly, so the login wizard and this path would otherwise disagree.
     """
     with transaction.atomic():
-        recovery = (
-            StaticDevice.objects.select_for_update()
-            .filter(user=user, name=RECOVERY_DEVICE_NAME)
-            .first()
-        )
+        recovery = _recovery_device(user, lock=True)
         return recovery is not None and recovery.verify_token(code.lower())
 
 
@@ -173,6 +184,16 @@ def _verify_code(user, code: str, method: str = "") -> bool:
     return any(check(user, code) for check in VERIFY_METHODS.values())
 
 
+def _recovery_token() -> str:
+    """A recovery code, lowercase to match how they are compared."""
+    return (
+        base64.b32encode(secrets.token_bytes(RECOVERY_CODE_BYTES))
+        .decode()
+        .rstrip("=")
+        .lower()
+    )
+
+
 def _regenerate_recovery_codes(user) -> list:
     """Replace the recovery set and return the new codes.
 
@@ -185,11 +206,35 @@ def _regenerate_recovery_codes(user) -> list:
             user=user, name=RECOVERY_DEVICE_NAME, confirmed=True
         )
         return [
-            StaticToken.objects.create(
-                device=device, token=StaticToken.random_token()
-            ).token
+            StaticToken.objects.create(device=device, token=_recovery_token()).token
             for _ in range(RECOVERY_CODE_COUNT)
         ]
+
+
+def _audit_verification_failure(request, audit: dict):
+    """Record a failed second-factor check where an operator can see it."""
+    audit_log(
+        Actions.TWO_FACTOR_VERIFICATION_FAILED,
+        request.user,
+        request.user,
+        _("Two-factor verification failed."),
+        audit,
+        request,
+    )
+
+
+def _notify_owner(user, enabled: bool):
+    """Tell the account owner their second factor changed.
+
+    Whoever made the change -- owner or intruder -- the owner finds out.
+    Skipped when the account has no address to reach.
+    """
+    if not user.email:
+        return
+    email_data = get_two_factor_email_data(user.username, enabled)
+    send_two_factor_changed_email.apply_async(
+        args=[user.email, email_data["message_txt"], email_data["subject"]]
+    )
 
 
 def _enrollment_payload(device) -> dict:
@@ -260,6 +305,7 @@ class TOTPViewSet(ViewSet):
             return None
         if _verify_code(request.user, str(request.data.get("code", "")).strip()):
             return None
+        _audit_verification_failure(request, {"audience": audience})
         return Response(
             {
                 "error": "That code is not valid. Enter a current code from your "
@@ -404,24 +450,29 @@ class TOTPViewSet(ViewSet):
         refusal = self._require_login_session(request)
         if refusal is not None:
             return refusal
-        device = _totp_device(request.user, confirmed=False)
-        if device is None:
-            return Response(
-                {"error": "Start setting up an authenticator before confirming it."},
-                status=status.HTTP_409_CONFLICT,
-            )
         code = str(request.data.get("code", "")).strip()
-        if not device.verify_token(code):
-            return Response(
-                {
-                    "error": "That code is not valid. Check the time on your device "
-                    "and try the current code."
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        # One transaction: an authenticator that confirmed but whose recovery
-        # codes did not is one lost phone away from a locked account.
+        # One transaction, with the pending row locked before the code is
+        # spent: a device that confirmed but whose recovery codes did not is
+        # one lost phone from a locked account, and racing callers would each
+        # be handed a set of which only the last survives.
         with transaction.atomic():
+            device = _totp_device(request.user, confirmed=False, lock=True)
+            if device is None:
+                return Response(
+                    {
+                        "error": "Start setting up an authenticator before "
+                        "confirming it."
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+            if not device.verify_token(code):
+                return Response(
+                    {
+                        "error": "That code is not valid. Check the time on your "
+                        "device and try the current code."
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             # default_device() answers with the first confirmed device named
             # "default", not the newest, so an incumbent left behind stays the
             # device the login wizard challenges on. Matched by name across
@@ -435,6 +486,17 @@ class TOTPViewSet(ViewSet):
             device.confirmed = True
             device.save(update_fields=["confirmed"])
             codes = _regenerate_recovery_codes(request.user)
+        # After the transaction: neither the log entry nor the email can be
+        # rolled back, so neither may describe an enrolment that was.
+        audit_log(
+            Actions.TWO_FACTOR_ENROLLED,
+            request.user,
+            request.user,
+            _("Two-factor authentication enabled."),
+            {},
+            request,
+        )
+        _notify_owner(request.user, enabled=True)
         return Response({"enrolled": True, "codes": codes})
 
     @action(detail=False, methods=["post"], url_path="disable")
@@ -452,6 +514,7 @@ class TOTPViewSet(ViewSet):
             # standing that nothing here can verify, so never removable.
             for device in devices_for_user(request.user, confirmed=None):
                 device.delete()
+        _notify_owner(request.user, enabled=False)
         return Response({"enrolled": False})
 
     @action(detail=False, methods=["post"], url_path="recovery/generate")
@@ -517,6 +580,9 @@ class TOTPViewSet(ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not _verify_code(request.user, code, method):
+            _audit_verification_failure(
+                request, {"audience": audience, "method": method}
+            )
             return Response(
                 {"error": "That code is not valid."},
                 status=status.HTTP_403_FORBIDDEN,

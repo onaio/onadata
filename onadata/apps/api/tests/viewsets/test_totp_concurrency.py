@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Concurrency tests for one-time-code verification.
 
 Threads here stand in for the deployment's uWSGI workers (``--workers 30
@@ -11,19 +10,24 @@ in parallel.
 transaction is never committed, so a second connection would not see the
 fixture at all.
 """
+
 import threading
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection
 from django.test import TransactionTestCase, override_settings
 
+import jwt
 from django_otp.oath import totp
 from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.viewsets.totp_viewset import (
     RECOVERY_DEVICE_NAME,
     TOTP_DEVICE_NAME,
+    TOTPViewSet,
     _verify_recovery,
     _verify_totp,
 )
@@ -133,4 +137,73 @@ class TotpCodeConcurrencyTestCase(TransactionTestCase):
             sum(results),
             1,
             f"the code verified {sum(results)} times; one code, one use",
+        )
+
+
+@override_settings(ENABLE_TWO_FACTOR=True)
+class EnrolmentConfirmationConcurrencyTestCase(TransactionTestCase):
+    """A pending authenticator is confirmed by exactly one request.
+
+    Worse here than a double-spent code: confirmation mints the recovery set,
+    so every racing worker is handed one and each replaces the last. The user
+    is shown several sets and only the final one still works.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.create_user(
+            "enrolmentrace", "enrolmentrace@example.com", "pw-9F3kz"
+        )
+        self.device = TOTPDevice.objects.create(
+            user=self.user, name=TOTP_DEVICE_NAME, confirmed=False
+        )
+
+    def test_one_pending_code_confirms_one_enrolment(self):
+        code = f"{totp(self.device.bin_key, self.device.step, self.device.t0):06d}"
+        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
+        sso = jwt.encode(
+            {"email": self.user.email},
+            config["JWT_SECRET_KEY"],
+            algorithm=config["JWT_ALGORITHM"],
+        )
+        barrier = threading.Barrier(CONCURRENT)
+        responses = []
+        guard = threading.Lock()
+
+        def worker():
+            try:
+                request = APIRequestFactory().post(
+                    "/", data={"code": code}, HTTP_SSO=sso
+                )
+                barrier.wait(timeout=10)
+                response = TOTPViewSet.as_view({"post": "enroll_confirm"})(request)
+                with guard:
+                    responses.append(response)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=worker) for _ in range(CONCURRENT)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+
+        self.assertEqual(len(responses), CONCURRENT, "a worker did not finish")
+        # The losers find no pending row when the lock releases, rather than
+        # going on to spend the code: a double-click is a 409, not a "that
+        # code is not valid" on a code that was perfectly good.
+        self.assertEqual({response.status_code for response in responses}, {200, 409})
+        won = [response for response in responses if response.status_code == 200]
+        self.assertEqual(
+            len(won), 1, f"{len(won)} racing confirmations were each told they won"
+        )
+        # The half that bites: the set the winner was shown is the set that
+        # actually survived, so the codes on the user's screen are the live ones.
+        self.assertEqual(
+            set(won[0].data["codes"]),
+            set(
+                StaticToken.objects.filter(device__user=self.user).values_list(
+                    "token", flat=True
+                )
+            ),
         )

@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core import mail
 from django.core.cache import cache
 from django.test import RequestFactory, override_settings
 from django.views.debug import SafeExceptionReporterFilter
@@ -23,10 +24,12 @@ from two_factor.utils import default_device
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.totp_viewset import (
+    RECOVERY_CODE_ALPHABET,
     RECOVERY_CODE_COUNT,
     RECOVERY_DEVICE_NAME,
     TOTP_DEVICE_NAME,
     TOTPViewSet,
+    _verify_recovery,
 )
 
 #: Any test spending two codes must move between windows: django-otp records
@@ -354,6 +357,50 @@ class TestTOTPViewSet(TestAbstractViewSet):
             self._get_status().data["recoveryCodes"],
             {"generated": True, "remaining": RECOVERY_CODE_COUNT},
         )
+
+    def test_recovery_codes_carry_at_least_64_bits_of_randomness(self):
+        """Base32 spends 5 bits a character, so 64 bits needs 13 of them.
+
+        Rate limiting is what actually makes these unguessable -- see the
+        throttling test below -- but the entropy is the half that holds if
+        the throttle is ever turned off.
+        """
+        device = self._enroll()
+        with next_totp_window():
+            response = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        self.assertEqual(response.status_code, 201)
+
+        for code in response.data["codes"]:
+            self.assertGreaterEqual(len(code), 13, code)
+            self.assertTrue(set(code) <= set(RECOVERY_CODE_ALPHABET), code)
+
+    def test_wrong_recovery_codes_are_throttled(self):
+        """The entropy above is sized against a throttled attacker.
+
+        django-otp backs off by ``factor * 2 ** (failures - 1)`` seconds and
+        the factor is a setting, so a deployment can switch this off. Asserted
+        here because turning it off changes what the code length has to be.
+        """
+        self._enroll()
+        with next_totp_window():
+            self._post_with_api_key(
+                "recovery_generate",
+                {"code": current_code(default_device(self.user).key)},
+            )
+        device = StaticDevice.objects.get(user=self.user, name=RECOVERY_DEVICE_NAME)
+        self.assertTrue(device.throttling_enabled, "backoff is off; codes stand alone")
+
+        # Five misses rather than one: the delay doubles each time, so this
+        # leaves ~16 seconds rather than racing a 1-second window.
+        for miss in range(5):
+            self.assertFalse(_verify_recovery(self.user, f"not-a-code{miss}"))
+
+        # A real code, refused only because the misses started the backoff.
+        spendable = device.token_set.first().token
+        self.assertFalse(_verify_recovery(self.user, spendable))
+        self.assertTrue(device.token_set.filter(token=spendable).exists())
 
     def test_regenerating_replaces_rather_than_appends(self):
         """Spent codes left behind would make the remaining count a lie."""
@@ -1001,6 +1048,51 @@ class TestTOTPViewSet(TestAbstractViewSet):
             )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_enrolment_is_written_to_the_security_audit_log(self):
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            self._enroll()
+
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-enrolled", actions)
+
+    def test_failed_verification_is_written_to_the_security_audit_log(self):
+        self._enroll()
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            response = self._verify({"code": "000000", "method": "totp"})
+
+        self.assertEqual(response.status_code, 403)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-verification-failed", actions)
+
+    def test_enrolment_notifies_the_account_owner(self):
+        mail.outbox = []
+
+        self._enroll()
+
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "enrolling a factor did not notify the account owner",
+        )
+
+    def test_disabling_two_factor_notifies_the_account_owner(self):
+        device = self._enroll()
+        mail.outbox = []
+        with next_totp_window():
+            response = self._post_with_api_key(
+                "disable", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "disabling a factor did not notify the account owner",
+        )
 
 
 @override_settings(ENABLE_TWO_FACTOR=False)

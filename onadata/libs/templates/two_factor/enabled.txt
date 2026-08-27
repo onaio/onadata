@@ -1,0 +1,12 @@
+{% load i18n %}
+{% blocktranslate %}
+Hi {{ username }},
+
+An authenticator app was just set up for two-factor authentication on your Ona account.
+
+If this was not you, sign in, remove the authenticator, change your password, and reach out to our support team, {{ support_email }}.
+
+Thank you for choosing Ona!
+
+The Team at Ona
+{% endblocktranslate %}
