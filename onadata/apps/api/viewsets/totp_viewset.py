@@ -40,7 +40,7 @@ from onadata.libs.authentication import (
     get_client_ip,
 )
 from onadata.libs.utils.log import Actions, audit_log
-from onadata.libs.utils.two_factor import record_verification_failure
+from onadata.libs.utils.two_factor import notify_owner, record_verification_failure
 
 RECOVERY_CODE_COUNT = 10
 
@@ -469,6 +469,7 @@ class TOTPViewSet(ViewSet):
             {},
             request,
         )
+        notify_owner(request.user, "enabled")
         return Response({"enrolled": True, "codes": codes})
 
     @action(detail=False, methods=["post"], url_path="disable")
@@ -494,6 +495,7 @@ class TOTPViewSet(ViewSet):
             {},
             request,
         )
+        notify_owner(request.user, "disabled")
         return Response({"enrolled": False})
 
     @action(detail=False, methods=["post"], url_path="recovery/generate")
@@ -516,6 +518,7 @@ class TOTPViewSet(ViewSet):
             {},
             request,
         )
+        notify_owner(request.user, "recovery_generated")
         # The only time these are readable.
         return Response({"codes": codes}, status=status.HTTP_201_CREATED)
 

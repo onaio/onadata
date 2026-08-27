@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core import mail
 from django.core.cache import cache
 from django.test import RequestFactory, override_settings
 from django.views.debug import SafeExceptionReporterFilter
@@ -1069,6 +1070,30 @@ class TestTOTPViewSet(TestAbstractViewSet):
         }
         self.assertIn("two-factor-verification-failed", actions)
 
+    def test_enrolment_notifies_the_account_owner(self):
+        mail.outbox = []
+
+        self._enroll()
+
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "enrolling a factor did not notify the account owner",
+        )
+
+    def test_disabling_two_factor_notifies_the_account_owner(self):
+        device = self._enroll()
+        mail.outbox = []
+        with next_totp_window():
+            response = self._post_with_api_key(
+                "disable", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "disabling a factor did not notify the account owner",
+        )
+
     def test_disabling_two_factor_is_written_to_the_security_audit_log(self):
         device = self._enroll()
 
@@ -1118,6 +1143,44 @@ class TestTOTPViewSet(TestAbstractViewSet):
             getattr(record, "formhub_action", None) for record in captured.records
         }
         self.assertIn("two-factor-recovery-codes-viewed", actions)
+
+    def test_regenerating_recovery_codes_notifies_the_account_owner(self):
+        device = self._enroll()
+        mail.outbox = []
+
+        with next_totp_window():
+            response = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "replacing the recovery set did not notify the account owner",
+        )
+
+    def test_viewing_recovery_codes_does_not_notify_the_account_owner(self):
+        """Viewing is audited but deliberately not emailed -- re-reading the
+        unspent set is a supported flow, and mailing on every read would bury
+        the notifications that mark actual credential changes."""
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        self.assertEqual(generated.status_code, 201)
+        mail.outbox = []
+
+        with next_totp_window():
+            viewed = self._post_with_api_key(
+                "recovery_view", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(viewed.status_code, 200)
+        self.assertEqual(
+            [message for message in mail.outbox if self.user.email in message.to],
+            [],
+        )
 
 
 @override_settings(ENABLE_TWO_FACTOR=False)

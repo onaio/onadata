@@ -1,0 +1,12 @@
+{% load i18n %}
+{% blocktranslate %}
+Hi {{ username }},
+
+A new set of two-factor recovery codes was just generated for your Ona account. Your previous recovery codes no longer work.
+
+If this was not you, sign in, change your password, generate a fresh set of recovery codes, and reach out to our support team, {{ support_email }}.
+
+Thank you for choosing Ona!
+
+The Team at Ona
+{% endblocktranslate %}
