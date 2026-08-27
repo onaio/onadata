@@ -209,6 +209,37 @@ class EnrolledUserWizardTestCase(WizardLogin, TestBase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
 
+class WizardVerificationAuditTestCase(WizardLogin, TestBase):
+    """A failed wizard token entry reaches the security audit log.
+
+    The same action the API's failed checks record: one event, both doors.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.device = self.enrol_device()
+
+    def test_failed_token_is_written_to_the_security_audit_log(self):
+        self.submit_credentials()
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            response = self.submit_token("000000")
+
+        self.assertNotEqual(response.status_code, 302)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-verification-failed", actions)
+
+    def test_a_valid_token_is_not_recorded_as_a_failure(self):
+        self.submit_credentials()
+
+        with self.assertNoLogs("audit_logger", level="DEBUG"):
+            response = self.submit_token(self.current_token(self.device))
+
+        self.assertEqual(response.status_code, 302)
+
+
 @override_settings(MAX_LOGIN_ATTEMPTS=3, LOCKOUT_TIME=1800)
 class TokenStepLockoutTestCase(WizardLogin, TestBase):
     """The lockout covers the token step, not the credentials step alone.

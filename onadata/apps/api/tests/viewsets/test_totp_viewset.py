@@ -1094,6 +1094,138 @@ class TestTOTPViewSet(TestAbstractViewSet):
             "disabling a factor did not notify the account owner",
         )
 
+    def test_disabling_two_factor_is_written_to_the_security_audit_log(self):
+        device = self._enroll()
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            with next_totp_window():
+                response = self._post_with_api_key(
+                    "disable", {"code": current_code(device.key)}
+                )
+
+        self.assertEqual(response.status_code, 200)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-disabled", actions)
+
+    def test_regenerating_recovery_codes_is_written_to_the_security_audit_log(self):
+        device = self._enroll()
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            with next_totp_window():
+                response = self._post_with_api_key(
+                    "recovery_generate", {"code": current_code(device.key)}
+                )
+
+        self.assertEqual(response.status_code, 201)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-recovery-codes-generated", actions)
+
+    def test_viewing_recovery_codes_is_written_to_the_security_audit_log(self):
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        self.assertEqual(generated.status_code, 201)
+
+        with self.assertLogs("audit_logger", level="DEBUG") as captured:
+            with next_totp_window():
+                viewed = self._post_with_api_key(
+                    "recovery_view", {"code": current_code(device.key)}
+                )
+
+        self.assertEqual(viewed.status_code, 200)
+        actions = {
+            getattr(record, "formhub_action", None) for record in captured.records
+        }
+        self.assertIn("two-factor-recovery-codes-viewed", actions)
+
+    def test_regenerating_recovery_codes_notifies_the_account_owner(self):
+        device = self._enroll()
+        mail.outbox = []
+
+        with next_totp_window():
+            response = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            any(self.user.email in message.to for message in mail.outbox),
+            "replacing the recovery set did not notify the account owner",
+        )
+
+    def test_viewing_recovery_codes_does_not_notify_the_account_owner(self):
+        """Viewing is audited but deliberately not emailed -- re-reading the
+        unspent set is a supported flow, and mailing on every read would bury
+        the notifications that mark actual credential changes."""
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        self.assertEqual(generated.status_code, 201)
+        mail.outbox = []
+
+        with next_totp_window():
+            viewed = self._post_with_api_key(
+                "recovery_view", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(viewed.status_code, 200)
+        self.assertEqual(
+            [message for message in mail.outbox if self.user.email in message.to],
+            [],
+        )
+
+    @override_settings(
+        TWO_FACTOR_FAILURE_ALERT_THRESHOLD=3, TWO_FACTOR_FAILURE_ALERT_WINDOW=600
+    )
+    def test_repeated_failed_verifications_alert_the_account_owner(self):
+        # The failure counter lives in the cache, which the test runner does
+        # not roll back.
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self._enroll()
+        mail.outbox = []
+
+        for _ in range(2):
+            self.assertEqual(self._verify({"code": "000000"}).status_code, 403)
+        self.assertEqual(
+            [message for message in mail.outbox if self.user.email in message.to],
+            [],
+            "alerted before the threshold was reached",
+        )
+
+        self.assertEqual(self._verify({"code": "000000"}).status_code, 403)
+        alerts = [message for message in mail.outbox if self.user.email in message.to]
+        self.assertEqual(
+            len(alerts), 1, "reaching the threshold did not alert the account owner"
+        )
+
+        # Failures past the threshold do not repeat the alert in this window.
+        self.assertEqual(self._verify({"code": "000000"}).status_code, 403)
+        self.assertEqual(len([m for m in mail.outbox if self.user.email in m.to]), 1)
+
+    @override_settings(TWO_FACTOR_FAILURE_ALERT_THRESHOLD=0)
+    def test_failure_alerting_can_be_disabled(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self._enroll()
+        mail.outbox = []
+
+        for _ in range(5):
+            self.assertEqual(self._verify({"code": "000000"}).status_code, 403)
+
+        self.assertEqual(
+            [message for message in mail.outbox if self.user.email in message.to],
+            [],
+        )
+
 
 @override_settings(ENABLE_TWO_FACTOR=False)
 class DisabledTOTPViewSetTestCase(TestAbstractViewSet):
