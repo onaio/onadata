@@ -3,31 +3,32 @@
 Widget class module.
 """
 
-from builtins import str as text
-
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 from django.db.models import JSONField
+from django.http import Http404
 
 from ordered_model.models import OrderedModel
-from pyxform.question import Option
-from querybuilder.fields import AvgField, CountField, SimpleField, SumField
-from querybuilder.query import Query
 
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
+from onadata.libs.data.query import (
+    get_form_submissions_aggregated_by_select_one,
+    get_form_submissions_grouped_by_field,
+    get_form_submissions_grouped_by_select_one,
+)
 from onadata.libs.utils.chart_tools import (
     DATA_TYPE_MAP,
+    FIELD_DATA_MAP,
     _flatten_multiple_dict_into_one,
     _use_labels_from_group_by_name,
     get_field_choices,
-    get_field_from_field_xpath,
     get_field_label,
+    resolve_field_xpath,
 )
 from onadata.libs.utils.common_tags import NUMERIC_LIST, SELECT_ONE, SUBMISSION_TIME
-from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
+from onadata.libs.utils.common_tools import get_uuid
 
 
 class Widget(OrderedModel):
@@ -73,103 +74,75 @@ class Widget(OrderedModel):
     @classmethod
     def query_data(cls, widget):
         """Queries and returns chart information with the data for the chart."""
-        # get the columns needed
-        column = widget.column
-        group_by = widget.group_by if widget.group_by else None
-        xform = None
-
-        if isinstance(widget.content_object, XForm):
-            xform = widget.content_object
-        elif isinstance(widget.content_object, DataView):
-            xform = widget.content_object.xform
-
-        field = get_field_from_field_xpath(column, xform)
-
-        if isinstance(field, str) and field == SUBMISSION_TIME:
-            field_label = "Submission Time"
-            field_xpath = "_submission_time"
-            field_type = "datetime"
-            data_type = DATA_TYPE_MAP.get(field_type, "categorized")
+        content_object = widget.content_object
+        data_view = content_object if isinstance(content_object, DataView) else None
+        if isinstance(content_object, XForm):
+            xform = content_object
+        elif data_view is not None:
+            xform = data_view.xform
         else:
-            field_type = field.type if hasattr(field, "type") else ""
-            data_type = DATA_TYPE_MAP.get(field_type, "categorized")
-            field_xpath = get_abbreviated_xpath(field.get_xpath())
-            if isinstance(field, Option):
-                parent = get_field_from_field_xpath(
-                    "/".join(column.split("/")[:-1]), xform
-                )
-                field_xpath = get_abbreviated_xpath(
-                    parent.get_xpath() + field.get_xpath()
-                )
+            raise Http404
+
+        # Resolve every stored field before crossing the database boundary.
+        # This also turns alternate field references into canonical XPaths.
+        field, column = resolve_field_xpath(widget.column, xform)
+        group_by_field = None
+        group_by = None
+        if widget.group_by:
+            group_by_field, group_by = resolve_field_xpath(widget.group_by, xform)
+
+        if data_view is not None:
+            selected_columns = set(data_view.columns or [])
+            if column not in selected_columns and column not in FIELD_DATA_MAP:
+                raise Http404
+            if group_by is not None and group_by not in selected_columns:
+                raise Http404
+
+        if isinstance(field, str):
+            field_label, field_xpath, field_type = FIELD_DATA_MAP[field]
+        else:
             field_label = get_field_label(field)
+            field_xpath = column
+            field_type = field.type if hasattr(field, "type") else ""
+        data_type = DATA_TYPE_MAP.get(field_type, "categorized")
 
-        columns = [
-            SimpleField(field=f"json->>'{text(column)}'", alias=f"{column}"),
-            CountField(field=f"json->>'{text(column)}'", alias="count"),
-        ]
-
-        if group_by:
-            if field_type in NUMERIC_LIST:
-                column_field = SimpleField(
-                    field=f"json->>'{text(column)}'", cast="float", alias=column
-                )
-            else:
-                column_field = SimpleField(
-                    field=f"json->>'{text(column)}'", alias=column
-                )
-
-            # build inner query
-            inner_query_columns = [
-                column_field,
-                SimpleField(field=f"json->>'{text(group_by)}'", alias=group_by),
-                SimpleField(field="xform_id"),
-                SimpleField(field="deleted_at"),
-            ]
-            inner_query = Query().from_table(Instance, inner_query_columns)
-
-            # build group-by query
-            if field_type in NUMERIC_LIST:
-                columns = [
-                    SimpleField(field=group_by, alias=f"{group_by}"),
-                    SumField(field=column, alias="sum"),
-                    AvgField(field=column, alias="mean"),
-                ]
-            elif field_type == SELECT_ONE:
-                columns = [
-                    SimpleField(field=column, alias=f"{column}"),
-                    SimpleField(field=group_by, alias=f"{group_by}"),
-                    CountField(field="*", alias="count"),
-                ]
-
-            query = (
-                Query()
-                .from_table({"inner_query": inner_query}, columns)
-                .where(xform_id=xform.pk, deleted_at=None)
+        if group_by and field_type in NUMERIC_LIST:
+            records = get_form_submissions_aggregated_by_select_one(
+                xform, column, column, group_by, data_view
             )
-
-            if field_type == SELECT_ONE:
-                query.group_by(column).group_by(group_by)
-            else:
-                query.group_by(group_by)
-
+            # The legacy widget response exposes only sum and mean here.
+            for record in records:
+                record.pop("count", None)
+        elif group_by and field_type == SELECT_ONE:
+            records = get_form_submissions_grouped_by_select_one(
+                xform, column, group_by, column, data_view
+            )
+        elif group_by:
+            # This combination was never a valid widget query. Fail closed
+            # rather than issuing malformed legacy SQL.
+            raise Http404
         else:
-            query = (
-                Query()
-                .from_table(Instance, columns)
-                .where(xform_id=xform.pk, deleted_at=None)
+            # The widget API exposes the complete _submission_time rather than
+            # combining submissions into calendar-day buckets.
+            records = get_form_submissions_grouped_by_field(
+                xform,
+                column,
+                column,
+                data_view,
+                truncate_dates=column != SUBMISSION_TIME,
             )
-            query.group_by(f"json->>'{text(column)}'")
-
-        # run query
-        records = query.select()
+            # The legacy query counted the extracted field rather than rows,
+            # so the NULL bucket is present with a zero count.
+            for record in records:
+                if record.get(column) is None:
+                    record["count"] = 0
 
         # flatten multiple dict if select one with group by
         if field_type == SELECT_ONE and group_by:
             records = _flatten_multiple_dict_into_one(column, group_by, records)
         # use labels if group by
         if group_by:
-            group_by_field = get_field_from_field_xpath(group_by, xform)
-            choices = get_field_choices(group_by, xform)
+            choices = get_field_choices(group_by_field, xform)
             records = _use_labels_from_group_by_name(
                 group_by, group_by_field, data_type, records, choices=choices
             )

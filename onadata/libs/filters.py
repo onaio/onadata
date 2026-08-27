@@ -868,8 +868,46 @@ class WidgetFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
         """Filter to return forms shared with user when ``view.action == "list"``."""
 
         if view.action == "list":
-            # Return widgets from xform user has perms to
-            return self._xform_filter_queryset(request, queryset, view, "object_id")
+            dataview_id = request.query_params.get("dataview")
+            if dataview_id:
+                int_or_parse_error(
+                    dataview_id,
+                    _(
+                        "Invalid value for dataview ID. It must be a positive "
+                        "integer."
+                    ),
+                )
+                dataview = get_object_or_404(
+                    DataView.objects.select_related(
+                        "project__organization", "xform__project__organization"
+                    ),
+                    pk=dataview_id,
+                    deleted_at__isnull=True,
+                    project__deleted_at__isnull=True,
+                    project__organization__is_active=True,
+                    xform__deleted_at__isnull=True,
+                    xform__project__deleted_at__isnull=True,
+                    xform__project__organization__is_active=True,
+                )
+                view.dataview = dataview
+                if not _can_view_dataview_project(request, dataview):
+                    return queryset.none()
+
+                return queryset.filter(
+                    content_type=ContentType.objects.get_for_model(DataView),
+                    object_id=dataview.pk,
+                )
+
+            # Generic foreign keys can share numeric object IDs. Constrain the
+            # permission-filtered IDs to the XForm content type as well.
+            filter_kwargs = self._xform_filter(request, view, "object_id", queryset)
+            xform_ids = filter_kwargs.get("object_id__in")
+            if xform_ids is not None:
+                filter_kwargs["object_id__in"] = xform_ids.filter(
+                    project__deleted_at__isnull=True
+                )
+            filter_kwargs["content_type"] = ContentType.objects.get_for_model(XForm)
+            return queryset.filter(**filter_kwargs)
 
         return super().filter_queryset(request, queryset, view)
 

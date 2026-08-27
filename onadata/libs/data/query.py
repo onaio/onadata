@@ -51,7 +51,12 @@ def _additional_data_view_filters(data_view):
     request-derived filter column or value is ever rendered into the SQL text.
     """
     # pylint: disable=protected-access
-    where, where_params = DataView._get_where_clause(data_view)
+    where, where_params = DataView._get_where_clause(
+        data_view,
+        data_view.get_known_integers(),
+        data_view.get_known_dates(),
+        data_view.get_known_decimals(),
+    )
 
     if not where:
         return "", []
@@ -103,9 +108,9 @@ def _postgres_count_group_field_n_group_by(field, name, xform, group_by, data_vi
     return query, additional_params
 
 
-def _postgres_count_group(field, name, xform, data_view=None):
+def _postgres_count_group(field, name, xform, data_view=None, truncate_dates=True):
     string_args = _query_args(field, name, xform)
-    if is_date_field(xform, field):
+    if truncate_dates and is_date_field(xform, field):
         string_args["json"] = (
             "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY" "-MM-DD')" % string_args
         )
@@ -261,12 +266,16 @@ def get_field_records(field, xform):
 
 
 # pylint: disable=invalid-name
-def get_form_submissions_grouped_by_field(xform, field, name=None, data_view=None):
-    """Number of submissions grouped by field"""
+def get_form_submissions_grouped_by_field(
+    xform, field, name=None, data_view=None, truncate_dates=True
+):
+    """Return submission counts, grouping known dates by day by default."""
     if not name:
         name = field
 
-    query, params = _postgres_count_group(field, name, xform, data_view)
+    query, params = _postgres_count_group(
+        field, name, xform, data_view, truncate_dates=truncate_dates
+    )
 
     return _execute_query(query, params)
 

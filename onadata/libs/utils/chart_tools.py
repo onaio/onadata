@@ -14,6 +14,7 @@ from django.http import Http404
 
 import six
 from pyxform import MultipleChoiceQuestion
+from pyxform.question import Option
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.data_view import DataView
@@ -439,6 +440,27 @@ def get_field_from_field_name(field_name, xform):
 def get_field_from_field_xpath(field_xpath, xform):
     """Returns the field if the ``field_xpath`` is in the ``xform``."""
     return _get_field_from_field_fn(field_xpath, xform)
+
+
+def resolve_field_xpath(field_xpath, xform):
+    """Return a form field and its canonical abbreviated XPath.
+
+    Survey elements may be addressed by a short name or an XPath. Resolving
+    before using the value in a query both enforces form membership and gives
+    query builders a canonical field name. Select-multiple options need their
+    parent question's path to address the stored JSON value.
+    """
+    field = get_field_from_field_xpath(field_xpath, xform)
+    if isinstance(field, str):
+        return field, FIELD_DATA_MAP[field][1]
+
+    canonical_xpath = get_abbreviated_xpath(field.get_xpath())
+    if isinstance(field, Option):
+        parent_xpath = "/".join(field_xpath.split("/")[:-1])
+        parent = get_field_from_field_xpath(parent_xpath, xform)
+        canonical_xpath = get_abbreviated_xpath(parent.get_xpath() + field.get_xpath())
+
+    return field, canonical_xpath
 
 
 def get_field_label(field, language_index=0):
