@@ -1182,6 +1182,48 @@ class TestTOTPViewSet(TestAbstractViewSet):
             [],
         )
 
+    @override_settings(
+        TWO_FACTOR_FAILURE_ALERT_THRESHOLD=3, TWO_FACTOR_FAILURE_ALERT_WINDOW=600
+    )
+    def test_repeated_failed_verifications_alert_the_account_owner(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self._enroll()
+        mail.outbox = []
+
+        for _ in range(2):
+            self.assertEqual(self._verify({"code": "000000"}).status_code, 403)
+        self.assertEqual(
+            [message for message in mail.outbox if self.user.email in message.to],
+            [],
+            "alerted before the threshold was reached",
+        )
+
+        self.assertEqual(self._verify({"code": "000000"}).status_code, 403)
+        alerts = [message for message in mail.outbox if self.user.email in message.to]
+        self.assertEqual(
+            len(alerts), 1, "reaching the threshold did not alert the account owner"
+        )
+
+        # Failures past the threshold do not repeat the alert in this window.
+        self.assertEqual(self._verify({"code": "000000"}).status_code, 403)
+        self.assertEqual(len([m for m in mail.outbox if self.user.email in m.to]), 1)
+
+    @override_settings(TWO_FACTOR_FAILURE_ALERT_THRESHOLD=0)
+    def test_failure_alerting_can_be_disabled(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self._enroll()
+        mail.outbox = []
+
+        for _ in range(5):
+            self.assertEqual(self._verify({"code": "000000"}).status_code, 403)
+
+        self.assertEqual(
+            [message for message in mail.outbox if self.user.email in message.to],
+            [],
+        )
+
 
 @override_settings(ENABLE_TWO_FACTOR=False)
 class DisabledTOTPViewSetTestCase(TestAbstractViewSet):
