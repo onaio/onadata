@@ -25,7 +25,7 @@ def _default_remember_to_off(form):
         remember.initial = False
 
 
-def _enforce_lockout(form, request):
+def _enforce_lockout(form, request, step):
     """Count token failures against onadata's login lockout.
 
     Upstream covers the credentials step alone, leaving whoever holds the
@@ -51,6 +51,10 @@ def _enforce_lockout(form, request):
         try:
             return inner_clean()
         except forms.ValidationError:
+            # Lazy for the same reason as above. Recorded before the lockout
+            # counter so hitting the threshold cannot skip the audit entry.
+            two_factor = importlib.import_module("onadata.libs.utils.two_factor")
+            two_factor.record_verification_failure(request, form.user, {"step": step})
             # Re-raised so the user sees the library's wrong-token message,
             # until add_login_attempt raises at the threshold instead.
             try:
@@ -116,7 +120,8 @@ class LockoutLoginView(LoginView):
         class named there is discarded before it is ever instantiated.
         """
         form = super().get_form(step=step, **kwargs)
-        if (step or self.steps.current) in (self.TOKEN_STEP, self.BACKUP_STEP):
+        current = step or self.steps.current
+        if current in (self.TOKEN_STEP, self.BACKUP_STEP):
             _default_remember_to_off(form)
-            _enforce_lockout(form, self.request)
+            _enforce_lockout(form, self.request, current)
         return form

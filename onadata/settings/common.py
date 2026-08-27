@@ -165,6 +165,13 @@ TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
 # password hashes nobody knows, and demanding one there would bar enrolment
 # outright. Deployments where the password is the account's own turn it on.
 TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = False
+
+# Email the account owner after this many failed second-factor checks within
+# TWO_FACTOR_FAILURE_ALERT_WINDOW seconds -- one email per window. 0 disables
+# the alert.
+TWO_FACTOR_FAILURE_ALERT_THRESHOLD = 10
+TWO_FACTOR_FAILURE_ALERT_WINDOW = 1800
+
 LOGIN_REDIRECT_URL = "/login_redirect/"
 
 # URL prefix for admin static files -- CSS, JavaScript and images.

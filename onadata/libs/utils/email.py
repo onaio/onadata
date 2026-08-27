@@ -85,17 +85,21 @@ def get_account_lockout_email_data(username, ip_address, end=False):
     return email_data
 
 
-def get_two_factor_email_data(username, enabled):
-    """Generates the email notifying a change to the account's second factor"""
-    state = "enabled" if enabled else "disabled"
+def get_two_factor_email_data(username, event, **context):
+    """Generates the email notifying a two-factor account event.
+
+    ``event`` names the template pair under ``two_factor/``; extra context
+    reaches the message template.
+    """
     ctx_dict = {
         "username": username,
         "support_email": getattr(settings, "SUPPORT_EMAIL", "support@example.com"),
+        **context,
     }
 
     return {
-        "subject": render_to_string(f"two_factor/{state}_email_subject.txt"),
-        "message_txt": render_to_string(f"two_factor/{state}.txt", ctx_dict),
+        "subject": render_to_string(f"two_factor/{event}_email_subject.txt"),
+        "message_txt": render_to_string(f"two_factor/{event}.txt", ctx_dict),
     }
 
 

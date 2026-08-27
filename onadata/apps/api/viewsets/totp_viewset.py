@@ -33,15 +33,14 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from two_factor.utils import default_device
 
-from onadata.apps.api.tasks import send_two_factor_changed_email
 from onadata.libs.authentication import (
     SSOHeaderAuthentication,
     add_login_attempt,
     assert_not_locked_out,
     get_client_ip,
 )
-from onadata.libs.utils.email import get_two_factor_email_data
 from onadata.libs.utils.log import Actions, audit_log
+from onadata.libs.utils.two_factor import notify_owner, record_verification_failure
 
 RECOVERY_CODE_COUNT = 10
 
@@ -211,32 +210,6 @@ def _regenerate_recovery_codes(user) -> list:
         ]
 
 
-def _audit_verification_failure(request, audit: dict):
-    """Record a failed second-factor check where an operator can see it."""
-    audit_log(
-        Actions.TWO_FACTOR_VERIFICATION_FAILED,
-        request.user,
-        request.user,
-        _("Two-factor verification failed."),
-        audit,
-        request,
-    )
-
-
-def _notify_owner(user, enabled: bool):
-    """Tell the account owner their second factor changed.
-
-    Whoever made the change -- owner or intruder -- the owner finds out.
-    Skipped when the account has no address to reach.
-    """
-    if not user.email:
-        return
-    email_data = get_two_factor_email_data(user.username, enabled)
-    send_two_factor_changed_email.apply_async(
-        args=[user.email, email_data["message_txt"], email_data["subject"]]
-    )
-
-
 def _enrollment_payload(device) -> dict:
     """One secret in three renderings: QR, URI, and base32 to type by hand.
 
@@ -305,7 +278,7 @@ class TOTPViewSet(ViewSet):
             return None
         if _verify_code(request.user, str(request.data.get("code", "")).strip()):
             return None
-        _audit_verification_failure(request, {"audience": audience})
+        record_verification_failure(request, request.user, {"audience": audience})
         return Response(
             {
                 "error": "That code is not valid. Enter a current code from your "
@@ -496,7 +469,7 @@ class TOTPViewSet(ViewSet):
             {},
             request,
         )
-        _notify_owner(request.user, enabled=True)
+        notify_owner(request.user, "enabled")
         return Response({"enrolled": True, "codes": codes})
 
     @action(detail=False, methods=["post"], url_path="disable")
@@ -514,7 +487,15 @@ class TOTPViewSet(ViewSet):
             # standing that nothing here can verify, so never removable.
             for device in devices_for_user(request.user, confirmed=None):
                 device.delete()
-        _notify_owner(request.user, enabled=False)
+        audit_log(
+            Actions.TWO_FACTOR_DISABLED,
+            request.user,
+            request.user,
+            _("Two-factor authentication disabled."),
+            {},
+            request,
+        )
+        notify_owner(request.user, "disabled")
         return Response({"enrolled": False})
 
     @action(detail=False, methods=["post"], url_path="recovery/generate")
@@ -528,11 +509,20 @@ class TOTPViewSet(ViewSet):
         refusal = self._require_code(request, "recovery-generate")
         if refusal is not None:
             return refusal
-        # The only time these are readable.
-        return Response(
-            {"codes": _regenerate_recovery_codes(request.user)},
-            status=status.HTTP_201_CREATED,
+        codes = _regenerate_recovery_codes(request.user)
+        audit_log(
+            Actions.TWO_FACTOR_RECOVERY_CODES_GENERATED,
+            request.user,
+            request.user,
+            _("Two-factor recovery codes replaced."),
+            {},
+            request,
         )
+        # The previous set died with the new one's arrival, which is worth an
+        # email; enrolment's initial set is covered by the enrolment notice.
+        notify_owner(request.user, "recovery_generated")
+        # The only time these are readable.
+        return Response({"codes": codes}, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["post"], url_path="recovery")
     def recovery_view(self, request):
@@ -550,6 +540,17 @@ class TOTPViewSet(ViewSet):
                 {"error": "No recovery codes have been generated."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        # Audited but not emailed: re-reading the unspent set is a supported
+        # flow, and mailing every read would bury the notices that mark
+        # actual credential changes.
+        audit_log(
+            Actions.TWO_FACTOR_RECOVERY_CODES_VIEWED,
+            request.user,
+            request.user,
+            _("Two-factor recovery codes viewed."),
+            {},
+            request,
+        )
         return Response(
             {"codes": list(recovery.token_set.values_list("token", flat=True))}
         )
@@ -580,8 +581,8 @@ class TOTPViewSet(ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not _verify_code(request.user, code, method):
-            _audit_verification_failure(
-                request, {"audience": audience, "method": method}
+            record_verification_failure(
+                request, request.user, {"audience": audience, "method": method}
             )
             return Response(
                 {"error": "That code is not valid."},
