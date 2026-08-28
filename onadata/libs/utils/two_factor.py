@@ -48,7 +48,7 @@ def notify_owner(user, event, **context):
         # The state change already committed; a broker outage must not fail
         # the caller's request just because the notification could not be
         # enqueued. Swallow it rather than surface a 500.
-        return
+        pass
 
 
 def record_verification_failure(request, user, audit):
