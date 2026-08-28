@@ -1120,15 +1120,24 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
         dd = DataDictionary.objects.get(
             user=user, id_string=id_string, project=project, deleted_at__isnull=True
         )
-        # The managed key encrypting the current version carries over to
-        # the new version
-        kms_key = (
-            dd.kms_keys.filter(version=dd.version).latest("date_created").kms_key
-            if dd.is_managed
-            else None
-        )
+        kms_key = None
+
+        if dd.is_managed:
+            xform_key_qs = dd.kms_keys.filter(version=dd.version)
+
+            if xform_key_qs.exists():
+                # The managed key encrypting the current version carries over to
+                # the new version
+                kms_key = xform_key_qs.latest("date_created").kms_key
+
+            else:
+                logger.error(
+                    "Managed key not found for XForm %s version %s", dd.pk, dd.version
+                )
+
         dd.xls = xls_file
         dd.save()
+
         if kms_key is not None:
             dd.kms_keys.create(
                 version=dd.version, kms_key=kms_key, encrypted_by=created_by

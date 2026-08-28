@@ -1555,3 +1555,50 @@ class PublishXLSFormTestCase(TestBase):
                 version=xform.version, kms_key=kms_key, encrypted_by=self.user
             ).exists()
         )
+
+    def test_replace_managed_form_without_registered_key(self):
+        """Replacing a managed form whose version has no key is logged."""
+        org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=ContentType.objects.get_for_model(org),
+            object_id=org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        project = get_user_default_project(org.user)
+        text_xls_form = (
+            "survey\r\n"
+            ",type,name,label\r\n"
+            ",text,fruit,Fruit\r\n"
+            "settings\r\n"
+            ",form_title,id_string\r\n"
+            ",Fruits,fruits\r\n"
+        )
+        xls_file = ContentFile(text_xls_form.encode(), name="fruits.csv")
+        dd = publish_xls_form(xls_file, org.user, project, None, self.user)
+        encrypt_xform(XForm.objects.get(pk=dd.pk), encrypted_by=self.user)
+        encrypted_version = XForm.objects.get(pk=dd.pk).version
+        # Simulate a managed form whose current version was never registered
+        # against the key that encrypts it
+        dd.kms_keys.all().delete()
+        updated_text_xls_form = text_xls_form.replace(",Fruits,", ",Fruits updated,")
+        xls_file = ContentFile(updated_text_xls_form.encode(), name="fruits.csv")
+
+        with self.assertLogs(
+            "onadata.libs.utils.logger_tools", level="ERROR"
+        ) as log_context:
+            updated_dd = publish_xls_form(
+                xls_file, org.user, project, "fruits", self.user
+            )
+
+        xform = XForm.objects.get(pk=updated_dd.pk)
+        # The replacement goes ahead, unregistered
+        self.assertEqual(xform.title, "Fruits updated")
+        self.assertFalse(xform.kms_keys.exists())
+        self.assertEqual(len(log_context.output), 1)
+        self.assertIn(str(xform.pk), log_context.output[0])
+        self.assertIn(encrypted_version, log_context.output[0])
