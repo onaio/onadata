@@ -320,7 +320,7 @@ class TOTPViewSet(ViewSet):
             # lockout here so this response stays the standard invalid-code
             # message; the next request re-checks the lockout and answers
             # ``locked_out``.
-            return
+            pass
 
     def _require_code(self, request, audience: str):
         """Reject unless the request carries a current second factor.
