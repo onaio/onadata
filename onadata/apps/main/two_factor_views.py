@@ -105,15 +105,16 @@ class LockoutLoginView(LoginView):
     )
 
     def get_device(self, step=None):
-        """Pick the recovery set by name on the backup step.
+        """Pick the project's hashed recovery device on the backup step.
 
-        Upstream takes ``staticdevice_set.first()``, and django-otp then
-        verifies against that device alone -- so any unrelated static device
-        sorting ahead of the recovery set refuses every valid recovery code,
-        with nothing to tell the user why. django-otp registers StaticDevice
-        in the Django admin, so one can arrive without any code creating it.
+        Upstream takes ``staticdevice_set.first()``; this project stores
+        recovery codes in its own ``HashedRecoveryDevice`` (keyed hashes, never
+        plaintext), so the wizard has to be pointed at that device for its
+        backup step to verify against the codes the user actually holds. The
+        device's ``verify_token`` hashes the submitted code, so the library's
+        backup form needs no change.
 
-        Falls through to upstream when the named set is absent, leaving the
+        Falls through to upstream when the set is absent, leaving the
         no-recovery-codes case exactly as the library handles it.
         """
         if (step or self.steps.current) == self.BACKUP_STEP:
@@ -123,11 +124,9 @@ class LockoutLoginView(LoginView):
             totp_viewset = importlib.import_module(
                 "onadata.apps.api.viewsets.totp_viewset"
             )
-            device = (
-                self.get_user()
-                .staticdevice_set.filter(name=totp_viewset.RECOVERY_DEVICE_NAME)
-                .first()
-            )
+            device = totp_viewset.HashedRecoveryDevice.objects.filter(
+                user=self.get_user(), name=totp_viewset.RECOVERY_DEVICE_NAME
+            ).first()
             if device is not None:
                 self.device_cache = device
                 return device
