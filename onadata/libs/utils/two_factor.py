@@ -45,7 +45,10 @@ def notify_owner(user, event, **context):
             ]
         )
     except Exception:  # pylint: disable=broad-except
-        pass
+        # The state change already committed; a broker outage must not fail
+        # the caller's request just because the notification could not be
+        # enqueued. Swallow it rather than surface a 500.
+        return
 
 
 def record_verification_failure(request, user, audit):

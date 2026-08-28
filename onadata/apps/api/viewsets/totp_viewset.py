@@ -321,7 +321,11 @@ class TOTPViewSet(ViewSet):
         try:
             add_login_attempt(get_client_ip(request), request.user.username)
         except AuthenticationFailed:
-            pass
+            # This attempt is the one that crossed the threshold. Swallow the
+            # lockout here so this response stays the standard invalid-code
+            # message; the next request re-checks the lockout and answers
+            # ``locked_out``.
+            return
 
     def _require_code(self, request, audience: str):
         """Reject unless the request carries a current second factor.
