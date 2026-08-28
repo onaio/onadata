@@ -7,6 +7,8 @@ import os
 from unittest import skip
 from unittest.mock import patch
 
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.messages import get_messages
 from django.core.exceptions import MultipleObjectsReturned
 from django.core.files.base import ContentFile
 from django.test.utils import override_settings
@@ -16,6 +18,7 @@ from httmock import HTTMock
 
 from onadata.apps.api.tests.mocked_data import enketo_urls_mock
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.views import (
     delete_xform,
     download_jsonform,
@@ -541,6 +544,77 @@ class TestFormShow(TestBase):
             > 0
         )
         self.assertTrue(is_updated_form)
+
+    def test_cannot_replace_encrypted_form(self):
+        """A form encrypted with a custom key cannot be replaced."""
+        XForm.objects.filter(pk=self.xform.pk).update(
+            encrypted=True, public_key="fake-pub-key"
+        )
+        version = self.xform.version
+        xform_update_url = reverse(
+            update_xform,
+            kwargs={"username": self.user.username, "id_string": self.xform.id_string},
+        )
+        xls_path = os.path.join(
+            self.this_directory,
+            "fixtures",
+            "transportation",
+            "transportation_updated.xlsx",
+        )
+
+        with open(xls_path, "rb") as xls_file:
+            post_data = {"xls_file": xls_file}
+            response = self.client.post(xform_update_url, post_data)
+
+        self.assertEqual(response.status_code, 302)
+        xform = XForm.objects.get(pk=self.xform.pk)
+        self.assertEqual(xform.version, version)
+        # preferred_means is only in the replacement XLSForm
+        self.assertNotIn("preferred_means", [e.name for e in xform.survey_elements])
+        self.assertIn(
+            "This form is encrypted and cannot be replaced.",
+            [str(message) for message in get_messages(response.wsgi_request)],
+        )
+
+    def test_can_replace_managed_encrypted_form(self):
+        """A form encrypted with a managed key can be replaced."""
+        org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=ContentType.objects.get_for_model(org),
+            object_id=org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        XForm.objects.filter(pk=self.xform.pk).update(
+            encrypted=True, is_managed=True, public_key=kms_key.public_key
+        )
+        self.xform.kms_keys.create(
+            version=self.xform.version, kms_key=kms_key, encrypted_by=self.user
+        )
+        xform_update_url = reverse(
+            update_xform,
+            kwargs={"username": self.user.username, "id_string": self.xform.id_string},
+        )
+        xls_path = os.path.join(
+            self.this_directory,
+            "fixtures",
+            "transportation",
+            "transportation_updated.xlsx",
+        )
+
+        with open(xls_path, "rb") as xls_file:
+            post_data = {"xls_file": xls_file}
+            self.client.post(xform_update_url, post_data)
+
+        xform = XForm.objects.get(pk=self.xform.pk)
+        # preferred_means is only in the replacement XLSForm
+        self.assertIn("preferred_means", [e.name for e in xform.survey_elements])
+        self.assertTrue(xform.encrypted)
+        self.assertEqual(xform.json["public_key"], kms_key.public_key)
 
     def test_update_form_doesnt_truncate_to_50_chars(self):
         count = XForm.objects.count()

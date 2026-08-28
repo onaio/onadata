@@ -1548,6 +1548,19 @@ def update_xform(request, username, id_string):
 
     xform = get_form(xform_kwargs)
     owner = xform.user
+    show_url = reverse(show, kwargs={"username": username, "id_string": id_string})
+
+    # Forms encrypted with a custom key lose the key when the XLSForm is
+    # re-read, since the key is not part of the XLSForm
+    if xform.encrypted and not xform.is_managed:
+        messages.add_message(
+            request,
+            messages.INFO,
+            _("This form is encrypted and cannot be replaced."),
+            extra_tags="alert-error",
+        )
+
+        return HttpResponseRedirect(show_url)
 
     def set_form():
         """Publishes the XLSForm"""
@@ -1580,9 +1593,7 @@ def update_xform(request, username, id_string):
         request, messages.INFO, message["text"], extra_tags=message["type"]
     )
 
-    return HttpResponseRedirect(
-        reverse(show, kwargs={"username": username, "id_string": id_string})
-    )
+    return HttpResponseRedirect(show_url)
 
 
 @is_owner
