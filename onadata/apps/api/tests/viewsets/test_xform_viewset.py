@@ -62,7 +62,7 @@ from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.views import delete_xform
 from onadata.apps.logger.xform_instance_parser import XLSFormError
-from onadata.apps.main.models import MetaData
+from onadata.apps.main.models import AuditLog, MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
 from onadata.libs.exceptions import EncryptionError
@@ -102,6 +102,7 @@ from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
 )
+from onadata.libs.utils.log import Actions
 from onadata.libs.utils.xform_utils import get_xform_users
 
 ROLES = [ReadOnlyRole, DataEntryRole, EditorRole, ManagerRole, OwnerRole]
@@ -3114,6 +3115,80 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertNotEqual(title_old, self.xform.title)
             self.assertEqual(form_id, self.xform.pk)
             self.assertEqual(id_string, self.xform.id_string)
+
+    def test_update_xform_xls_file_audit_logged(self):
+        """Replacing a form is recorded in the audit log"""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            view = XFormViewSet.as_view(
+                {
+                    "patch": "partial_update",
+                }
+            )
+
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_version.xlsx",
+            )
+            with open(path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+                self.assertEqual(response.status_code, 200)
+
+            records = list(
+                AuditLog.query_data(
+                    self.xform.user.username, sort="-created_on", start=0, limit=1
+                )
+            )
+            self.assertEqual(len(records), 1)
+            record = records[0]
+            self.assertEqual(record["action"], Actions.FORM_XLS_UPDATED)
+            self.assertEqual(record["user"], self.user.username)
+            self.assertEqual(record["account"], self.xform.user.username)
+            self.assertEqual(record["audit"], {"xform": self.xform.id_string})
+
+    def test_update_xform_xls_bad_file_not_audit_logged(self):
+        """A failed form replacement is not recorded in the audit log"""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            view = XFormViewSet.as_view(
+                {
+                    "patch": "partial_update",
+                }
+            )
+
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation.bad_id.xlsx",
+            )
+            with open(path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+                self.assertEqual(response.status_code, 400)
+
+            records = AuditLog.query_data(self.xform.user.username)
+            self.assertEqual(
+                [
+                    record
+                    for record in records
+                    if record["action"] == Actions.FORM_XLS_UPDATED
+                ],
+                [],
+            )
 
     def test_manager_can_update_xform_xls_file(self):
         """Manager Role can replace xlsform"""

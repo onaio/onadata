@@ -107,6 +107,7 @@ from onadata.libs.utils.csv_import import (
     submit_csv_async,
 )
 from onadata.libs.utils.export_tools import parse_request_export_options
+from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.upload_validation import (
@@ -269,6 +270,15 @@ def _try_update_xlsform(request, xform, owner):
             target_type=XFORM,
             user=request.user or owner,
             message_verb=FORM_UPDATED,
+        )
+
+        audit_log(
+            Actions.FORM_XLS_UPDATED,
+            request.user,
+            owner,
+            _("XLS for '%(id_string)s' updated.") % {"id_string": xform.id_string},
+            {"xform": xform.id_string},
+            request,
         )
 
         return Response(serializer.data, status=status.HTTP_200_OK)
