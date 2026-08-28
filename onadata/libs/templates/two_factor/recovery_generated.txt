@@ -1,12 +1,11 @@
-{% load i18n %}
-{% blocktranslate %}
-Hi {{ username }},
+{% load i18n %}{% blocktranslate %}Hey {{ username }}!
 
-A new set of two-factor recovery codes was just generated for your Ona account. Your previous recovery codes no longer work.
+A new set of two-factor recovery codes was generated for your {{ deployment_name }} account on {{ event_at }}. Your previous recovery codes no longer work.
 
-If this was not you, sign in, change your password, generate a fresh set of recovery codes, and reach out to our support team, {{ support_email }}.
+If this was you, no further action is required.
 
-Thank you for choosing Ona!
+If this was not you, your account may be compromised. Sign in, change your password, and generate a fresh set of recovery codes, then contact {{ support_email }}.
 
-The Team at Ona
+Thanks,
+The {{ deployment_name }} Team
 {% endblocktranslate %}

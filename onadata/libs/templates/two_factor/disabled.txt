@@ -1,12 +1,11 @@
-{% load i18n %}
-{% blocktranslate %}
-Hi {{ username }},
+{% load i18n %}{% blocktranslate %}Hey {{ username }}!
 
-Two-factor authentication was just turned off on your Ona account.
+Two-factor authentication was turned off on your {{ deployment_name }} account on {{ event_at }}.
 
-If this was not you, sign in, change your password, set up your authenticator again, and reach out to our support team, {{ support_email }}.
+If this was you, no further action is required.
 
-Thank you for choosing Ona!
+If this was not you, your account may be compromised. Sign in, turn two-factor authentication back on, and change your password, then contact {{ support_email }}.
 
-The Team at Ona
+Thanks,
+The {{ deployment_name }} Team
 {% endblocktranslate %}

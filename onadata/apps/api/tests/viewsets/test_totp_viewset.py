@@ -1086,6 +1086,27 @@ class TestTOTPViewSet(TestAbstractViewSet):
             "enrolling a factor did not notify the account owner",
         )
 
+    def test_the_notification_email_carries_a_branded_html_part(self):
+        mail.outbox = []
+
+        self._enroll()
+
+        message = next(m for m in mail.outbox if self.user.email in m.to)
+        html = next(
+            (
+                content
+                for content, mimetype in message.alternatives
+                if mimetype == "text/html"
+            ),
+            None,
+        )
+        self.assertIsNotNone(html, "the notification has no HTML alternative")
+        self.assertIn(f"Hey {self.user.username}!", html)
+        self.assertIn("<strong>not</strong>", html)
+        # The plain-text part carries the same copy without the markup.
+        self.assertIn(f"Hey {self.user.username}!", message.body)
+        self.assertNotIn("<strong>", message.body)
+
     def test_disabling_two_factor_notifies_the_account_owner(self):
         device = self._enroll()
         mail.outbox = []

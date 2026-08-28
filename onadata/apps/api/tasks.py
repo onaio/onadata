@@ -138,9 +138,9 @@ def send_account_lockout_email(email, message_txt, subject):
 
 
 @app.task(base=AutoRetryTask)
-def send_two_factor_changed_email(email, message_txt, subject):
+def send_two_factor_changed_email(email, message_txt, subject, message_html=None):
     """Sends second-factor change notification email."""
-    send_generic_email(email, message_txt, subject)
+    send_generic_email(email, message_txt, subject, message_html)
 
 
 @app.task(base=AutoRetryTask)

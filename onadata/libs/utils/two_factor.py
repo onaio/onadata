@@ -37,7 +37,12 @@ def notify_owner(user, event, **context):
     email_data = get_two_factor_email_data(user.username, event, **context)
     try:
         send_two_factor_changed_email.apply_async(
-            args=[user.email, email_data["message_txt"], email_data["subject"]]
+            args=[
+                user.email,
+                email_data["message_txt"],
+                email_data["subject"],
+                email_data.get("message_html"),
+            ]
         )
     except Exception:  # pylint: disable=broad-except
         pass

@@ -3,10 +3,13 @@
 Email utility functions.
 """
 
+from datetime import timezone as dt_timezone
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection, send_mail
 from django.http import HttpRequest
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.html import strip_tags
 
 from rest_framework.reverse import reverse
@@ -88,18 +91,26 @@ def get_account_lockout_email_data(username, ip_address, end=False):
 def get_two_factor_email_data(username, event, **context):
     """Generates the email notifying a two-factor account event.
 
-    ``event`` names the template pair under ``two_factor/``; extra context
-    reaches the message template.
+    ``event`` names the template set under ``two_factor/``; extra context
+    reaches the templates. A plain-text and an HTML rendering are returned so
+    the message goes out as multipart/alternative.
     """
+    now = timezone.now().astimezone(dt_timezone.utc)
     ctx_dict = {
         "username": username,
         "support_email": getattr(settings, "SUPPORT_EMAIL", "support@example.com"),
+        "deployment_name": getattr(settings, "DEPLOYMENT_NAME", "Ona"),
+        # Formatted here rather than in the template so it is stamped in UTC
+        # regardless of the deployment's TIME_ZONE; ``.day`` avoids a
+        # platform-dependent no-leading-zero strftime directive.
+        "event_at": f"{now:%B} {now.day}, {now:%Y at %H:%M} UTC",
         **context,
     }
 
     return {
         "subject": render_to_string(f"two_factor/{event}_email_subject.txt"),
         "message_txt": render_to_string(f"two_factor/{event}.txt", ctx_dict),
+        "message_html": render_to_string(f"two_factor/{event}.html", ctx_dict),
     }
 
 
@@ -128,13 +139,15 @@ def get_account_deactivation_email_data(
     }
 
 
-def send_generic_email(email, message_txt, subject):
-    """Sends an email."""
+def send_generic_email(email, message_txt, subject, message_html=None):
+    """Sends an email, optionally with an HTML alternative part."""
     if any(a in [None, ""] for a in [email, message_txt, subject]):
         raise ValueError("email, message_txt amd subject arguments are ALL required.")
 
     from_email = settings.DEFAULT_FROM_EMAIL
     email_message = EmailMultiAlternatives(subject, message_txt, from_email, [email])
+    if message_html:
+        email_message.attach_alternative(message_html, "text/html")
 
     email_message.send()
 
@@ -254,4 +267,4 @@ def send_mass_mail(
 
 
 def friendly_date(date):
-    return f'{date.strftime("%d %b, %Y %I:%M %p")} UTC'
+    return f"{date.strftime('%d %b, %Y %I:%M %p')} UTC"
