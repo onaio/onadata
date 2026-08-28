@@ -1,8 +1,6 @@
-# n -*- coding: utf-8 -*-
 """
 Test MergedXFormSerializer
 """
-import copy
 
 from flaky import flaky
 from rest_framework import serializers
@@ -120,11 +118,15 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
     def setUp(self):
         self.project = None
 
-        super(TestMergedXFormSerializer, self).setUp()
+        super().setUp()
 
     def test_create_merged_xform(self):
         """Test creating a merged dataset with the MergedXFormSerializer"""
-        serializer = MergedXFormSerializer(data={})
+        request = self.factory.post("/")
+        request.user = self.user
+        context = {"request": request}
+
+        serializer = MergedXFormSerializer(data={}, context=context)
         self.assertFalse(serializer.is_valid(raise_exception=False))
 
         # project is required
@@ -144,7 +146,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             "name": "Merged Dataset",
             "project": "http://testserver.com/api/v1/projects/%s" % self.project.pk,
         }
-        serializer = MergedXFormSerializer(data=data)
+        serializer = MergedXFormSerializer(data=data, context=context)
         self.assertFalse(serializer.is_valid(raise_exception=False))
         self.assertNotIn("name", serializer.errors)
         self.assertNotIn("project", serializer.errors)
@@ -152,11 +154,12 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
 
         # 1 xform
         data["xforms"] = ["http://testserver.com/api/v1/forms/%s" % xform1.pk]
-        serializer = MergedXFormSerializer(data=data)
+        serializer = MergedXFormSerializer(data=data, context=context)
         self.assertFalse(serializer.is_valid(raise_exception=False))
-        self.assertIn(
-            "This field should have at least two unique xforms.",
+        # validation stops at the first failed check
+        self.assertEqual(
             serializer.errors["xforms"],
+            ["This field should have at least two unique xforms."],
         )
 
         # same xform twice
@@ -164,10 +167,10 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
         ]
-        serializer = MergedXFormSerializer(data=data)
+        serializer = MergedXFormSerializer(data=data, context=context)
         self.assertFalse(serializer.is_valid(raise_exception=False))
-        self.assertIn(
-            "This field should have unique xforms", serializer.errors["xforms"]
+        self.assertEqual(
+            serializer.errors["xforms"], ["This field should have unique xforms"]
         )
 
         # xform with no matching fields
@@ -176,7 +179,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
             "http://testserver.com/api/v1/forms/%s" % xform3.pk,
         ]
-        serializer = MergedXFormSerializer(data=data)
+        serializer = MergedXFormSerializer(data=data, context=context)
         self.assertFalse(serializer.is_valid(raise_exception=False))
         self.assertEqual(serializer.errors["xforms"], ["No matching fields in xforms."])
 
@@ -186,7 +189,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
             "http://testserver.com/api/v1/forms/%s" % xform2.pk,
         ]
-        serializer = MergedXFormSerializer(data=data)
+        serializer = MergedXFormSerializer(data=data, context=context)
         self.assertTrue(serializer.is_valid(raise_exception=False))
         self.assertNotIn("xforms", serializer.errors)
 

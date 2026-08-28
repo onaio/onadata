@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 MergedXFormSerializer class
 """
@@ -16,6 +15,7 @@ from rest_framework import serializers
 
 from onadata.apps.logger.models import MergedXForm, XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
+from onadata.libs.permissions import CAN_ADD_PROJECT_XFORM
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE, SELECT_ONE
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
@@ -131,6 +131,37 @@ def has_matching_fields(value):
     return value
 
 
+class CanMergeXForms:  # pylint: disable=too-few-public-methods
+    """Validate the user administers the project of every xform being merged
+    and that the xforms are mergeable.
+
+    The checks run sequentially, stopping at the first failure. DRF runs every
+    field validator and combines their errors, so as separate validators
+    ``has_matching_fields`` would reveal the fields of an xform the user
+    cannot read even when the permission check fails.
+    """
+
+    requires_context = True
+    message = _("You do not have permission to merge one or more of these forms.")
+
+    def __call__(self, xforms, serializer_field):
+        request = serializer_field.context.get("request")
+        user = getattr(request, "user", None)
+
+        if user is None or user.is_anonymous:
+            raise serializers.ValidationError(self.message)
+
+        if any(
+            not user.has_perm(CAN_ADD_PROJECT_XFORM, xform.project) for xform in xforms
+        ):
+            raise serializers.ValidationError(self.message)
+
+        minimum_two_xforms(xforms)
+        has_matching_fields(xforms)
+
+        return xforms
+
+
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
     """XFormSerializer"""
 
@@ -180,7 +211,7 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
             ),
             view_name="xform-detail",
         ),
-        validators=[minimum_two_xforms, has_matching_fields],
+        validators=[CanMergeXForms()],
     )
     num_of_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
@@ -199,6 +230,23 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
             "uuid",
         )
         write_only_fields = ("uuid",)
+
+    def validate_project(self, value):
+        """Validate the user can add a form to the project"""
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        can_add = (
+            user
+            and not user.is_anonymous
+            and user.has_perm(CAN_ADD_PROJECT_XFORM, value)
+        )
+
+        if not can_add:
+            raise serializers.ValidationError(
+                _("You do not have permission to add a form to this project.")
+            )
+
+        return value
 
     def get_num_of_submissions(self, obj):
         """Return number of submissions either from the aggregate
