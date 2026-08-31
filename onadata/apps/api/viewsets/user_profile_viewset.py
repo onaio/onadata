@@ -5,6 +5,7 @@ UserProfileViewSet module.
 
 import datetime
 import json
+from copy import deepcopy
 
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
@@ -42,6 +43,14 @@ from onadata.libs.serializers.monthly_submissions_serializer import (
     MonthlySubmissionsSerializer,
 )
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.policy import (
+    GATE_CHANGE_EMAIL,
+    GATE_CHANGE_PASSWORD,
+    GATE_PRIVACY_CONSENT,
+    GATE_REQUIRE_AUTH,
+    eu_consent_path,
+)
 from onadata.libs.utils.cache_tools import (
     CHANGE_PASSWORD_ATTEMPTS,
     LOCKOUT_CHANGE_PASSWORD_USER,
@@ -52,6 +61,7 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_set,
 )
 from onadata.libs.utils.email import get_verification_email_data, get_verification_url
+from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
@@ -153,8 +163,37 @@ def change_password_attempts(request):
     return 1
 
 
+def _dig(mapping, path):
+    """Walk ``path`` through nested dicts, or ``None`` if it does not resolve."""
+    for key in path:
+        if not isinstance(mapping, dict):
+            return None
+        mapping = mapping.get(key)
+    return mapping
+
+
+def _incoming_eu_consent(data):
+    """The consent record this request is trying to write, if any.
+
+    Metadata arrives either as a dict or as a JSON string depending on the
+    client, so both are read here rather than at each call site.
+    """
+    raw = data.get("metadata")
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return None
+    return _dig(raw, eu_consent_path())
+
+
+def _stored_eu_consent(profile):
+    return _dig(profile.metadata or {}, eu_consent_path())
+
+
 # pylint: disable=too-many-ancestors
 class UserProfileViewSet(
+    RequiresStepUp,
     AuthenticateHeaderMixin,
     CacheControlMixin,
     ETagsMixin,
@@ -214,6 +253,9 @@ class UserProfileViewSet(
 
     def update(self, request, *args, **kwargs):
         """Update user in cache and db"""
+        refusal = self._step_up_refusal(request)
+        if refusal is not None:
+            return refusal
         username = kwargs.get("user")
         request_username = request.user.username if request.user else ""
         safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
@@ -246,7 +288,14 @@ class UserProfileViewSet(
     def change_password(self, request, *args, **kwargs):  # noqa
         """
         Change user's password.
+
+        Gated as well as demanding the current password: a session opened on a
+        machine the user walked away from already knows nothing else, and a
+        new password is a durable takeover.
         """
+        refusal = self.check_step_up(request, GATE_CHANGE_PASSWORD)
+        if refusal is not None:
+            return refusal
         # clear cache
         safe_cache_delete(f"{USER_PROFILE_PREFIX}{request.user.username}")
         user_profile = self.get_object()
@@ -296,11 +345,71 @@ class UserProfileViewSet(
 
         return Response(status=status.HTTP_200_OK, data=data)
 
+    def _step_up_refusal(self, request):
+        """Refuse whichever gated change this request would make, or None.
+
+        Shared by update and partial_update: the gate belongs to the change,
+        not to the verb, and a PUT writes the same fields a PATCH does.
+        """
+        profile = self.get_object()
+        # Gated per field, not per endpoint: require_auth governs whether
+        # submissions demand authentication, so weakening it is the step-up
+        # target. Editing a city or a website is not. Gated on an actual change,
+        # like email and consent below: a full-profile PUT echoes the field
+        # unchanged, and challenging that would prompt for edits nobody made.
+        if "require_auth" in request.data:
+            incoming_require_auth = bool(str2bool(request.data.get("require_auth")))
+            if incoming_require_auth != profile.require_auth:
+                refusal = self.check_step_up(request, GATE_REQUIRE_AUTH)
+                if refusal is not None:
+                    return refusal
+        # Where password resets are delivered. Changing it is the first move in
+        # taking an account over, so it needs more than the session that is
+        # already open -- gated on an actual change, since the client sends
+        # the whole profile.
+        new_email = str(request.data.get("email", "") or "").strip()
+        if new_email and new_email.lower() != (profile.user.email or "").lower():
+            refusal = self.check_step_up(request, GATE_CHANGE_EMAIL)
+            if refusal is not None:
+                return refusal
+        # The GDPR consent record is a compliance statement about whose data
+        # this account collects, so changing it needs the same proof. Gated on
+        # the effective value, not on a differing key merely being present:
+        # a wholesale metadata write whose payload omits or nulls the consent
+        # path drops the stored record, which is itself a change -- and only
+        # when the request carries metadata, since one that does not touch it
+        # leaves consent alone. Only a PATCH with overwrite=false takes
+        # partial_update's merge branch, which preserves absent keys and
+        # re-checks against the merged result; a PUT ignores overwrite and
+        # writes metadata wholesale, so keying the skip on the value alone
+        # would let a PUT carrying overwrite=false bypass this while still
+        # replacing the record.
+        takes_merge_path = (
+            request.method == "PATCH"
+            and request.data.get("overwrite") == "false"
+        )
+        if (
+            "metadata" in request.data
+            and not takes_merge_path
+            and _incoming_eu_consent(request.data) != _stored_eu_consent(profile)
+        ):
+            return self.check_step_up(request, GATE_PRIVACY_CONSENT)
+        return None
+
     def partial_update(self, request, *args, **kwargs):
         """Allows for partial update of the user profile data."""
+        refusal = self._step_up_refusal(request)
+        if refusal is not None:
+            return refusal
         profile = self.get_object()
         metadata = profile.metadata or {}
         if request.data.get("overwrite") == "false":
+            # This branch merges incoming keys by name anywhere in the tree, so
+            # it can change a nested consent leaf that the path-based check in
+            # ``_step_up_refusal`` never saw in the raw payload. Gate on the
+            # effective result: snapshot the consent value (deep-copied, since
+            # the merge mutates the same dict) and re-check it after the merge.
+            consent_before = deepcopy(_dig(metadata, eu_consent_path()))
             if isinstance(request.data.get("metadata"), str):
                 metadata_items = json.loads(request.data.get("metadata")).items()
             else:
@@ -311,6 +420,11 @@ class UserProfileViewSet(
                     metadata = replace_key_value(key, value, metadata)
                 else:
                     metadata[key] = value
+
+            if _dig(metadata, eu_consent_path()) != consent_before:
+                refusal = self.check_step_up(request, GATE_PRIVACY_CONSENT)
+                if refusal is not None:
+                    return refusal
 
             profile.metadata = metadata
             profile.save()
