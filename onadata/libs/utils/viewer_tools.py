@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utility functions for data views."""
 
 import json
@@ -6,7 +5,6 @@ import os
 import sys
 import zipfile
 from json.decoder import JSONDecodeError
-from typing import Dict
 
 from django.conf import settings
 from django.core.files.storage import storages
@@ -141,7 +139,7 @@ def get_client_ip(request):
     return request.META.get("REMOTE_ADDR")
 
 
-def get_enketo_attachment_params(request, instance) -> Dict[str, str]:
+def get_enketo_attachment_params(request, instance) -> dict[str, str]:
     """Return the `instance_attachments[<filename>]` params for a submission.
 
     The instance XML records only the file name of each attachment, so these
@@ -171,7 +169,7 @@ def get_enketo_attachment_params(request, instance) -> Dict[str, str]:
 
 def get_enketo_urls(
     form_url, id_string, instance_xml=None, instance_id=None, return_url=None, **kwargs
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Return Enketo URLs."""
     if (
         not hasattr(settings, "ENKETO_URL")
@@ -200,13 +198,17 @@ def get_enketo_urls(
         # kwargs = {'defaults[/widgets/text_widgets/my_string]': "Hey Mark"}
         values.update(kwargs)
 
-    response = requests.post(
-        url,
-        data=values,
-        auth=(settings.ENKETO_API_TOKEN, ""),
-        verify=getattr(settings, "VERIFY_SSL", True),
-        timeout=20,
-    )
+    try:
+        response = requests.post(
+            url,
+            data=values,
+            auth=(settings.ENKETO_API_TOKEN, ""),
+            verify=getattr(settings, "VERIFY_SSL", True),
+            timeout=getattr(settings, "ENKETO_API_REQUEST_TIMEOUT", 20),
+        )
+    except requests.exceptions.RequestException as error:
+        event_id = report_exception("Enketo request failed", str(error), sys.exc_info())
+        raise EnketoError(_enketo_error_msg(ENKETO_GENERIC_ERROR, event_id)) from error
     resp_content = response.content
     resp_content = (
         resp_content.decode("utf-8")
@@ -219,7 +221,7 @@ def get_enketo_urls(
         except ValueError:
             pass
         else:
-            if data:
+            if isinstance(data, dict) and data:
                 return data
 
     handle_enketo_error(response)
@@ -257,7 +259,13 @@ def handle_enketo_error(response):
             ) from enketo_error
         message = response.text
     else:
-        message = data["message"] if "message" in data else response.text
+        # Not data.get("message", response.text): the fallback must stay
+        # lazy because response.text decodes the whole body on access.
+        message = (
+            data["message"]
+            if isinstance(data, dict) and "message" in data
+            else response.text
+        )
 
     if not event_id:
         event_id = report_exception(f"HTTP Error {response.status_code}", message)
@@ -307,7 +315,7 @@ def create_attachments_zipfile(attachments, zip_file):
                             )
                             break
                         z_file.writestr(attachment.media_file.name, a_file.read())
-                except IOError as io_error:
+                except OSError as io_error:
                     report_exception("Create attachment zip exception", io_error)
                     break
 
