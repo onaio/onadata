@@ -105,13 +105,13 @@ class LockoutLoginView(LoginView):
     )
 
     def get_device(self, step=None):
-        """Pick the project's hashed recovery device on the backup step.
+        """Pick the project's recovery device on the backup step.
 
         Upstream takes ``staticdevice_set.first()``; this project stores
-        recovery codes in its own ``HashedRecoveryDevice`` (keyed hashes, never
+        recovery codes in its own ``EncryptedRecoveryDevice`` (encrypted, never
         plaintext), so the wizard has to be pointed at that device for its
         backup step to verify against the codes the user actually holds. The
-        device's ``verify_token`` hashes the submitted code, so the library's
+        device's ``verify_token`` decrypts and compares, so the library's
         backup form needs no change.
 
         Falls through to upstream when the set is absent, leaving the
@@ -124,7 +124,7 @@ class LockoutLoginView(LoginView):
             totp_viewset = importlib.import_module(
                 "onadata.apps.api.viewsets.totp_viewset"
             )
-            device = totp_viewset.HashedRecoveryDevice.objects.filter(
+            device = totp_viewset.EncryptedRecoveryDevice.objects.filter(
                 user=self.get_user(), name=totp_viewset.RECOVERY_DEVICE_NAME
             ).first()
             if device is not None:

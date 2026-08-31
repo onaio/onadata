@@ -22,7 +22,6 @@ from django.views.decorators.debug import sensitive_post_parameters, sensitive_v
 
 import qrcode
 from django_otp import devices_for_user
-from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.decorators import action
@@ -33,19 +32,20 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from two_factor.utils import default_device
 
-from onadata.apps.api.models.hashed_recovery_device import (
+from onadata.apps.api.models.encrypted_recovery_device import (
     RECOVERY_CODE_COUNT,
-    HashedRecoveryCode,
-    HashedRecoveryDevice,
+    EncryptedRecoveryCode,
+    EncryptedRecoveryDevice,
     generate_recovery_code,
-    hash_recovery_code,
 )
+from onadata.apps.api.models.encrypted_totp_device import EncryptedTOTPDevice
 from onadata.libs.authentication import (
     SSOHeaderAuthentication,
     add_login_attempt,
     assert_not_locked_out,
     get_client_ip,
 )
+from onadata.libs.utils.field_encryption import encrypt
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.two_factor import (
     clear_verification_failures,
@@ -107,7 +107,11 @@ def _totp_device(user, confirmed=True, lock=False):
     ``lock`` holds the row until the transaction ends, for callers that go on
     to spend the code or change the device.
     """
-    devices = TOTPDevice.objects.select_for_update() if lock else TOTPDevice.objects
+    devices = (
+        EncryptedTOTPDevice.objects.select_for_update()
+        if lock
+        else EncryptedTOTPDevice.objects
+    )
     return (
         devices.filter(user=user, name=TOTP_DEVICE_NAME, confirmed=confirmed)
         .order_by("-id")
@@ -121,9 +125,9 @@ def _recovery_device(user, lock=False):
     ``lock`` as in ``_totp_device``.
     """
     devices = (
-        HashedRecoveryDevice.objects.select_for_update()
+        EncryptedRecoveryDevice.objects.select_for_update()
         if lock
-        else HashedRecoveryDevice.objects
+        else EncryptedRecoveryDevice.objects
     )
     return devices.filter(user=user, name=RECOVERY_DEVICE_NAME).first()
 
@@ -131,7 +135,7 @@ def _recovery_device(user, lock=False):
 def _has_second_factor(user) -> bool:
     """Whether the login view would challenge this user for a second factor.
 
-    Through ``default_device``, not a TOTPDevice lookup: two_factor challenges
+    Through ``default_device``, not an EncryptedTOTPDevice lookup: two_factor challenges
     on any confirmed device named ``"default"`` whatever its class.
     ``_verify_code`` understands only TOTP and recovery codes -- teach it any
     new device type in the same change.
@@ -156,8 +160,8 @@ def _verify_recovery(user, code: str) -> bool:
 
     Locked for the same reason as ``_verify_totp``, and a worse outcome here:
     unlocked, one single-use code is honoured once per racing caller. The
-    device hashes and case-folds the code itself, so the wizard's backup step
-    and this path compare the same way.
+    device decrypts and case-folds the codes itself, so the wizard's backup
+    step and this path compare the same way.
     """
     with transaction.atomic():
         recovery = _recovery_device(user, lock=True)
@@ -176,7 +180,7 @@ def _method_for_code(code: str) -> str:
     A TOTP code is six digits; a recovery code is base32 and never is. Routing
     on that keeps a recovery attempt off the TOTP device's throttle (and a TOTP
     attempt off the recovery set), so one factor's failures never lock the
-    other -- ``TOTPDevice.verify_token`` counts a non-numeric code as a failed
+    other -- ``EncryptedTOTPDevice.verify_token`` counts a non-numeric code as a failed
     attempt against the authenticator the user never touched.
     """
     return "totp" if code.isdigit() and len(code) == 6 else "recovery"
@@ -199,27 +203,26 @@ def _verify_code(user, code: str, method: str = "") -> bool:
 
 
 def _regenerate_recovery_codes(user) -> list:
-    """Replace the recovery set and return the new plaintext codes once.
+    """Replace the recovery set and return the new codes.
 
-    The codes are returned here and never again: only their keyed hashes are
-    stored, so this is the one moment they exist in plaintext. Replace rather
-    than append -- codes are single-use, so keeping spent ones would make the
-    remaining count a lie.
+    Replace rather than append -- codes are single-use, so keeping spent ones
+    would make the remaining count a lie. The codes are stored encrypted, so
+    the owner can view the unspent ones again through ``recovery_view``.
     """
     with transaction.atomic():
         # Serialise on the user row: locking the recovery device would not
         # cover two callers who both find none yet and each create one, whom
         # delete-then-create under READ COMMITTED leaves with two live sets.
         get_user_model().objects.select_for_update().get(pk=user.pk)
-        HashedRecoveryDevice.objects.filter(
+        EncryptedRecoveryDevice.objects.filter(
             user=user, name=RECOVERY_DEVICE_NAME
         ).delete()
-        device = HashedRecoveryDevice.objects.create(
+        device = EncryptedRecoveryDevice.objects.create(
             user=user, name=RECOVERY_DEVICE_NAME, confirmed=True
         )
         codes = [generate_recovery_code() for _ in range(RECOVERY_CODE_COUNT)]
-        HashedRecoveryCode.objects.bulk_create(
-            HashedRecoveryCode(device=device, code_hash=hash_recovery_code(code))
+        EncryptedRecoveryCode.objects.bulk_create(
+            EncryptedRecoveryCode(device=device, encrypted_code=encrypt(code))
             for code in codes
         )
         return codes
@@ -437,7 +440,9 @@ class TOTPViewSet(ViewSet):
                     else [
                         {
                             "kind": (
-                                "totp" if isinstance(device, TOTPDevice) else "unknown"
+                                "totp"
+                                if isinstance(device, EncryptedTOTPDevice)
+                                else "unknown"
                             ),
                             "label": device.name,
                             "createdAt": (
@@ -450,7 +455,7 @@ class TOTPViewSet(ViewSet):
                 ),
                 "recoveryCodes": {
                     "generated": recovery is not None,
-                    "remaining": 0 if recovery is None else recovery.codes.count(),
+                    "remaining": 0 if recovery is None else recovery.remaining,
                 },
             }
         )
@@ -480,10 +485,10 @@ class TOTPViewSet(ViewSet):
             # READ COMMITTED and leave two pending devices, so a later confirm
             # verifies against one while the caller was shown the other.
             get_user_model().objects.select_for_update().get(pk=request.user.pk)
-            TOTPDevice.objects.filter(
+            EncryptedTOTPDevice.objects.filter(
                 user=request.user, name=TOTP_DEVICE_NAME, confirmed=False
             ).delete()
-            device = TOTPDevice.objects.create(
+            device = EncryptedTOTPDevice.objects.create(
                 user=request.user, name=TOTP_DEVICE_NAME, confirmed=False
             )
         return Response(_enrollment_payload(device), status=status.HTTP_201_CREATED)
@@ -608,12 +613,14 @@ class TOTPViewSet(ViewSet):
 
     @action(detail=False, methods=["post"], url_path="recovery")
     def recovery_view(self, request):
-        """Report how many recovery codes remain, never the codes themselves.
+        """Return the account's unspent recovery codes.
 
-        The codes are stored only as keyed hashes, so they cannot be re-read:
-        they are shown once, when generated. A caller that has lost them
-        generates a fresh set. No code or grant is required because nothing
-        secret is disclosed.
+        The codes are stored encrypted, so the owner can read them again --
+        behind the same step-up every code-weakening route takes (a current
+        code or a ``recovery-view`` grant), bounded by the login lockout, with
+        ``no-store`` from ``finalize_response`` and an audit entry on each view.
+        Disclosing them without a step-up would make a stolen session enough to
+        read a durable second factor.
         """
         recovery = _recovery_device(request.user)
         if recovery is None:
@@ -621,12 +628,19 @@ class TOTPViewSet(ViewSet):
                 {"error": "No recovery codes have been generated."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        refusal = self._require_code(request, "recovery-view")
+        if refusal is not None:
+            return refusal
+        audit_log(
+            Actions.TWO_FACTOR_RECOVERY_CODES_VIEWED,
+            request.user,
+            request.user,
+            _("Two-factor recovery codes viewed."),
+            {},
+            request,
+        )
         return Response(
-            {
-                "remaining": recovery.codes.count(),
-                "detail": "Recovery codes are shown only when generated. "
-                "Generate a new set if you have lost them.",
-            }
+            {"codes": recovery.unspent_codes(), "remaining": recovery.remaining}
         )
 
     @action(detail=False, methods=["post"], url_path="verify")

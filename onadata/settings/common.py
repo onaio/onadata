@@ -169,11 +169,17 @@ TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
 # ``STEP_UP``.
 TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = True
 
-# The key recovery codes are hashed under before storage. Set a dedicated,
-# stable secret in production: it is what a database reader lacks, and rotating
-# it invalidates every printed recovery code. Unset, the codes are still hashed
-# -- under SECRET_KEY -- rather than stored in plaintext.
-TWO_FACTOR_RECOVERY_PEPPER = os.environ.get("TWO_FACTOR_RECOVERY_PEPPER", "")
+# Symmetric keys the authenticator seed and recovery codes are encrypted under
+# at rest (Fernet, url-safe base64). Ordered: the first key encrypts, every key
+# is tried for decryption, so a new key is rolled in at the front and the stored
+# values re-encrypted with ``rotate_two_factor_encryption_key`` before the old
+# key is dropped. Held in config, not the database, so a database-only leak
+# cannot read them. Required when ENABLE_TWO_FACTOR is on.
+TWO_FACTOR_FIELD_ENCRYPTION_KEYS = [
+    key.strip()
+    for key in os.environ.get("TWO_FACTOR_FIELD_ENCRYPTION_KEYS", "").split(",")
+    if key.strip()
+]
 
 # Email the account owner after this many failed second-factor checks within
 # TWO_FACTOR_FAILURE_ALERT_WINDOW seconds -- one email per window. 0 disables

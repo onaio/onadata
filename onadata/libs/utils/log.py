@@ -65,6 +65,7 @@ Actions = Enum(  # pylint: disable=invalid-name
     TWO_FACTOR_DISABLED="two-factor-disabled",
     TWO_FACTOR_VERIFICATION_FAILED="two-factor-verification-failed",
     TWO_FACTOR_RECOVERY_CODES_GENERATED="two-factor-recovery-codes-generated",
+    TWO_FACTOR_RECOVERY_CODES_VIEWED="two-factor-recovery-codes-viewed",
 )
 
 
