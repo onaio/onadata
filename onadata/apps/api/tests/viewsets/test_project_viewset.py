@@ -208,6 +208,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                                     ("id_string", "transportation_2011_07_25"),
                                     ("is_merged_dataset", False),
                                     ("encrypted", False),
+                                    ("is_managed", False),
                                     ("contributes_entities_to", []),
                                     ("consumes_entities_from", []),
                                 ]
@@ -488,6 +489,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                 "encrypted",
                 "formid",
                 "id_string",
+                "is_managed",
                 "is_merged_dataset",
                 "last_submission_time",
                 "last_updated_at",
@@ -515,6 +517,26 @@ class TestProjectViewSet(TestAbstractViewSet):
             sorted(data_view_obj_keys),
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_project_forms_include_is_managed(self):
+        """A form encrypted with a managed key reports is_managed on the
+        project list and detail endpoints."""
+        self._publish_xls_form_to_project()
+        self.xform.is_managed = True
+        self.xform.save()
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data[0]["forms"][0]["is_managed"])
+
+        view = ProjectViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["forms"][0]["is_managed"])
 
     def test_projects_tags(self):
         self._project_create()

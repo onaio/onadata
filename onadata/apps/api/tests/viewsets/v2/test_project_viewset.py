@@ -159,6 +159,7 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
                     "num_of_submissions": 0,
                     "downloadable": True,
                     "encrypted": False,
+                    "is_managed": False,
                     "published_by_formbuilder": None,
                     "last_submission_time": None,
                     "date_created": xform.date_created.isoformat().replace(

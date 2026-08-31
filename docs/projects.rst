@@ -74,6 +74,7 @@ Response
                     "id_string": "Community_Health_Check",
                     "is_merged_dataset": false,
                     "encrypted": true,
+                    "is_managed": true,
                     "contributes_entities_to": [],
                     "consumes_entities_from": []
                 }
@@ -115,6 +116,7 @@ Response
                     "id_string": "Animal_Sighting_Log",
                     "is_merged_dataset": false,
                     "encrypted": false,
+                    "is_managed": false,
                     "contributes_entities_to": [],
                     "consumes_entities_from": []
                 }
@@ -258,6 +260,7 @@ Response
                     "num_of_submissions":7,
                     "downloadable":true,
                     "encrypted":false,
+                    "is_managed":false,
                     "published_by_formbuilder":null,
                     "last_submission_time":"2024-06-18T14:34:57.987361Z",
                     "date_created":"2024-05-28T12:08:07.993820Z",
@@ -280,6 +283,7 @@ Response
                     "num_of_submissions":0,
                     "downloadable":true,
                     "encrypted":false,
+                    "is_managed":false,
                     "published_by_formbuilder":null,
                     "last_submission_time":null,
                     "date_created":"2024-05-28T12:08:39.909235Z",
