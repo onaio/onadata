@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utility functions for data views."""
 
 import json
@@ -6,7 +5,6 @@ import os
 import sys
 import zipfile
 from json.decoder import JSONDecodeError
-from typing import Dict
 
 from django.conf import settings
 from django.core.files.storage import storages
@@ -141,7 +139,7 @@ def get_client_ip(request):
     return request.META.get("REMOTE_ADDR")
 
 
-def get_enketo_attachment_params(request, instance) -> Dict[str, str]:
+def get_enketo_attachment_params(request, instance) -> dict[str, str]:
     """Return the `instance_attachments[<filename>]` params for a submission.
 
     The instance XML records only the file name of each attachment, so these
@@ -171,7 +169,7 @@ def get_enketo_attachment_params(request, instance) -> Dict[str, str]:
 
 def get_enketo_urls(
     form_url, id_string, instance_xml=None, instance_id=None, return_url=None, **kwargs
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Return Enketo URLs."""
     if (
         not hasattr(settings, "ENKETO_URL")
@@ -257,6 +255,8 @@ def handle_enketo_error(response):
             ) from enketo_error
         message = response.text
     else:
+        # Not data.get("message", response.text): the fallback must stay
+        # lazy because response.text decodes the whole body on access.
         message = data["message"] if "message" in data else response.text
 
     if not event_id:
@@ -307,7 +307,7 @@ def create_attachments_zipfile(attachments, zip_file):
                             )
                             break
                         z_file.writestr(attachment.media_file.name, a_file.read())
-                except IOError as io_error:
+                except OSError as io_error:
                     report_exception("Create attachment zip exception", io_error)
                     break
 

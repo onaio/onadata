@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test onadata.libs.utils.viewer_tools."""
 
 import json
@@ -70,7 +69,7 @@ class TestViewerTools(TestBase):
         kwargs = {xform_variable_name: xform_variable_value}
         defaults = generate_enketo_form_defaults(self.xform, **kwargs)
 
-        key = "defaults[/data/transport/{}]".format(xform_variable_name)
+        key = f"defaults[/data/transport/{xform_variable_name}]"
         self.assertEqual(defaults, {key: xform_variable_value})
 
     # pylint: disable=C0103
@@ -91,13 +90,11 @@ class TestViewerTools(TestBase):
         }
         defaults = generate_enketo_form_defaults(self.xform, **kwargs)
 
-        transportation_types_key = "defaults[/data/transport/{}]".format(
-            transportation_types
-        )
+        transportation_types_key = f"defaults[/data/transport/{transportation_types}]"
         frequency_key = (
             "defaults[/data/transport/"
             "loop_over_transport_types_frequency/"
-            "{}/{}]".format(transportation_types_value, frequency)
+            f"{transportation_types_value}/{frequency}]"
         )
         self.assertIn(transportation_types_key, defaults)
         self.assertIn(frequency_key, defaults)
@@ -207,9 +204,11 @@ class TestViewerTools(TestBase):
             self.media_file,
         )
         self.instance = Instance.objects.all()[0]
-        self.attachment = Attachment.objects.create(
-            instance=self.instance, media_file=File(open(media_file, "rb"), media_file)
-        )
+        with open(media_file, "rb") as media_file_handle:
+            self.attachment = Attachment.objects.create(
+                instance=self.instance,
+                media_file=File(media_file_handle, media_file),
+            )
         with NamedTemporaryFile() as zip_file:
             create_attachments_zipfile(Attachment.objects.all(), zip_file)
 
