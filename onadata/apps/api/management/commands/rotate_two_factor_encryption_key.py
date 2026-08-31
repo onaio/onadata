@@ -29,7 +29,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
-        seeds = self._rotate(EncryptedTOTPDevice.objects.all(), "encrypted_key", dry_run)
+        seeds = self._rotate(
+            EncryptedTOTPDevice.objects.all(), "encrypted_key", dry_run
+        )
         codes = self._rotate(
             EncryptedRecoveryCode.objects.all(), "encrypted_code", dry_run
         )

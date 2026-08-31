@@ -15,7 +15,7 @@ from django.db import models
 
 from django_otp.models import Device, ThrottlingMixin, TimestampMixin
 
-from onadata.libs.utils.field_encryption import decrypt, encrypt
+from onadata.libs.utils.field_encryption import decrypt
 
 #: How many codes a set holds.
 RECOVERY_CODE_COUNT = 10
