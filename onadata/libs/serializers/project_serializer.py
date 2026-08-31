@@ -275,6 +275,7 @@ class BaseProjectXFormSerializer(
             "id_string",
             "is_merged_dataset",
             "encrypted",
+            "is_managed",
             "contributes_entities_to",
             "consumes_entities_from",
         )
@@ -303,6 +304,7 @@ class ProjectXFormSerializer(BaseProjectXFormSerializer):
             "num_of_submissions",
             "downloadable",
             "encrypted",
+            "is_managed",
             "published_by_formbuilder",
             "last_submission_time",
             "date_created",

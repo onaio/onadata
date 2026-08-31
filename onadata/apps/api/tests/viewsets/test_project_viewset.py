@@ -208,6 +208,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                                     ("id_string", "transportation_2011_07_25"),
                                     ("is_merged_dataset", False),
                                     ("encrypted", False),
+                                    ("is_managed", False),
                                     ("contributes_entities_to", []),
                                     ("consumes_entities_from", []),
                                 ]
@@ -488,6 +489,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                 "encrypted",
                 "formid",
                 "id_string",
+                "is_managed",
                 "is_merged_dataset",
                 "last_submission_time",
                 "last_updated_at",
