@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for URL configuration when django.contrib.admin toggles in INSTALLED_APPS."""
+
 import importlib
 
 from django.conf import settings
@@ -134,7 +135,24 @@ class TestHyphenatedUsernameUrls(SimpleTestCase):
         ``[^/]+``), so characters such as ``<>"'`` that cannot appear in a
         valid username never reach the underlying views.
         """
-        for path in ("/<script>/formList", "/a\"b/submission", "/a'b/formUpload"):
+        for path in ("/<script>/formList", '/a"b/submission', "/a'b/formUpload"):
             with self.subTest(path=path):
                 with self.assertRaises(Resolver404):
                     resolve(path)
+
+
+class TestUsernameFormatSuffixUrls(SimpleTestCase):
+    """Format suffixes split off email usernames like any other username."""
+
+    def test_format_suffix_splits_off_email_username(self):
+        """``users/<email>.<format>`` resolves to the email plus a ``format``
+        kwarg, and the bare email still resolves as the whole username."""
+        email = "jane@mail.example.com"
+        for suffix in ("json", "xml", "csv", "jsonp", "yaml", "html", "api"):
+            with self.subTest(suffix=suffix):
+                match = resolve(f"/api/v1/users/{email}.{suffix}")
+                self.assertEqual(match.view_name, "user-detail")
+                self.assertEqual(match.kwargs, {"username": email, "format": suffix})
+
+        match = resolve(f"/api/v1/users/{email}")
+        self.assertEqual(match.kwargs, {"username": email})

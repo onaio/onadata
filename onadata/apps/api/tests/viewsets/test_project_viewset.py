@@ -888,6 +888,31 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
 
+    def test_projects_create_with_format_suffix_in_email_owner_url(self):
+        """A user whose username is an email address can create a project
+        when the owner URL carries a ``.json`` format suffix."""
+        self._login_user_and_profile(
+            extra_post_data={
+                "username": "jane@example.com",
+                "email": "jane@example.com",
+            }
+        )
+        data = {
+            "name": "demo_email_owner",
+            "owner": "http://testserver/api/v1/users/jane@example.com.json",
+            "public": False,
+        }
+        view = ProjectViewSet.as_view({"post": "create"})
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = view(request, owner=self.user.username)
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(
+            response.data["owner"], "http://testserver/api/v1/users/jane@example.com"
+        )
+
     # pylint: disable=invalid-name
     def test_projects_create_many_users(self):
         self._project_create()
