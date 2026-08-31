@@ -128,7 +128,67 @@ CSRF_COOKIE_SAMESITE = os.environ.get("DJANGO_CSRF_COOKIE_SAMESITE", "Lax")
 # header on AJAX requests.
 
 # Login URLs
-LOGIN_URL = "/accounts/login/"
+# Covers the OIDC path too: django-oauth-toolkit's authorize view redirects
+# here. /accounts/login/ is a redirect to it.
+LOGIN_URL = "two_factor:login"
+
+# Whether accounts may set up a second factor here. Gates enrolment, not
+# enforcement: a factor already enrolled is still challenged, because ceasing
+# to ask would silently weaken the accounts that opted in.
+ENABLE_TWO_FACTOR = False
+
+# Setting an age is what offers the user a "don't ask again on this device"
+# choice at all; unset it to ask on every login. The library ships that field
+# pre-ticked -- LockoutLoginView forces it off.
+TWO_FACTOR_REMEMBER_COOKIE_AGE = int(
+    os.environ.get("DJANGO_TWO_FACTOR_REMEMBER_COOKIE_AGE", str(60 * 60 * 24 * 30))
+)
+TWO_FACTOR_REMEMBER_COOKIE_SECURE = True
+# Strict: the cookie is a second-factor bypass, and the only request that
+# reads it is the wizard's own credentials POST -- same-site by construction.
+TWO_FACTOR_REMEMBER_COOKIE_SAMESITE = "Strict"
+# Authenticator app and recovery codes only; no phone or email factor.
+TWO_FACTOR_CALL_GATEWAY = None
+TWO_FACTOR_SMS_GATEWAY = None
+
+# Operations a step-up grant may be minted for. /api/v1/totp/verify refuses
+# anything else, so a client typo cannot spend a code on a grant nothing will
+# honour. These are the operations this module gates itself; a deployment
+# whose client gates more of its own adds them, rather than OnaData naming
+# actions it does not check.
+TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
+    {"enroll-start", "disable", "recovery-generate", "recovery-view"}
+)
+
+# Demand the account password before a first authenticator enrolment, where
+# there is no factor yet for ``_require_code`` to challenge.
+#
+# On by default: without it, an SSO credential alone can enrol an authenticator
+# and lock the owner out of their own second factor, so the safe default is to
+# require recent primary-credential proof. A deployment whose users hold no
+# usable local password (identity lives entirely in an IdP) turns it off
+# deliberately, accepting that trade -- or owns the factor federally, per
+# ``STEP_UP``.
+TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = True
+
+# Symmetric keys the authenticator seed and recovery codes are encrypted under
+# at rest (Fernet, url-safe base64). Ordered: the first key encrypts, every key
+# is tried for decryption, so a new key is rolled in at the front and the stored
+# values re-encrypted with ``rotate_two_factor_encryption_key`` before the old
+# key is dropped. Held in config, not the database, so a database-only leak
+# cannot read them. Required when ENABLE_TWO_FACTOR is on.
+TWO_FACTOR_FIELD_ENCRYPTION_KEYS = [
+    key.strip()
+    for key in os.environ.get("TWO_FACTOR_FIELD_ENCRYPTION_KEYS", "").split(",")
+    if key.strip()
+]
+
+# Email the account owner after this many failed second-factor checks within
+# TWO_FACTOR_FAILURE_ALERT_WINDOW seconds -- one email per window. 0 disables
+# the alert.
+TWO_FACTOR_FAILURE_ALERT_THRESHOLD = 10
+TWO_FACTOR_FAILURE_ALERT_WINDOW = 1800
+
 LOGIN_REDIRECT_URL = "/login_redirect/"
 
 # URL prefix for admin static files -- CSS, JavaScript and images.
@@ -190,6 +250,9 @@ MIDDLEWARE = (
     "django.middleware.csrf.CsrfViewMiddleware",
     "csp.middleware.CSPMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Must follow AuthenticationMiddleware: decorates request.user with
+    # is_verified(). Annotates only; blocks nothing on its own.
+    "django_otp.middleware.OTPMiddleware",
     "onadata.libs.utils.middleware.ActivityTrackingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware",
@@ -222,6 +285,11 @@ INSTALLED_APPS = (
     # downstream settings module:
     #     "django.contrib.admin",
     #     "django.contrib.admindocs",
+    #
+    # /admin/login/ defers to LOGIN_URL (TWO_FACTOR_PATCH_ADMIN), so admin
+    # shares the deployment's login. Reaching /admin/ still needs only staff
+    # permission: enrolment is opt-in, so a staff user with no device gets in
+    # on a password alone.
     "django.contrib.gis",
     "registration",
     # "django_nose",
@@ -244,6 +312,10 @@ INSTALLED_APPS = (
     "onadata.apps.messaging.apps.MessagingConfig",
     "django_filters",
     "oidc",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
+    "two_factor",
 )
 
 OAUTH2_PROVIDER = {
