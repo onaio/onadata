@@ -18,16 +18,16 @@ from django.urls import reverse
 from django.views.debug import SafeExceptionReporterFilter
 
 import jwt
+from cryptography.fernet import Fernet
 from django_otp.plugins.otp_static.models import StaticDevice
-from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework.authtoken.models import Token
 from two_factor.utils import default_device
 
-from onadata.apps.api.models.hashed_recovery_device import (
-    HashedRecoveryCode,
-    HashedRecoveryDevice,
-    hash_recovery_code,
+from onadata.apps.api.models.encrypted_recovery_device import (
+    EncryptedRecoveryCode,
+    EncryptedRecoveryDevice,
 )
+from onadata.apps.api.models.encrypted_totp_device import EncryptedTOTPDevice
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.totp_viewset import (
     RECOVERY_CODE_COUNT,
@@ -36,9 +36,13 @@ from onadata.apps.api.viewsets.totp_viewset import (
     TOTPViewSet,
     _verify_recovery,
 )
+from onadata.libs.utils.field_encryption import decrypt, encrypt
 
 #: Lowercase base32, the alphabet recovery codes are drawn from.
 RECOVERY_CODE_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567"
+
+#: A throwaway key so the encrypted fields are usable under test.
+TEST_ENCRYPTION_KEY = Fernet.generate_key().decode()
 
 #: Any test spending two codes must move between windows: django-otp records
 #: the counter a code was used at and refuses it again.
@@ -63,7 +67,7 @@ def current_code(hex_key, step=30, digits=6):
     device generating codes no phone agrees with.
 
     Not ``django_otp.oath.totp``: that module binds ``time`` at import, so
-    ``next_totp_window`` cannot move it. ``TOTPDevice.verify_token`` reads
+    ``next_totp_window`` cannot move it. The device's ``verify_token`` reads
     ``time.time()`` through the module and does follow the patch, so the two
     sides would drift apart.
     """
@@ -79,7 +83,11 @@ def current_code(hex_key, step=30, digits=6):
 # enrolment mechanics rather than whichever way the running deployment has it
 # set -- the local stack turns it on, CI does not. The cases that are about
 # the password say so individually.
-@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False)
+@override_settings(
+    ENABLE_TWO_FACTOR=True,
+    TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False,
+    TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_ENCRYPTION_KEY],
+)
 class TestTOTPViewSet(TestAbstractViewSet):
     """The endpoints act on the authenticated user and nobody else."""
 
@@ -144,7 +152,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """
         started = self._post_session("enroll_start", {"password": self.login_password})
         self.assertEqual(started.status_code, 201)
-        device = TOTPDevice.objects.get(
+        device = EncryptedTOTPDevice.objects.get(
             user=self.user, name=TOTP_DEVICE_NAME, confirmed=False
         )
         confirmed = self._post_session(
@@ -187,8 +195,8 @@ class TestTOTPViewSet(TestAbstractViewSet):
         status_body = self._get_status().data
         self.assertTrue(status_body["methods"])
 
-    def test_enrolment_creates_a_hashed_recovery_set(self):
-        """Enrolment leaves one recovery device holding the code hashes.
+    def test_enrolment_creates_a_recovery_set(self):
+        """Enrolment leaves one recovery device holding the codes.
 
         The wizard reads this same device by name on its backup step, so the
         set the API writes is the set the login path verifies against.
@@ -196,7 +204,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self._enroll()
 
         self.assertEqual(RECOVERY_DEVICE_NAME, "backup")
-        device = HashedRecoveryDevice.objects.get(
+        device = EncryptedRecoveryDevice.objects.get(
             user=self.user, name=RECOVERY_DEVICE_NAME
         )
         self.assertEqual(device.codes.count(), RECOVERY_CODE_COUNT)
@@ -218,7 +226,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 403)
         self.assertFalse(
-            TOTPDevice.objects.filter(user=self.user, confirmed=True).exists()
+            EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=True).exists()
         )
         self.assertEqual(self._get_status().data["methods"], [])
 
@@ -237,7 +245,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         one lost phone away from a locked account, so both land in the same
         transaction."""
         self._post_session("enroll_start")
-        device = TOTPDevice.objects.get(user=self.user, confirmed=False)
+        device = EncryptedTOTPDevice.objects.get(user=self.user, confirmed=False)
 
         with (
             patch(
@@ -258,7 +266,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self._post_session("enroll_start")
 
         self.assertEqual(
-            TOTPDevice.objects.filter(user=self.user, confirmed=False).count(), 1
+            EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=False).count(), 1
         )
 
     def test_replacing_an_authenticator_needs_step_up(self):
@@ -276,7 +284,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
             ).data["grant"]
         started = self._post_session("enroll_start", {"grant": grant})
         self.assertEqual(started.status_code, 201)
-        replacement = TOTPDevice.objects.get(user=self.user, confirmed=False)
+        replacement = EncryptedTOTPDevice.objects.get(user=self.user, confirmed=False)
         with next_totp_window():
             confirmed = self._post_session(
                 "enroll_confirm", {"code": current_code(replacement.key)}
@@ -300,13 +308,13 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(
             list(
-                TOTPDevice.objects.filter(user=self.user, confirmed=True).values_list(
+                EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=True).values_list(
                     "pk", flat=True
                 )
             ),
             [new.pk],
         )
-        self.assertFalse(TOTPDevice.objects.filter(pk=old.pk).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(pk=old.pk).exists())
         # Through the library's own lookup, which is what the wizard asks.
         self.assertEqual(default_device(User.objects.get(pk=self.user.pk)), new)
 
@@ -333,7 +341,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 403)
         self.assertTrue(
-            TOTPDevice.objects.filter(user=self.user, confirmed=True).exists()
+            EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=True).exists()
         )
 
     def test_disable_with_a_current_code_removes_everything(self):
@@ -348,8 +356,8 @@ class TestTOTPViewSet(TestAbstractViewSet):
             )
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
-        self.assertFalse(HashedRecoveryDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(EncryptedRecoveryDevice.objects.filter(user=self.user).exists())
 
     def test_recovery_codes_need_an_authenticator_first(self):
         response = self._post_with_api_key("recovery_generate", {"code": "000000"})
@@ -401,7 +409,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
                 "recovery_generate",
                 {"code": current_code(default_device(self.user).key)},
             )
-        device = HashedRecoveryDevice.objects.get(
+        device = EncryptedRecoveryDevice.objects.get(
             user=self.user, name=RECOVERY_DEVICE_NAME
         )
         self.assertTrue(device.throttling_enabled, "backoff is off; codes stand alone")
@@ -415,9 +423,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         # still unspent afterwards.
         spendable = generated.data["codes"][0]
         self.assertFalse(_verify_recovery(self.user, spendable))
-        self.assertTrue(
-            device.codes.filter(code_hash=hash_recovery_code(spendable)).exists()
-        )
+        self.assertIn(spendable, device.unspent_codes())
 
     def test_regenerating_replaces_rather_than_appends(self):
         """Spent codes left behind would make the remaining count a lie."""
@@ -432,7 +438,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
             )
 
         self.assertEqual(
-            HashedRecoveryCode.objects.filter(device__user=self.user).count(),
+            EncryptedRecoveryCode.objects.filter(device__user=self.user).count(),
             RECOVERY_CODE_COUNT,
         )
         self.assertFalse(set(first.data["codes"]) & set(second.data["codes"]))
@@ -454,23 +460,25 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertTrue(StaticDevice.objects.filter(pk=unrelated.pk).exists())
 
     def test_recovery_codes_are_not_stored_in_plaintext(self):
-        """The database holds only keyed hashes, never a code a reader could
-        replay: no stored value equals a code the user was shown, and each
-        stored value is that code's hash."""
+        """The database holds ciphertext, never a code a reader could replay:
+        no stored value equals a code the user was shown, and decrypting the
+        stored values yields exactly those codes."""
         device = self._enroll()
         with next_totp_window():
             codes = self._post_with_api_key(
                 "recovery_generate", {"code": current_code(device.key)}
             ).data["codes"]
 
-        stored = set(
-            HashedRecoveryCode.objects.filter(device__user=self.user).values_list(
-                "code_hash", flat=True
+        stored = list(
+            EncryptedRecoveryCode.objects.filter(device__user=self.user).values_list(
+                "encrypted_code", flat=True
             )
         )
         self.assertEqual(len(stored), RECOVERY_CODE_COUNT)
-        self.assertFalse(stored & set(codes), "a plaintext code is in the database")
-        self.assertEqual(stored, {hash_recovery_code(code) for code in codes})
+        self.assertFalse(
+            set(stored) & set(codes), "a plaintext code is in the database"
+        )
+        self.assertEqual({decrypt(value) for value in stored}, set(codes))
 
     def test_a_recovery_code_can_stand_in_for_the_authenticator(self):
         """Someone who has lost their phone still has to be able to turn 2FA
@@ -484,7 +492,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         response = self._post_with_api_key("disable", {"code": codes[0]})
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
     def test_a_recovery_code_is_spent_by_use(self):
         device = self._enroll()
@@ -505,7 +513,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["verified"])
         self.assertTrue(
-            TOTPDevice.objects.filter(user=self.user, confirmed=True).exists()
+            EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=True).exists()
         )
 
     def test_verify_rejects_a_wrong_code(self):
@@ -607,7 +615,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(device.name, TOTP_DEVICE_NAME)
         self.assertEqual(
-            HashedRecoveryDevice.objects.get(user=self.user).name,
+            EncryptedRecoveryDevice.objects.get(user=self.user).name,
             RECOVERY_DEVICE_NAME,
         )
 
@@ -625,7 +633,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         response = self._post_with_api_key("disable", {"grant": grant})
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
     def test_a_grant_is_spendable_only_on_what_it_was_earned_for(self):
         """Unscoped, a code collected to view recovery codes would switch
@@ -643,7 +651,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         response = self._post_with_api_key("disable", {"grant": grant})
 
         self.assertEqual(response.status_code, 403)
-        self.assertTrue(TOTPDevice.objects.filter(user=self.user).exists())
+        self.assertTrue(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
     def test_verify_refuses_an_audience_the_deployment_does_not_know(self):
         """Omitted and mistyped are the same refusal, and neither costs a code.
@@ -688,18 +696,18 @@ class TestTOTPViewSet(TestAbstractViewSet):
         That state is asserted rather than inherited from setUp: it is the
         condition under test, not a detail of the fixture.
         """
-        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
         response = self._post_with_api_key("enroll_start")
 
         self.assertEqual(response.status_code, 403)
-        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
     def test_confirming_enrolment_refuses_an_api_key(self):
         """The second half of enrolment refuses a key for the same reason --
         and it is the half that hands back the recovery codes."""
         self._post_session("enroll_start")
-        device = TOTPDevice.objects.get(user=self.user, confirmed=False)
+        device = EncryptedTOTPDevice.objects.get(user=self.user, confirmed=False)
 
         response = self._post_with_api_key(
             "enroll_confirm", {"code": current_code(device.key)}
@@ -759,13 +767,13 @@ class TestTOTPViewSet(TestAbstractViewSet):
             ).data["grant"]
         self._post_session("enroll_start", {"grant": grant})
         self.assertTrue(
-            TOTPDevice.objects.filter(user=self.user, confirmed=False).exists()
+            EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=False).exists()
         )
 
         with next_totp_window():
             self._post_with_api_key("disable", {"code": current_code(device.key)})
 
-        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
     def test_a_grant_is_single_use(self):
         device = self._enroll()
@@ -798,14 +806,14 @@ class TestTOTPViewSet(TestAbstractViewSet):
         # Mallory needs an authenticator of their own, or disable short-circuits
         # on "nothing to remove" and never consults the grant at all -- the test
         # would pass without the guard it is here to pin.
-        TOTPDevice.objects.create(user=other, name=TOTP_DEVICE_NAME, confirmed=True)
+        EncryptedTOTPDevice.objects.create(user=other, name=TOTP_DEVICE_NAME, confirmed=True)
         view = TOTPViewSet.as_view({"post": "disable"})
         request = self.factory.post(
             "/", data={"grant": grant}, HTTP_AUTHORIZATION=f"Token {token}"
         )
 
         self.assertEqual(view(request).status_code, 403)
-        self.assertTrue(TOTPDevice.objects.filter(user=other).exists())
+        self.assertTrue(EncryptedTOTPDevice.objects.filter(user=other).exists())
 
     def test_enrollment_payload_carries_the_secret_three_ways(self):
         """Three renderings of one secret: a QR to scan, the URI behind it,
@@ -814,7 +822,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         import base64
 
         response = self._post_session("enroll_start")
-        device = TOTPDevice.objects.get(user=self.user, confirmed=False)
+        device = EncryptedTOTPDevice.objects.get(user=self.user, confirmed=False)
 
         self.assertTrue(response.data["qrDataUrl"].startswith("data:image/png;base64,"))
         self.assertEqual(response.data["otpauthUri"], device.config_url)
@@ -845,7 +853,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         # answered with a code rather than a password.
         self.assertEqual(response.data["reason"], "password_required")
         self.assertFalse(
-            TOTPDevice.objects.filter(user=self.user).exists(),
+            EncryptedTOTPDevice.objects.filter(user=self.user).exists(),
             "a device was minted despite the refusal",
         )
 
@@ -861,7 +869,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         response = self._post_session("enroll_start", {"password": "not-it"})
 
         self.assertEqual(response.status_code, 403)
-        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
     @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_enrolment_password_failures_count_towards_the_login_lockout(self):
@@ -885,7 +893,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         # The probe at the end says nothing unless this is accepted first.
         self.assertEqual(start_enrolment("correct-password").status_code, 201)
-        TOTPDevice.objects.filter(user=user).delete()
+        EncryptedTOTPDevice.objects.filter(user=user).delete()
 
         with patch(
             "onadata.libs.authentication.send_account_lockout_email.apply_async"
@@ -899,7 +907,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(refused.status_code, 403)
         self.assertEqual(refused.data["reason"], "locked_out")
-        self.assertFalse(TOTPDevice.objects.filter(user=user).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=user).exists())
 
     @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_an_account_with_no_password_cannot_enrol(self):
@@ -925,7 +933,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data["reason"], "no_password_set")
-        self.assertFalse(TOTPDevice.objects.filter(user=passwordless).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=passwordless).exists())
 
     @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_re_enrolment_still_asks_for_a_code_not_a_password(self):
@@ -1014,26 +1022,38 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["verified"])
 
-    def test_viewing_never_returns_the_codes(self):
-        """Show-once: the set is reported as a count, never re-displayed.
+    def test_viewing_returns_the_codes_after_a_step_up(self):
+        """The codes are encrypted, so the owner can read the unspent ones
+        again -- behind a current code, as every code-weakening route is."""
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            ).data["codes"]
 
-        The codes are stored only as hashes, so there is nothing to return --
-        viewing hands back how many remain, not the codes, and requires no
-        code because nothing secret is disclosed.
-        """
+        with next_totp_window():
+            response = self._post_with_api_key(
+                "recovery_view", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertCountEqual(response.data["codes"], generated)
+        self.assertEqual(response.data["remaining"], RECOVERY_CODE_COUNT)
+
+    def test_viewing_without_a_step_up_is_refused(self):
+        """A stolen session alone must not read a durable second factor."""
         self._enroll()
 
         response = self._post_with_api_key("recovery_view")
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         self.assertNotIn("codes", response.data)
-        self.assertEqual(response.data["remaining"], RECOVERY_CODE_COUNT)
 
     def test_viewing_a_set_that_was_never_generated_is_a_404(self):
         # Enrolment issues a set of its own, so drop it: the case under test
         # is an account whose codes are gone, not one that never enrolled.
         self._enroll()
-        HashedRecoveryDevice.objects.filter(user=self.user).delete()
+        EncryptedRecoveryDevice.objects.filter(user=self.user).delete()
 
         response = self._post_with_api_key("recovery_view")
 
@@ -1288,7 +1308,7 @@ class SecureEnrolmentDefaultTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data["reason"], "password_required")
-        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
     def test_the_account_password_starts_first_enrolment(self):
         request = self.factory.post(
@@ -1336,4 +1356,4 @@ class DisabledTOTPViewSetTestCase(TestAbstractViewSet):
         view = TOTPViewSet.as_view({"post": "enroll_start"})
 
         self.assertEqual(view(self.factory.post("/")).status_code, 404)
-        self.assertFalse(TOTPDevice.objects.exists())
+        self.assertFalse(EncryptedTOTPDevice.objects.exists())

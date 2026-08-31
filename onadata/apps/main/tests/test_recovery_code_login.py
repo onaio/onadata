@@ -2,29 +2,33 @@
 """Tests for the recovery-code step of the login wizard."""
 
 from django.core.cache import cache
-from django.test import Client
+from django.test import Client, override_settings
 from django.urls import reverse
 
-from django_otp.plugins.otp_totp.models import TOTPDevice
+from cryptography.fernet import Fernet
 from formtools.wizard.views import normalize_name
 
-from onadata.apps.api.models.hashed_recovery_device import (
-    HashedRecoveryCode,
-    HashedRecoveryDevice,
-    hash_recovery_code,
+from onadata.apps.api.models.encrypted_recovery_device import (
+    EncryptedRecoveryCode,
+    EncryptedRecoveryDevice,
 )
+from onadata.apps.api.models.encrypted_totp_device import EncryptedTOTPDevice
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.two_factor_views import LockoutLoginView
+from onadata.libs.utils.field_encryption import encrypt
 
 STEP_FIELD = f"{normalize_name(LockoutLoginView.__name__)}-current_step"
 
 RECOVERY_CODE = "abcd2345"
 
+TEST_KEY = Fernet.generate_key().decode()
 
+
+@override_settings(TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY])
 class RecoveryCodeStepTestCase(TestBase):
     """The wizard's recovery-code step accepts and explains recovery codes.
 
-    Codes are generated lowercase and the device hashes case-folded, so a code
+    Codes are generated lowercase and the device case-folds on verify, so a code
     typed in caps -- what a phone keyboard offers -- still verifies. These pin
     the wizard to the same case-folding the API does.
     """
@@ -38,12 +42,14 @@ class RecoveryCodeStepTestCase(TestBase):
         self.addCleanup(cache.clear)
         self.url = reverse("two_factor:login")
         self.client = Client()
-        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
-        device = HashedRecoveryDevice.objects.create(
+        EncryptedTOTPDevice.objects.create(
+            user=self.user, name="default", confirmed=True
+        )
+        device = EncryptedRecoveryDevice.objects.create(
             user=self.user, name="backup", confirmed=True
         )
-        HashedRecoveryCode.objects.create(
-            device=device, code_hash=hash_recovery_code(RECOVERY_CODE)
+        EncryptedRecoveryCode.objects.create(
+            device=device, encrypted_code=encrypt(RECOVERY_CODE)
         )
 
     def submit_credentials(self):
