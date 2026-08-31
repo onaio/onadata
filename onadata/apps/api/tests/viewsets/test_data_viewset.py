@@ -68,6 +68,7 @@ from onadata.libs.serializers.submission_review_serializer import (
 )
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.libs.utils.logger_tools import create_instance
+from onadata.libs.utils.viewer_tools import ENKETO_GENERIC_ERROR
 
 
 @urlmatch(netloc=r"(.*\.)?enketo\.ona\.io$")
@@ -1557,6 +1558,45 @@ class TestDataViewSet(SerializeMixin, TestBase):
             response = view(request, pk=formid, dataid=dataid)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get("Cache-Control"), None)
+
+    def test_enketo_edit_url_request_failure_returns_400(self):
+        """A failed request to Enketo returns 400 with the generic message.
+
+        Depends on get_enketo_urls translating RequestException into
+        EnketoError, which the endpoint reports as a parse error.
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({"get": "enketo"})
+        request = self.factory.get(
+            "/", data={"return_url": "http://test.io/test_url"}, **self.extra
+        )
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        fake_event_id = "abc123def456"
+
+        with (
+            patch(
+                "onadata.libs.utils.viewer_tools.requests.post",
+                side_effect=requests.exceptions.ReadTimeout(
+                    "Read timed out. (read timeout=20)"
+                ),
+            ) as mock_post,
+            patch(
+                "onadata.libs.utils.viewer_tools.report_exception",
+                return_value=fake_event_id,
+            ),
+        ):
+            response = view(request, pk=formid, dataid=dataid)
+
+        self.assertTrue(mock_post.called)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {
+                "detail": f"Enketo error: {ENKETO_GENERIC_ERROR}"
+                f" (reference: {fake_event_id})"
+            },
+        )
 
     def test_enketo_edit_url_names_the_submission(self):
         """The server URL sent to Enketo names the submission being edited.
