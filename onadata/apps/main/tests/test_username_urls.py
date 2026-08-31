@@ -10,8 +10,9 @@ from django.test import SimpleTestCase
 from django.urls import Resolver404, resolve, reverse
 
 
-class TestHyphenatedUsernameUrls(SimpleTestCase):
-    """Username-scoped URLs must reverse for usernames containing a hyphen."""
+class TestUsernameUrls(SimpleTestCase):
+    """Username-scoped URLs accept every username shape the lookup pattern
+    allows, reject metacharacters, and split off format suffixes."""
 
     def test_download_xform_reverse_with_hyphenated_username(self):
         """download_xform reverses for a hyphenated username (id_string and pk)."""
@@ -63,10 +64,6 @@ class TestHyphenatedUsernameUrls(SimpleTestCase):
             with self.subTest(path=path):
                 with self.assertRaises(Resolver404):
                     resolve(path)
-
-
-class TestUsernameFormatSuffixUrls(SimpleTestCase):
-    """Format suffixes split off email usernames like any other username."""
 
     def test_format_suffix_splits_off_email_username(self):
         """``users/<email>.<format>`` resolves to the email plus a ``format``
