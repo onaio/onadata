@@ -157,19 +157,26 @@ TWO_FACTOR_SMS_GATEWAY = None
 # whose client gates more of its own adds them, rather than OnaData naming
 # actions it does not check.
 TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
-    {"enroll-start", "disable", "recovery-generate", "recovery-view"}
+    {
+        "enroll-start",
+        "disable",
+        "recovery-generate",
+        "recovery-view",
+        "regenerate-api-key",
+        "change-email",
+        "change-password",
+        "require-auth-toggle",
+        "privacy-consent",
+    }
 )
 
-# Demand the account password before a first authenticator enrolment, where
-# there is no factor yet for ``_require_code`` to challenge.
-#
-# On by default: without it, an SSO credential alone can enrol an authenticator
-# and lock the owner out of their own second factor, so the safe default is to
-# require recent primary-credential proof. A deployment whose users hold no
-# usable local password (identity lives entirely in an IdP) turns it off
-# deliberately, accepting that trade -- or owns the factor federally, per
-# ``STEP_UP``.
-TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = True
+# Step-up authentication. ACTIONS is empty by default so gating is opt-in per
+# deployment; MODE is "local" while OnaData owns the second factor.
+STEP_UP = {
+    "ACTIONS": set(),
+    "MODE": "local",
+    "NO_FACTOR_POLICY": "skip_gate",
+}
 
 # Symmetric keys the authenticator seed and recovery codes are encrypted under
 # at rest (Fernet, url-safe base64). Ordered: the first key encrypts, every key

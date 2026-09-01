@@ -19,6 +19,7 @@ from django.utils.dateparse import parse_datetime
 
 import requests
 from django_digest.test import DigestAuth
+from django_otp.plugins.otp_totp.models import TOTPDevice
 from httmock import HTTMock, all_requests
 from registration.models import RegistrationProfile
 from rest_framework.authtoken.models import Token
@@ -650,6 +651,105 @@ class TestUserProfileViewSet(TestAbstractViewSet):
                     "city": {"old": "Bobville", "new": "Nairobi"},
                 },
             },
+        )
+
+    @override_settings(
+        STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"}
+    )
+    def test_a_put_is_gated_like_a_patch(self):
+        """The gate belongs to the change, not the verb.
+
+        ``ModelViewSet`` routes PUT to ``update`` and PATCH to
+        ``partial_update``; both write require_auth, so gating one leaves the
+        other as a way around it.
+        """
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+        view = UserProfileViewSet.as_view({"put": "update"})
+
+        request = self.factory.put(
+            "/",
+            data={
+                "username": self.user.username,
+                "name": "Bob",
+                "email": self.user.email,
+                "require_auth": not before,
+            },
+            **self.extra,
+        )
+        response = view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["error"], "step_up_required")
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).require_auth, before
+        )
+
+    @override_settings(
+        STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"}
+    )
+    def test_changing_require_auth_needs_a_step_up_grant(self):
+        """A client-side prompt is not a gate: PATCHing the field directly would
+        bypass it, so the server verifies the step-up itself."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+
+        request = self.factory.patch(
+            "/", data={"require_auth": not before}, **self.extra
+        )
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["error"], "step_up_required")
+        self.assertEqual(response.data["audience"], "require-auth-toggle")
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).require_auth, before
+        )
+
+    @override_settings(
+        STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"}
+    )
+    def test_echoing_require_auth_unchanged_is_not_challenged(self):
+        """A full-profile write echoes require_auth back; gating on its mere
+        presence would challenge a name or city edit that never touched the
+        setting. Only an actual change is gated."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+
+        request = self.factory.patch(
+            "/", data={"require_auth": before, "city": "Nairobi"}, **self.extra
+        )
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(UserProfile.objects.get(user=self.user).city, "Nairobi")
+
+    @override_settings(
+        STEP_UP={"ACTIONS": {"privacy-consent"}, "MODE": "local"},
+        EU_CONSENT_METADATA_PATH=("outer", "eu_citizen_consent"),
+    )
+    def test_overwrite_merge_cannot_change_nested_consent_without_step_up(self):
+        """The overwrite=false merge writes keys by name anywhere in the tree,
+        so a top-level key landing on a nested consent leaf must still be gated
+        -- the path-based check on the raw payload would otherwise miss it."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        profile = UserProfile.objects.get(user=self.user)
+        profile.metadata = {"outer": {"eu_citizen_consent": "yes"}}
+        profile.save()
+
+        data = {
+            "metadata": json.dumps({"eu_citizen_consent": "no"}),
+            "overwrite": "false",
+        }
+        request = self.factory.patch("/", data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["error"], "step_up_required")
+        self.assertEqual(response.data["audience"], "privacy-consent")
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).metadata,
+            {"outer": {"eu_citizen_consent": "yes"}},
         )
 
     def test_partial_updates_empty_metadata(self):
