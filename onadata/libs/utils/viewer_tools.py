@@ -5,6 +5,7 @@ import os
 import sys
 import zipfile
 from json.decoder import JSONDecodeError
+from typing import Literal, NoReturn
 
 from django.conf import settings
 from django.core.files.storage import storages
@@ -20,13 +21,6 @@ from onadata.libs.utils.common_tags import EXPORT_MIMES
 from onadata.libs.utils.common_tools import report_exception
 
 SLASH = "/"
-
-
-def image_urls_for_form(xform):
-    """Return image urls of all image attachments of the xform."""
-    return sum(
-        [image_urls(s) for s in xform.instances.filter(deleted_at__isnull=True)], []
-    )
 
 
 def get_path(path, suffix):
@@ -169,8 +163,8 @@ def get_enketo_attachment_params(request, instance) -> dict[str, str]:
 
 def get_enketo_urls(
     form_url, id_string, instance_xml=None, instance_id=None, return_url=None, **kwargs
-) -> dict[str, str]:
-    """Return Enketo URLs."""
+) -> dict[str, str] | Literal[False]:
+    """Return Enketo URLs, or False when Enketo is not configured."""
     if (
         not hasattr(settings, "ENKETO_URL")
         or not hasattr(settings, "ENKETO_API_ALL_SURVEY_LINKS_PATH")
@@ -226,8 +220,6 @@ def get_enketo_urls(
 
     handle_enketo_error(response)
 
-    return None
-
 
 ENKETO_GENERIC_ERROR = (
     "Sorry, we cannot load your form right now. Please try again later."
@@ -244,8 +236,8 @@ def _enketo_error_msg(message, event_id=None):
     return prefixed
 
 
-def handle_enketo_error(response):
-    """Handle enketo error response."""
+def handle_enketo_error(response) -> NoReturn:
+    """Raise EnketoError for an error response."""
     event_id = None
     try:
         data = json.loads(response.content)
