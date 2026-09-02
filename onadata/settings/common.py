@@ -236,6 +236,7 @@ INSTALLED_APPS = (
     "onadata.apps.main",
     "onadata.apps.restservice",
     "onadata.apps.api",
+    "onadata.apps.form_proxy",
     "guardian",
     "onadata.apps.sms_support",
     "onadata.libs",
@@ -818,3 +819,6 @@ CSP_STYLE_SRC = [
 CSP_INCLUDE_NONCE_IN = ["script-src", "style-src"]
 
 ENABLE_TABLE_PARTITIONING = False
+
+ONADATA_BASE_URL = os.environ.get("ONADATA_BASE_URL", "https://api.ona.io")
+ONADATA_API_TOKEN = os.environ.get("ONADATA_API_TOKEN", None)
