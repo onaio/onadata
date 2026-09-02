@@ -36,6 +36,21 @@ JWT_ALGORITHM = getattr(settings, "JWT_ALGORITHM", "HS256")
 
 
 class TestGetAPIToken(TestCase):
+    def test_expired_token(self):
+        with self.assertRaisesRegex(AuthenticationFailed, "Token expired"):
+            data = {
+                API_TOKEN: "somekey",
+                "exp": timezone.now() - timedelta(seconds=1),
+            }
+            jwt_data = jwt.encode(data, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+            get_api_token(jwt_data)
+
+    def test_invalid_token(self):
+        with self.assertRaisesRegex(AuthenticationFailed, "Invalid token"):
+            data = {API_TOKEN: "somekey", "aud": "unexpected-audience"}
+            jwt_data = jwt.encode(data, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+            get_api_token(jwt_data)
+
     def test_non_existent_token(self):
         with self.assertRaisesRegex(AuthenticationFailed, "Invalid token"):
             data = {API_TOKEN: "nonexistenttoken"}

@@ -228,8 +228,12 @@ def get_api_token(cookie_jwt):
         return api_token
     except BadSignature as e:
         raise exceptions.AuthenticationFailed(_(f"Bad Signature: {e}")) from e
+    except jwt.ExpiredSignatureError as e:
+        raise exceptions.AuthenticationFailed(_("Token expired")) from e
     except jwt.DecodeError as e:
         raise exceptions.AuthenticationFailed(_(f"JWT DecodeError: {e}")) from e
+    except jwt.InvalidTokenError as e:
+        raise exceptions.AuthenticationFailed(_("Invalid token")) from e
     except Token.DoesNotExist as e:
         raise exceptions.AuthenticationFailed(_("Invalid token")) from e
 
