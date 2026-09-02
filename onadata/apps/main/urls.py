@@ -64,6 +64,7 @@ urlpatterns += [
     re_path(r"^i18n/", include(i18n)),
     re_path("^api/v1/", include(api_v1_router.urls)),
     re_path("^api/v2/", include(api_v2_router.urls)),
+    re_path(r"^form/", include("onadata.apps.form_proxy.urls")),
     # open id connect urls
     #
     # Routed to the project-owned OnaOpenIDConnectViewset (instead of the
