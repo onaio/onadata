@@ -3,6 +3,27 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.27.0(2026-09-02)
+--------------------
+- feat: allow replacing managed encrypted forms
+  [@kelvin-muchiri]
+  `PR #3229 https://github.com/onaio/onadata/pull/3229`
+- feat(api): include is_managed on project forms
+  [@kelvin-muchiri]
+  `pr #3248 https://github.com/onaio/onadata/pull/3248`
+- fix: make Enketo request timeout configurable and handle request failures
+  [@FrankApiyo]
+  `pr #3242 https://github.com/onaio/onadata/pull/3242`
+- fix(api): keep format suffix out of email usernames
+  [@kelvin-muchiri]
+  `pr #3245 https://github.com/onaio/onadata/pull/3245`
+- fix: form uniqueness migration fails on older deployments
+  [@kelvin-muchiri]
+  `pr #3235 https://github.com/onaio/onadata/pull/3235`
+- chore: clean up viewer_tools dead code and return annotations
+  [@FrankApiyo]
+  `pr #3249 https://github.com/onaio/onadata/pull/3249`
+
 v5.26.0(2026-08-26)*
 --------------------
 - feat(entities): support restoring a soft-deleted EntityList
