@@ -1,0 +1,11 @@
+{% load i18n %}{% blocktranslate %}Hey {{ username }}!
+
+There have been {{ failure_count }} failed attempts to pass two-factor verification on your {{ deployment_name }} account in the last {{ window_minutes }} minutes, as of {{ event_at }}.
+
+If this was you, no further action is required.
+
+If this was not you, someone else may hold your password or an active session. Sign in and change your password, then contact {{ support_email }}.
+
+Thanks,
+The {{ deployment_name }} Team
+{% endblocktranslate %}

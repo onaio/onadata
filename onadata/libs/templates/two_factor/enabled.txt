@@ -1,0 +1,11 @@
+{% load i18n %}{% blocktranslate %}Hey {{ username }}!
+
+An authenticator app was set up for two-factor authentication on your {{ deployment_name }} account on {{ event_at }}.
+
+If this was you, no further action is required.
+
+If this was not you, your account may be compromised. Sign in, remove the authenticator, and change your password, then contact {{ support_email }}.
+
+Thanks,
+The {{ deployment_name }} Team
+{% endblocktranslate %}

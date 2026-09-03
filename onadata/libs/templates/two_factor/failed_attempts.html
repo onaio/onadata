@@ -1,0 +1,7 @@
+{% extends "two_factor/_email_base.html" %}
+{% load i18n %}
+{% block body %}
+  <p style="margin: 0 0 16px;">{% blocktranslate %}There have been {{ failure_count }} failed attempts to pass two-factor verification on your {{ deployment_name }} account in the last {{ window_minutes }} minutes, as of {{ event_at }}.{% endblocktranslate %}</p>
+  <p style="margin: 0 0 16px;">{% blocktranslate %}If this was you, no further action is required.{% endblocktranslate %}</p>
+  <p style="margin: 0 0 16px;">{% blocktranslate %}If this was <strong>not</strong> you, someone else may hold your password or an active session. Sign in and change your password, then contact <a href="mailto:{{ support_email }}" style="color: #0969da; text-decoration: none;">{{ support_email }}</a>.{% endblocktranslate %}</p>
+{% endblock %}

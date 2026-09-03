@@ -1,0 +1,7 @@
+{% extends "two_factor/_email_base.html" %}
+{% load i18n %}
+{% block body %}
+  <p style="margin: 0 0 16px;">{% blocktranslate %}An authenticator app was set up for two-factor authentication on your {{ deployment_name }} account on {{ event_at }}.{% endblocktranslate %}</p>
+  <p style="margin: 0 0 16px;">{% blocktranslate %}If this was you, no further action is required.{% endblocktranslate %}</p>
+  <p style="margin: 0 0 16px;">{% blocktranslate %}If this was <strong>not</strong> you, your account may be compromised. Sign in, remove the authenticator, and change your password, then contact <a href="mailto:{{ support_email }}" style="color: #0969da; text-decoration: none;">{{ support_email }}</a>.{% endblocktranslate %}</p>
+{% endblock %}

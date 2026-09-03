@@ -1,0 +1,1 @@
+{% load i18n %}{% blocktranslate %}Ona Two-Factor Authentication Disabled{% endblocktranslate %}

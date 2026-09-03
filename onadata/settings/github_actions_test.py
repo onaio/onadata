@@ -27,6 +27,11 @@ SECRET_KEY = "mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j"  # nosec
 JWT_SECRET_KEY = "thesecretkey"  # nosec
 JWT_ALGORITHM = "HS256"
 
+# A fixed key so encrypted second-factor secrets are usable in tests, as
+# SECRET_KEY above is fixed. Individual tests still override it to exercise
+# rotation and the unconfigured-key path.
+TWO_FACTOR_FIELD_ENCRYPTION_KEYS = ["qAO2JJln7SEhRxnXFd1uAUn0GrRozRUWVqEXhsDPc_4="]  # nosec
+
 # This trick works only when we run tests from the command line.
 TESTING_MODE = len(sys.argv) >= 2 and (
     sys.argv[1] == "test" or sys.argv[1] == "test_all"
