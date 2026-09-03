@@ -5,6 +5,7 @@ Test XFormSubmissionViewSet module.
 
 import os
 from builtins import open  # pylint: disable=redefined-builtin
+from datetime import timedelta
 from io import BytesIO
 from unittest.mock import patch
 
@@ -17,6 +18,7 @@ from django.test import TransactionTestCase, override_settings
 from django.urls.exceptions import NoReverseMatch
 from django.utils import timezone
 
+import jwt
 import simplejson as json
 from django_digest.test import DigestAuth
 from rest_framework import status
@@ -32,6 +34,7 @@ from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.services.textit import ServiceDefinition
 from onadata.libs.permissions import DataEntryRole
+from onadata.libs.utils.common_tags import API_TOKEN
 from onadata.libs.utils.common_tools import get_uuid
 
 
@@ -937,6 +940,30 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 self.assertEqual(
                     Instance.objects.filter(xform=self.xform).count(), count + 1
                 )
+
+    def test_post_submission_with_expired_enketo_jwt(self):
+        """An expired raw Enketo JWT is rejected instead of treated anonymously."""
+        payload = {
+            API_TOKEN: self.user.auth_token.key,
+            "exp": timezone.now() - timedelta(seconds=1),
+        }
+        cookie_jwt = jwt.encode(
+            payload,
+            settings.JWT_SECRET_KEY,
+            algorithm=settings.JWT_ALGORITHM,
+        )
+        request = self.factory.post(f"/enketo/{self.xform.pk}/submission")
+        request.COOKIES[settings.ENKETO_AUTH_COOKIE] = cookie_jwt
+        count = Instance.objects.filter(xform=self.xform).count()
+
+        response = self.view(request, xform_pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data, "Token expired")
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(Instance.objects.filter(xform=self.xform).count(), count)
 
     def test_head_submission_request_w_no_auth(self):
         """
