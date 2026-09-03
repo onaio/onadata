@@ -3,6 +3,14 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.28.0(2026-09-03)
+--------------------
+- fix: handle expired Enketo JWTs
+  [@ukanga]
+  `PR #3252 https://github.com/onaio/onadata/pull/3252`
+- Security Updates
+  [@ukanga, @kelvin-muchiri, @FrankApiyo]
+
 v5.27.0(2026-09-02)
 --------------------
 - feat: allow replacing managed encrypted forms
