@@ -437,7 +437,12 @@ class SSOHeaderAuthentication(BaseAuthentication):
 
 
 def get_client_ip(request) -> Optional[str]:
-    """Return the originating IP address of a HTTP request."""
+    """Return the originating IP address of a HTTP request.
+
+    Trusts ``X-Real-Ip`` ahead of ``REMOTE_ADDR``, so a deployment MUST sit
+    behind a reverse proxy that overwrites this header. Without that, a client
+    can rotate ``X-Real-Ip`` to evade the IP-keyed login lockout.
+    """
     if request.headers.get("X-Real-Ip"):
         return request.headers["X-Real-Ip"].split(",")[0]
     return request.META.get("REMOTE_ADDR")

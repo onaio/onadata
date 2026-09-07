@@ -114,13 +114,17 @@ django==5.2.17
     #   django-debug-toolbar
     #   django-extensions
     #   django-filter
+    #   django-formtools
     #   django-guardian
     #   django-oauth-toolkit
+    #   django-otp
+    #   django-phonenumber-field
     #   django-query-builder
     #   django-redis
     #   django-render-block
     #   django-reversion
     #   django-taggit
+    #   django-two-factor-auth
     #   djangorestframework
     #   djangorestframework-gis
     #   djangorestframework-guardian
@@ -143,6 +147,8 @@ django-filter==25.2
     # via
     #   djangorestframework-gis
     #   onadata
+django-formtools==2.7
+    # via django-two-factor-auth
 django-guardian==3.3.3
     # via
     #   djangorestframework-guardian
@@ -155,6 +161,13 @@ django-oauth-toolkit==3.4.1
     # via onadata
 django-ordered-model==3.7.4
     # via onadata
+django-otp==1.7.0
+    # via
+    #   -r requirements/base.in
+    #   django-two-factor-auth
+    #   onadata
+django-phonenumber-field==8.5.0
+    # via django-two-factor-auth
 django-query-builder==3.2.1
     # via onadata
 django-redis==7.0.0
@@ -169,6 +182,10 @@ django-taggit==6.1.0
     # via onadata
 django-templated-email==3.1.1
     # via onadata
+django-two-factor-auth==1.18.1
+    # via
+    #   -r requirements/base.in
+    #   onadata
 djangorestframework==3.17.2
     # via
     #   djangorestframework-csv
@@ -435,6 +452,11 @@ pyyaml==6.0.3
     #   pre-commit
     #   prospector
     #   responses
+qrcode==8.2
+    # via
+    #   -r requirements/base.in
+    #   django-two-factor-auth
+    #   onadata
 recaptcha-client==1.0.6
     # via onadata
 redis[hiredis]==8.1.0
