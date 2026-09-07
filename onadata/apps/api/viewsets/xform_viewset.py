@@ -75,6 +75,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormBaseSerializer,
     XFormCreateSerializer,
     XFormSerializer,
+    XFormUpdateSerializer,
     XFormVersionListSerializer,
 )
 from onadata.libs.utils.api_export_tools import (
@@ -260,7 +261,7 @@ def _try_update_xlsform(request, xform, owner):
     survey = utils.publish_xlsform(request, owner, xform.id_string, xform.project)
 
     if isinstance(survey, XForm):
-        serializer = XFormSerializer(xform, context={"request": request})
+        serializer = XFormUpdateSerializer(survey, context={"request": request})
 
         # send form update notification
         send_message(
