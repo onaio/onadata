@@ -29,6 +29,7 @@ from onadata.apps.logger import views as logger_views
 from onadata.apps.main import views as main_views
 from onadata.apps.main.oidc_viewsets import OnaOpenIDConnectViewset
 from onadata.apps.main.registration_urls import urlpatterns as registration_patterns
+from onadata.apps.main.two_factor_urls import urlpatterns as two_factor_urlpatterns
 from onadata.apps.restservice import views as restservice_views
 from onadata.apps.sms_support import views as sms_support_views
 from onadata.apps.viewer import views as viewer_views
@@ -113,6 +114,9 @@ urlpatterns += [
     re_path(r"^api/v1$", RedirectView.as_view(url="/api/v1/", permanent=True)),
     # django default stuff
     re_path(r"^accounts/", include(registration_patterns)),
+    # Under /account/ (singular) so they cannot collide with the registration
+    # routes above. LOGIN_URL points here, and /accounts/login/ redirects here.
+    re_path(r"^", include(two_factor_urlpatterns)),
     # oath2_provider
     re_path(
         r"^o/authorize/$",

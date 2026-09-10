@@ -1,0 +1,175 @@
+"""Views overriding django-two-factor-auth's defaults."""
+
+import importlib
+
+from django import forms
+
+from rest_framework.exceptions import AuthenticationFailed
+from two_factor.forms import AuthenticationTokenForm
+from two_factor.views import LoginView
+
+from onadata.apps.main.forms import (
+    LoginLockoutAuthenticationForm,
+    RecoveryCodeForm,
+    lockout_validation_error,
+)
+
+
+def _error_codes(validation_error):
+    """The set of error codes carried by a ValidationError, in either form."""
+    if hasattr(validation_error, "error_dict"):
+        return {
+            error.code
+            for errors in validation_error.error_dict.values()
+            for error in errors
+        }
+    return {error.code for error in validation_error.error_list}
+
+
+def _default_remember_to_off(form):
+    """Make "don't ask again on this device" a choice rather than a default.
+
+    The library ships the field with ``initial=True``.
+    """
+    remember = form.fields.get("remember")
+    if remember is not None:
+        remember.initial = False
+
+
+def _enforce_lockout(form, request, step):
+    """Count token failures against onadata's login lockout.
+
+    Upstream covers the credentials step alone, leaving whoever holds the
+    password an unbounded run at a six-digit code: django-otp's per-device
+    backoff slows that but tells the account holder nothing.
+
+    Keyed on the same username as the credentials step, so an attacker cannot
+    spend one full allowance on passwords and another on codes.
+    """
+    inner_clean = form.clean
+
+    def clean():
+        # Avoid circular import, matching LoginLockoutAuthenticationForm.
+        authentication = importlib.import_module("onadata.libs.authentication")
+        ip_address = authentication.get_client_ip(request)
+        username = authentication.get_lockout_username(form.user.get_username())
+
+        try:
+            authentication.assert_not_locked_out(ip_address, username)
+        except AuthenticationFailed as exc:
+            raise lockout_validation_error() from exc
+
+        two_factor = importlib.import_module("onadata.libs.utils.two_factor")
+        try:
+            cleaned = inner_clean()
+        except forms.ValidationError as validation_error:
+            # Skip only a genuinely incomplete submission. django-otp raises
+            # ``token_required`` when the field is empty or malformed (its
+            # value never reached ``cleaned_data``), and that is not an
+            # attempt -- the credentials step skips an incomplete submission
+            # the same way. A wrong code (``invalid_token``) and a throttle
+            # refusal that stands in for one (``n_failed_attempts``) are real
+            # attempts and must still spend the bounded login allowance, or
+            # django-otp's unbounded per-device backoff becomes the only limit.
+            if "token_required" in _error_codes(validation_error):
+                raise
+            # Recorded before the lockout counter so hitting the threshold
+            # cannot skip the audit entry.
+            two_factor.record_verification_failure(request, form.user, {"step": step})
+            # Re-raised so the user sees the library's wrong-token message,
+            # until add_login_attempt raises at the threshold instead.
+            try:
+                authentication.add_login_attempt(ip_address, username)
+            except AuthenticationFailed as exc:
+                raise lockout_validation_error() from exc
+            raise
+        # Verified: drop the failure run so a later slip does not alert on a
+        # burst already resolved -- parity with the API verify path.
+        two_factor.clear_verification_failures(form.user)
+        return cleaned
+
+    form.clean = clean
+
+
+# The wizard's own hierarchy, not ours: two_factor's LoginView is already a
+# SessionWizardView stack, so subclassing it to swap one form exceeds the
+# ancestor limit no matter how thin the subclass is.
+# pylint: disable=too-many-ancestors
+class LockoutLoginView(LoginView):
+    """Two-factor login wizard carrying onadata's failed-login lockout.
+
+    On both steps, so it cannot be sidestepped by attacking the second factor
+    instead of the first.
+    """
+
+    form_list = (
+        (LoginView.AUTH_STEP, LoginLockoutAuthenticationForm),
+        (LoginView.TOKEN_STEP, AuthenticationTokenForm),
+        (LoginView.BACKUP_STEP, RecoveryCodeForm),
+    )
+
+    def get_device(self, step=None):
+        """Pick the project's recovery device on the backup step.
+
+        Upstream takes ``staticdevice_set.first()``; this project stores
+        recovery codes in its own ``EncryptedRecoveryDevice`` (encrypted, never
+        plaintext), so the wizard has to be pointed at that device for its
+        backup step to verify against the codes the user actually holds. The
+        device's ``verify_token`` decrypts and compares, so the library's
+        backup form needs no change.
+
+        Falls through to upstream when the set is absent, leaving the
+        no-recovery-codes case exactly as the library handles it.
+        """
+        if (step or self.steps.current) == self.BACKUP_STEP:
+            # Lazy, matching _enforce_lockout above: the viewset module
+            # reaches onadata.libs.authentication, which imports back into
+            # this app.
+            totp_viewset = importlib.import_module(
+                "onadata.apps.api.viewsets.totp_viewset"
+            )
+            device = totp_viewset.EncryptedRecoveryDevice.objects.filter(
+                user=self.get_user(), name=totp_viewset.RECOVERY_DEVICE_NAME
+            ).first()
+            if device is not None:
+                self.device_cache = device
+                return device
+        return super().get_device(step=step)
+
+    def get_form(self, step=None, **kwargs):
+        """Adjust the token forms after the library has chosen them.
+
+        Not done through ``form_list``: ``LoginView.get_form`` reassigns
+        ``form_list[TOKEN_STEP]`` from the method plugin on every call, so a
+        class named there is discarded before it is ever instantiated.
+        """
+        form = super().get_form(step=step, **kwargs)
+        current = step or self.steps.current
+        if current in (self.TOKEN_STEP, self.BACKUP_STEP):
+            _default_remember_to_off(form)
+            _enforce_lockout(form, self.request, current)
+        return form
+
+    def get_context_data(self, form, **kwargs):
+        """Count recovery codes from the project's own device.
+
+        Upstream derives the token page's ``backup_tokens`` from
+        ``staticdevice_set``, which this project does not use -- recovery codes
+        live in ``EncryptedRecoveryDevice``. Left unset it counts zero, the
+        login template hides its "Use Backup Token" action, and a user who lost
+        their authenticator has no way to reach the backup step from the UI.
+        Only the count drives the template; ``get_device`` supplies the device
+        the backup step then verifies against.
+        """
+        context = super().get_context_data(form, **kwargs)
+        if self.steps.current == self.TOKEN_STEP:
+            # Lazy, as in get_device: the viewset module imports back into this
+            # app through onadata.libs.authentication.
+            totp_viewset = importlib.import_module(
+                "onadata.apps.api.viewsets.totp_viewset"
+            )
+            device = totp_viewset.EncryptedRecoveryDevice.objects.filter(
+                user=self.get_user(), name=totp_viewset.RECOVERY_DEVICE_NAME
+            ).first()
+            context["backup_tokens"] = 0 if device is None else device.remaining
+        return context

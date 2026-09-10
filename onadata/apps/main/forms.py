@@ -27,6 +27,7 @@ from registration.forms import RegistrationFormUniqueEmail
 from requests.exceptions import RequestException
 from rest_framework.exceptions import AuthenticationFailed
 from six.moves.urllib.parse import urljoin, urlparse
+from two_factor.forms import BackupTokenForm
 
 # pylint: disable=ungrouped-imports
 from onadata.apps.api.constants import USERNAME_VALIDATION_REGEX
@@ -675,6 +676,19 @@ class ExternalExportForm(forms.Form):
 ActivateSMSSupportFom = ActivateSMSSupportForm
 
 
+def lockout_validation_error():
+    """The error shown once an account is locked out.
+
+    Module level because both wizard steps raise it -- the credentials form
+    below and the token forms wrapped in ``two_factor_views`` -- and the two
+    must not drift into telling a locked-out user different things.
+    """
+    return forms.ValidationError(
+        _("Maximum login attempts exceeded. Please try again later."),
+        code="locked_out",
+    )
+
+
 class LoginLockoutAuthenticationForm(AuthenticationForm):
     """Authentication form that enforces the failed-login lockout.
 
@@ -710,7 +724,7 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
             try:
                 authentication.assert_not_locked_out(ip_address, lockout_username)
             except AuthenticationFailed as exc:
-                raise self._lockout_error() from exc
+                raise lockout_validation_error() from exc
 
             self.user_cache = authenticate(
                 self.request, username=username, password=password
@@ -719,7 +733,7 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
                 try:
                     authentication.add_login_attempt(ip_address, lockout_username)
                 except AuthenticationFailed as exc:
-                    raise self._lockout_error() from exc
+                    raise lockout_validation_error() from exc
                 raise forms.ValidationError(
                     _("Invalid username or password"), code="invalid_login"
                 )
@@ -727,12 +741,31 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
 
         return self.cleaned_data
 
-    @staticmethod
-    def _lockout_error():
-        return forms.ValidationError(
-            _("Maximum login attempts exceeded. Please try again later."),
-            code="locked_out",
-        )
+
+class RecoveryCodeForm(BackupTokenForm):
+    """Recovery-code step of the login wizard.
+
+    ``StaticToken.random_token`` lowercases its base32, and the library
+    compares the submitted code exactly, so a keyboard that autocapitalises
+    turns a valid code into a wrong one. Folded here and on the API, so the
+    two doors do not disagree about the same code.
+
+    The library's "Invalid token" also names neither recovery codes nor their
+    single use, which is the whole question a user has at this point.
+    """
+
+    otp_error_messages = dict(
+        BackupTokenForm.otp_error_messages,
+        invalid_token=gettext_lazy(
+            "That recovery code is invalid or has already been used. Each "
+            "code works once, so try one you have not used yet, or check "
+            "for a typo."
+        ),
+    )
+
+    def clean_otp_token(self):
+        """Normalise to the stored form. CharField has already stripped it."""
+        return self.cleaned_data["otp_token"].lower()
 
 
 def password_reset_attempt_cache_key(email):

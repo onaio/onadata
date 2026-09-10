@@ -7,6 +7,7 @@ from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.views import redirect_to_login
 from django.conf import settings
 from django.http import HttpResponseRedirect
+from django.shortcuts import resolve_url
 
 
 def check_obj(func):
@@ -33,7 +34,7 @@ def is_owner(view_func):
             protocol = "https" if request.is_secure() else "http"
             return HttpResponseRedirect(f"{protocol}://{request.get_host()}")
         path = request.build_absolute_uri()
-        login_url = request.build_absolute_uri(settings.LOGIN_URL)
+        login_url = request.build_absolute_uri(resolve_url(settings.LOGIN_URL))
         # If the login url is the same scheme and net location then just
         # use the path as the "next" url.
         login_scheme, login_netloc = urlparse(login_url)[:2]
