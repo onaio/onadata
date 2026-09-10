@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.29.0(2026-09-10)
+--------------------
+- feat(2fa): two-factor authentication
+  [@FrankApiyo]
+  `PR #3207 https://github.com/onaio/onadata/pull/3207`
+
 v5.28.0(2026-09-03)
 --------------------
 - fix: handle expired Enketo JWTs
