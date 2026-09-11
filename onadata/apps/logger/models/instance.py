@@ -88,11 +88,7 @@ from onadata.libs.utils.common_tags import (
 )
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.dict_tools import get_values_matching_key
-from onadata.libs.utils.model_tools import (
-    queryset_iterator,
-    set_uuid,
-    update_fields_directly,
-)
+from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
 logger = logging.getLogger(__name__)
@@ -377,7 +373,7 @@ def update_geopoints_on_hard_delete(sender, instance, **kwargs):
 
 
 def save_full_json(instance, include_related=True):
-    """Save full json dict
+    """Rebuild the instance's json from its XML and store it.
 
     Args:
         include_related (bool): Whether to include related objects
@@ -391,7 +387,14 @@ def save_full_json(instance, include_related=True):
     ):
         json[DECRYPTION_ERROR] = instance.json[DECRYPTION_ERROR]
 
-    update_fields_directly(instance, json=json)
+    xml = instance.xml
+
+    # Edits leave xml as raw request bytes until save.
+    if isinstance(xml, bytes):
+        xml = xml.decode("utf-8")
+
+    # Skip if the XML changed: whoever changed it rebuilt json in its own save().
+    Instance.objects.filter(pk=instance.pk, xml=xml).update(json=json)
 
 
 def update_project_date_modified(instance):
