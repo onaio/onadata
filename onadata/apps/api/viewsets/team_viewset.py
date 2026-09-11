@@ -7,12 +7,13 @@ from django.utils.translation import gettext as _
 
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
-from onadata.apps.api.models import Team
+from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.api.tools import (
     add_user_to_team,
     get_baseviewset_class,
@@ -23,6 +24,7 @@ from onadata.libs.filters import TeamOrgFilter
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.permissions import is_organization_admin
 from onadata.libs.serializers.share_team_project_serializer import (
     RemoveTeamFromProjectSerializer,
     ShareTeamProjectSerializer,
@@ -51,6 +53,21 @@ class TeamViewSet(
     permission_classes = [DjangoObjectPermissions]
     filter_backends = (ObjectPermissionsFilter, TeamOrgFilter)
 
+    def _check_organization_admin(self, request, team):
+        """Rejects requesters who do not administer the team's organization."""
+        organization = OrganizationProfile.objects.get(user=team.organization)
+
+        if not is_organization_admin(request.user, organization):
+            raise PermissionDenied(
+                _("You must be an owner or manager of the organization.")
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        """Deletes a team."""
+        self._check_organization_admin(request, self.get_object())
+
+        return super().destroy(request, *args, **kwargs)
+
     @action(methods=["DELETE", "GET", "POST"], detail=True)
     def members(self, request, *args, **kwargs):
         """
@@ -61,6 +78,8 @@ class TeamViewSet(
         status_code = status.HTTP_200_OK
 
         if request.method in ["DELETE", "POST"]:
+            self._check_organization_admin(request, team)
+
             username = request.data.get("username") or request.query_params.get(
                 "username"
             )
@@ -99,10 +118,11 @@ class TeamViewSet(
         if remove and remove is not isinstance(remove, bool):
             remove = strtobool(remove)
 
+        context = {"request": request}
         if remove:
-            serializer = RemoveTeamFromProjectSerializer(data=data)
+            serializer = RemoveTeamFromProjectSerializer(data=data, context=context)
         else:
-            serializer = ShareTeamProjectSerializer(data=data)
+            serializer = ShareTeamProjectSerializer(data=data, context=context)
 
         if serializer.is_valid():
             serializer.save()

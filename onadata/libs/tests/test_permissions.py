@@ -4,11 +4,12 @@ Tests onadata.libs.permissions module
 """
 from unittest.mock import patch
 
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import AnonymousUser, Group
 
 from guardian.shortcuts import get_users_with_perms
 
 from onadata.apps.api import tools
+from onadata.apps.api.models.team import Team
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import (
@@ -22,6 +23,7 @@ from onadata.libs.permissions import (
     ReadOnlyRoleNoDownload,
     filter_queryset_xform_meta_perms_sql,
     get_object_users_with_permissions,
+    is_organization_admin,
 )
 
 
@@ -238,3 +240,46 @@ class TestPermissions(TestBase):
 
         result = filter_queryset_xform_meta_perms_sql(self.xform, alice, None)
         self.assertEqual(result, {"_submitted_by": "alice"})
+
+
+class TestIsOrganizationAdmin(TestBase):
+    """Tests for ``is_organization_admin``."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self._create_organization(
+            username="modilabs", name="Modi Labs", created_by=self.user
+        )
+        self.alice = self._create_user("alice", "alice")
+
+    def test_owner_is_admin(self):
+        """Organization owners are admins, whether given the profile or its user."""
+        self.assertTrue(is_organization_admin(self.user, self.organization))
+
+        OwnerRole.add(self.alice, self.organization)
+        self.assertTrue(is_organization_admin(self.alice, self.organization))
+
+    def test_owners_team_member_is_admin(self):
+        """Members of the organization's Owners team are admins."""
+        owners_team = Team.objects.get(
+            organization=self.organization.user, name="modilabs#Owners"
+        )
+        self.alice.groups.add(owners_team)
+
+        self.assertTrue(is_organization_admin(self.alice, self.organization))
+
+    def test_manager_is_admin(self):
+        """Organization managers are admins."""
+        ManagerRole.add(self.alice, self.organization)
+        self.assertTrue(is_organization_admin(self.alice, self.organization))
+
+    def test_member_is_not_admin(self):
+        """Users without a role, or with a non-administrative role, are not admins."""
+        self.assertFalse(is_organization_admin(self.alice, self.organization))
+
+        EditorRole.add(self.alice, self.organization)
+        self.assertFalse(is_organization_admin(self.alice, self.organization))
+
+    def test_anonymous_is_not_admin(self):
+        """Anonymous users are never admins."""
+        self.assertFalse(is_organization_admin(AnonymousUser(), self.organization))
