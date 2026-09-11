@@ -2,6 +2,7 @@
 
 import base64
 import os
+import threading
 from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import sha256
@@ -11,6 +12,7 @@ from unittest.mock import Mock, call, patch
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
+from django.db import connection
 from django.template.loader import render_to_string
 from django.test import override_settings
 from django.utils import timezone
@@ -35,6 +37,8 @@ from onadata.apps.logger.models import (
     SurveyType,
     XForm,
 )
+from onadata.apps.logger.models.instance import save_full_json
+from onadata.apps.logger.tasks import decrypt_instance_async, save_full_json_async
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import (
     DecryptionError,
@@ -1396,6 +1400,85 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(
             self.instance.json.get("_decryption_error"), "NOT_ALL_MEDIA_RECEIVED"
         )
+
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_stale_save_full_json_after_decrypt_keeps_decrypted_json(self, _mock):
+        """A save_full_json on an object loaded before decryption must not
+        overwrite the decrypted json.
+        """
+        stale_instance = Instance.objects.get(pk=self.instance.pk)
+        self.assertTrue(stale_instance.is_encrypted)
+        self.assertIn("encryptedXmlFile", stale_instance.json)
+
+        decrypt_instance(Instance.objects.get(pk=self.instance.pk))
+        self.instance.refresh_from_db()
+        self.assertEqual(self.instance.json.get("sunset"), "sunset.png")
+
+        save_full_json(stale_instance)
+        self.instance.refresh_from_db()
+
+        self.assertNotIn("encryptedXmlFile", self.instance.json)
+        self.assertEqual(self.instance.json.get("sunset"), "sunset.png")
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    @patch("onadata.apps.logger.tasks.update_project_date_modified_async.apply_async")
+    @patch("onadata.apps.logger.tasks.update_xform_submission_count_async.apply_async")
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_save_full_json_async_racing_decrypt_instance_async(self, *_mocks):
+        """A save_full_json_async that loaded before decryption committed
+        must not overwrite the decrypted json.
+
+        Decryption's follow-up save_full_json_async runs inline, before the
+        stale task resumes. Needs TransactionTestCase: the worker thread
+        only sees committed rows.
+        """
+        worker_name = "stale-save-full-json"
+        stale_loaded = threading.Event()
+        decrypted = threading.Event()
+        original_get_full_dict = Instance.get_full_dict
+
+        def get_full_dict_paused_in_worker(instance, include_related=True):
+            if threading.current_thread().name == worker_name:
+                stale_loaded.set()
+                decrypted.wait(timeout=30)
+            return original_get_full_dict(instance, include_related)
+
+        def run_stale_save_full_json():
+            try:
+                save_full_json_async(self.instance.pk)
+            finally:
+                connection.close()
+
+        def run_enqueued_save_full_json_inline(args=None, **_kwargs):
+            save_full_json_async(*args)
+
+        worker = threading.Thread(target=run_stale_save_full_json, name=worker_name)
+
+        with (
+            patch.object(
+                save_full_json_async,
+                "apply_async",
+                side_effect=run_enqueued_save_full_json_inline,
+            ),
+            patch.object(Instance, "get_full_dict", get_full_dict_paused_in_worker),
+        ):
+            worker.start()
+            self.assertTrue(stale_loaded.wait(timeout=30))
+            decrypt_instance_async(self.instance.pk)
+            self.instance.refresh_from_db()
+            self.assertEqual(self.instance.json.get("sunset"), "sunset.png")
+            decrypted.set()
+            worker.join(timeout=30)
+
+        self.assertFalse(worker.is_alive())
+        self.instance.refresh_from_db()
+        self.assertFalse(self.instance.is_encrypted)
+        self.assertNotIn("encryptedXmlFile", self.instance.json)
+        self.assertEqual(self.instance.json.get("sunset"), "sunset.png")
 
 
 class DisableXFormEncryptionTestCase(TestBase):
