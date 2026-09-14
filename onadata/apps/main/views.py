@@ -1419,9 +1419,7 @@ def set_perm(request, username, id_string):  # noqa C901
     )
 
     owner = xform.user
-    if username != request.user.username and not has_permission(
-        xform, username, request
-    ):
+    if request.user != owner and not request.user.has_perm("logger.add_xform", xform):
         return HttpResponseForbidden(_("Permission denied."))
 
     try:
