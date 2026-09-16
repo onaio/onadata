@@ -657,6 +657,11 @@ class Instance(models.Model, InstanceBaseClass):
         SUCCESS = "success", _("Decryption successful")
         FAILED = "failed", _("Decryption failed")
 
+    class ValidationStatus(models.TextChoices):  # pylint: disable=too-many-ancestors
+        VALID = "valid", _("Content matches its signature")
+        NOT_VALID = "not_valid", _("Content does not match its signature")
+        NOT_VALIDATED = "not_validated", _("No signature to check against")
+
     json = models.JSONField(default=dict, null=False)
     xml = models.TextField()
     user = models.ForeignKey(
@@ -721,6 +726,16 @@ class Instance(models.Model, InstanceBaseClass):
         choices=DecryptionStatus.choices,
         default=DecryptionStatus.UNMANAGED,
     )
+    validation_status = models.CharField(
+        max_length=20,
+        choices=ValidationStatus.choices,
+        null=True,
+        default=None,
+        help_text=_(
+            "Outcome of checking a decrypted submission against the signature "
+            "it was submitted with. Null if the submission was never decrypted."
+        ),
+    )
 
     tags = TaggableManager()
 
@@ -736,6 +751,11 @@ class Instance(models.Model, InstanceBaseClass):
             models.Index(fields=["xform_id", "date_created"]),
             models.Index(fields=["xform_id", "date_modified"]),
             models.Index(fields=["xform_id", "last_edited"]),
+            models.Index(
+                fields=["validation_status"],
+                condition=Q(validation_status__isnull=False),
+                name="logger_inst_validat_6ae220_idx",
+            ),
         ]
 
     @classmethod
