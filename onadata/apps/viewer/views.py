@@ -44,6 +44,10 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export, ExportTypeError
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
+from onadata.libs.authentication import (
+    authenticate_media_request,
+    media_auth_challenge,
+)
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.chart_tools import build_chart_data
 from onadata.libs.utils.common_tools import get_uuid
@@ -868,11 +872,31 @@ def data_view(request, username, id_string):
     return render(request, "data_view.html", data)
 
 
+def _attachment_access_denied(attachment, request):
+    """Returns the response that refuses ``attachment``, or None when allowed.
+
+    An anonymous requester is challenged for credentials, so that Digest
+    clients such as ODK Briefcase can retry with them.
+    """
+    challenge = authenticate_media_request(request)
+    if challenge is not None:
+        return challenge
+
+    if has_attachment_permission(attachment, request):
+        return None
+
+    if not request.user.is_authenticated:
+        return media_auth_challenge()
+
+    return HttpResponseForbidden(_("Not shared."))
+
+
 def attachment_url(request, size="medium"):
     """
     Redirects to image attachment  of the specified size, defaults to 'medium'.
 
-    Responds with 403 when the requester has no access to the owning form.
+    A requester with no access to the owning form gets a 401 challenge when
+    anonymous, and a 403 once authenticated.
     """
     media_file = request.GET.get("media_file")
     no_redirect = request.GET.get("no_redirect")
@@ -893,8 +917,9 @@ def attachment_url(request, size="medium"):
     if attachment is None:
         return HttpResponseNotFound(_("Attachment not found"))
 
-    if not has_attachment_permission(attachment, request):
-        return HttpResponseForbidden(_("Not shared."))
+    denied = _attachment_access_denied(attachment, request)
+    if denied is not None:
+        return denied
 
     if size == "original" and no_redirect == "true":
         response = response_with_mimetype_and_name(

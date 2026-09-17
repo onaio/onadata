@@ -276,6 +276,51 @@ class DigestAuthentication(BaseAuthentication):
         return response["WWW-Authenticate"]
 
 
+def media_auth_challenge():
+    """Returns the ``401`` Digest challenge that prompts for credentials."""
+    return HttpDigestAuthenticator().build_challenge_response()
+
+
+def authenticate_media_request(request):
+    """Identifies the user behind a media download on a plain Django view.
+
+    Media links are followed by clients such as ODK Briefcase that hold no
+    session and authenticate with Digest or API token credentials instead,
+    Digest only once they have been challenged for them.
+
+    Like the other OpenRosa/Briefcase endpoints (see LOCKOUT_EXCLUDED_PATHS),
+    a rejected Digest request does not count towards failed-login lockout: a
+    pull requests one link per attachment, and a rejection is not always a
+    wrong password — a stale nonce or an out-of-order nonce count from
+    interleaved downloads is rejected the same way.
+
+    Returns a ``401`` challenge when the credentials are rejected, otherwise
+    None with ``request.user`` set to the authenticated user, if any.
+    """
+    if request.user.is_authenticated:
+        return None
+
+    auth = get_authorization_header(request).split()
+    if auth and auth[0].lower() == b"digest":
+        try:
+            # sets request.user on success
+            authenticated = HttpDigestAuthenticator().authenticate(request)
+        except (AttributeError, ValueError, DataError):
+            authenticated = False
+
+        return None if authenticated else media_auth_challenge()
+
+    try:
+        credentials = TokenAuthentication().authenticate(request)
+    except AuthenticationFailed:
+        return media_auth_challenge()
+
+    if credentials is not None:
+        request.user = credentials[0]
+
+    return None
+
+
 class LockoutBasicAuthentication(BasicAuthentication):
     """HTTP Basic authentication with failed-login lockout.
 
