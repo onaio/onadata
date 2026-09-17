@@ -288,21 +288,35 @@ def authenticate_media_request(request):
     session and authenticate with Digest or API token credentials instead,
     Digest only once they have been challenged for them.
 
+    Like the other OpenRosa/Briefcase endpoints (see LOCKOUT_EXCLUDED_PATHS),
+    a rejected Digest request does not count towards failed-login lockout: a
+    pull requests one link per attachment, and a rejection is not always a
+    wrong password — a stale nonce or an out-of-order nonce count from
+    interleaved downloads is rejected the same way.
+
     Returns a ``401`` challenge when the credentials are rejected, otherwise
     None with ``request.user`` set to the authenticated user, if any.
     """
     if request.user.is_authenticated:
         return None
 
-    for authenticator in (DigestAuthentication(), TokenAuthentication()):
+    auth = get_authorization_header(request).split()
+    if auth and auth[0].lower() == b"digest":
         try:
-            credentials = authenticator.authenticate(request)
-        except AuthenticationFailed:
-            return media_auth_challenge()
+            # sets request.user on success
+            authenticated = HttpDigestAuthenticator().authenticate(request)
+        except (AttributeError, ValueError, DataError):
+            authenticated = False
 
-        if credentials is not None:
-            request.user = credentials[0]
-            break
+        return None if authenticated else media_auth_challenge()
+
+    try:
+        credentials = TokenAuthentication().authenticate(request)
+    except AuthenticationFailed:
+        return media_auth_challenge()
+
+    if credentials is not None:
+        request.user = credentials[0]
 
     return None
 

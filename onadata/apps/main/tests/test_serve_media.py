@@ -11,9 +11,12 @@ served at all.
 
 import os
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.core.files.base import ContentFile, File
 from django.core.files.storage import storages
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -74,6 +77,21 @@ class TestServeAttachmentMedia(ServeMediaTestBase):
         self.assertEqual(response.status_code, 200)
         with self.attachment.media_file.open("rb") as media_file:
             self.assertEqual(self._response_bytes(response), media_file.read())
+
+    @override_settings(MAX_LOGIN_ATTEMPTS=3)
+    def test_failed_digest_attempts_do_not_lock_the_account(self):
+        """Like the other endpoints ODK Briefcase pulls from, media files are
+        exempt from failed-login lockout."""
+        cache.clear()
+        self.addCleanup(cache.clear)
+        client = DigestClient()
+        client.set_authorization(self.login_username, "wrong-password", "Digest")
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS + 1):
+            self.assertEqual(self._get_media(self.path, client).status_code, 401)
+
+        client = DigestClient()
+        client.set_authorization(self.login_username, self.login_password, "Digest")
+        self.assertEqual(self._get_media(self.path, client).status_code, 200)
 
     def test_user_without_role_is_denied(self):
         """A user with no role on the form cannot fetch its attachments."""

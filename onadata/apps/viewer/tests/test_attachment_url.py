@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.core.cache import cache
 from django.http import HttpResponseRedirect
 from django.test import override_settings
 from django.urls import reverse
@@ -125,6 +126,24 @@ class TestAttachmentUrl(TestBase):
         client.set_authorization(self.login_username, "wrong-password", "Digest")
         response = client.get(self.url, {"attachment_id": self.attachment.id})
         self.assertEqual(response.status_code, 401)
+
+    @override_settings(MAX_LOGIN_ATTEMPTS=3)
+    def test_failed_digest_attempts_do_not_lock_the_account(self):
+        """Like the other endpoints ODK Briefcase pulls from, attachment links
+        are exempt from failed-login lockout: a pull requests one link per
+        attachment, and a rejected request is not always a wrong password."""
+        cache.clear()
+        self.addCleanup(cache.clear)
+        client = DigestClient()
+        client.set_authorization(self.login_username, "wrong-password", "Digest")
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS + 1):
+            response = client.get(self.url, {"attachment_id": self.attachment.id})
+            self.assertEqual(response.status_code, 401)
+
+        client = DigestClient()
+        client.set_authorization(self.login_username, self.login_password, "Digest")
+        response = client.get(self.url, {"attachment_id": self.attachment.id})
+        self.assertEqual(response.status_code, 302)
 
     def test_api_token_user_can_access_attachment_on_private_form(self):
         """A client holding an API token can download the attachments of a
