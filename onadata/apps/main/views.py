@@ -1537,11 +1537,17 @@ def delete_data(request, username=None, id_string=None):
     if not xform:
         return HttpResponseForbidden(_("Not shared."))
 
+    if request.user != xform.user and not request.user.has_perm(
+        "logger.delete_submission", xform
+    ):
+        return HttpResponseForbidden(_("Permission denied."))
+
     data_id = request.POST.get("id")
     if not data_id:
         return HttpResponseBadRequest(_("id must be specified"))
 
-    Instance.set_deleted_at(data_id, user=request.user)
+    instance = get_object_or_404(Instance, pk=data_id, xform=xform)
+    Instance.set_deleted_at(instance.id, user=request.user)
     audit = {"xform": xform.id_string}
     audit_log(
         Actions.SUBMISSION_DELETED,

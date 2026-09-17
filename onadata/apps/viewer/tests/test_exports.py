@@ -42,6 +42,7 @@ from onadata.apps.viewer.views import (
     export_progress,
 )
 from onadata.apps.viewer.xls_writer import XlsWriter
+from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.utils.common_tools import get_response_content
 from onadata.libs.utils.export_builder import dict_to_joined_export
 from onadata.libs.utils.export_tools import (
@@ -346,6 +347,80 @@ class TestExports(TestBase):
         )
         response = self.client.post(delete_url, post_data)
         self.assertEqual(response.status_code, 404)
+
+    def test_cannot_delete_export_of_another_form(self):
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+        self.options["id_string"] = self.xform.id_string
+        export = generate_export(Export.XLSX_EXPORT, self.xform, None, self.options)
+        self._create_user_and_login("alice")
+        self._publish_transportation_form()
+        delete_url = reverse(
+            delete_export,
+            kwargs={
+                "username": self.user.username,
+                "id_string": self.xform.id_string,
+                "export_type": "xlsx",
+            },
+        )
+        response = self.client.post(delete_url, {"export_id": export.id})
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Export.objects.filter(id=export.id).exists())
+
+    def test_cannot_delete_export_through_another_export_type(self):
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+        self.options["id_string"] = self.xform.id_string
+        export = generate_export(Export.XLSX_EXPORT, self.xform, None, self.options)
+        delete_url = reverse(
+            delete_export,
+            kwargs={
+                "username": self.user.username,
+                "id_string": self.xform.id_string,
+                "export_type": "csv",
+            },
+        )
+        response = self.client.post(delete_url, {"export_id": export.id})
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Export.objects.filter(id=export.id).exists())
+
+    def test_read_only_collaborator_cannot_delete_export(self):
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+        self.options["id_string"] = self.xform.id_string
+        export = generate_export(Export.XLSX_EXPORT, self.xform, None, self.options)
+        delete_url = reverse(
+            delete_export,
+            kwargs={
+                "username": self.user.username,
+                "id_string": self.xform.id_string,
+                "export_type": "xlsx",
+            },
+        )
+        self._create_user_and_login("alice")
+        ReadOnlyRole.add(self.user, self.xform)
+        response = self.client.post(delete_url, {"export_id": export.id})
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Export.objects.filter(id=export.id).exists())
+
+    def test_manager_can_delete_export(self):
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+        self.options["id_string"] = self.xform.id_string
+        export = generate_export(Export.XLSX_EXPORT, self.xform, None, self.options)
+        delete_url = reverse(
+            delete_export,
+            kwargs={
+                "username": self.user.username,
+                "id_string": self.xform.id_string,
+                "export_type": "xlsx",
+            },
+        )
+        self._create_user_and_login("alice")
+        ManagerRole.add(self.user, self.xform)
+        response = self.client.post(delete_url, {"export_id": export.id})
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Export.objects.filter(id=export.id).exists())
 
     def test_export_progress_output(self):
         self._publish_transportation_form()
