@@ -231,17 +231,25 @@ jobs:
           then
             summary="0 Issues"
           fi
-          availability=$(jq -r '
+          jq -r --arg summary "$summary" '
+            .runs[0].tool.driver.rules as $rules |
             [.runs[0].results[] |
-              (.message.text // "" |
-                [scan("Fixed Version:([^\n]*)") | .[0] |
-                  gsub("^\\s+|\\s+$"; "") |
-                  select(length > 0)] | length > 0)
+              {
+                tags: $rules[.ruleIndex].properties.tags,
+                fixable: (.message.text // "" |
+                  [scan("Fixed Version:([^\n]*)") | .[0] |
+                    gsub("^\\s+|\\s+$"; "") |
+                    select(length > 0)] | length > 0)
+              }
             ] |
-            (map(select(.)) | length) as $fixable |
-            "Fixable: \($fixable) | No fix available: \(length - $fixable)"
-          ' trivy-results.sarif)
-          echo "SUMMARY=$summary | $availability" >> $GITHUB_ENV
+            map(select(.fixable)) as $fixable |
+            (["CRITICAL", "HIGH", "LOW", "MEDIUM", "UNKNOWN"] |
+              map(. as $severity |
+                "\($severity): \($fixable | map(select(.tags | index($severity))) | length)") |
+              join(" | ")) as $fixable_by_severity |
+            "SUMMARY=\($summary) | Fixable: \($fixable | length) | No fix available: \(length - ($fixable | length))",
+            "FIXABLE_BY_SEVERITY=\($fixable_by_severity)"
+          ' trivy-results.sarif >> "$GITHUB_ENV"
 
       - name: Extract detailed vulnerabilities
         run: |
@@ -316,7 +324,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "[Ona Data] Trivy scan results for ${{ steps.meta.outputs.version }}: ${{ env.SUMMARY }}"
+                    "text": "[Ona Data] Trivy scan results for ${{ steps.meta.outputs.version }}: ${{ env.SUMMARY }}\nFixable by severity: ${{ env.FIXABLE_BY_SEVERITY }}"
                   }
                 },
                 {
