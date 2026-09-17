@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.30.0(2026-09-17)*
+--------------------
+- feat: track validation status of decrypted submissions
+  [@kelvin-muchiri]
+  `PR #3223 https://github.com/onaio/onadata/pull/3223`
+- fix: stop stale json overwriting decrypted instance data
+  [@FrankApiyo]
+  `PR #3258 https://github.com/onaio/onadata/pull/3258`
+- fix: let Briefcase download attachments of private forms
+  [@kelvin-muchiri]
+  `PR #3260 https://github.com/onaio/onadata/pull/3260`
+
 v5.29.0(2026-09-10)
 --------------------
 - feat(2fa): two-factor authentication
