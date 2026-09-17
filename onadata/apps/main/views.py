@@ -87,6 +87,7 @@ from onadata.libs.authentication import (
 )
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import CAN_VIEW_PROJECT
+from onadata.libs.stepup.pages import gated_profile_values, refuse_gated_changes
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.export_tools import upload_template_for_external_export
 from onadata.libs.utils.log import Actions, audit_log
@@ -378,8 +379,24 @@ def profile_settings(request, username):
 
     user_profile, _created = UserProfile.objects.get_or_create(user=content_user)
     if request.method == "POST":
+        # Taken before validation, which writes the posted values onto
+        # user_profile.
+        gated_before = gated_profile_values(
+            user_profile.require_auth, content_user.email, user_profile.metadata
+        )
         form = UserProfileForm(request.POST, instance=user_profile)
         if form.is_valid():
+            refusal = refuse_gated_changes(
+                request,
+                gated_before,
+                gated_profile_values(
+                    form.cleaned_data["require_auth"],
+                    form.cleaned_data["email"],
+                    form.cleaned_data["metadata"],
+                ),
+            )
+            if refusal is not None:
+                return refusal
             # get user
             # user.email = cleaned_email
             form.instance.user.email = form.cleaned_data["email"]
