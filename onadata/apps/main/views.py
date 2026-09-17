@@ -80,8 +80,10 @@ from onadata.apps.viewer.views import attachment_url
 from onadata.libs.authentication import (
     add_login_attempt,
     assert_not_locked_out,
+    authenticate_media_request,
     get_client_ip,
     get_lockout_username,
+    media_auth_challenge,
 )
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import CAN_VIEW_PROJECT
@@ -1344,12 +1346,18 @@ def serve_media(request, path):
     object's permission checks before the file is served.
     """
     helper_auth_helper(request)
+    challenge = authenticate_media_request(request)
+    if challenge is not None:
+        return challenge
+
     authorized = _media_path_authorized(request, path)
 
     if authorized is None:
         return HttpResponseNotFound(_("Media file not found."))
 
     if not authorized:
+        if not request.user.is_authenticated:
+            return media_auth_challenge()
         return HttpResponseForbidden(_("Not shared."))
 
     response = static.serve(request, path, document_root=settings.MEDIA_ROOT)

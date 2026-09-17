@@ -17,6 +17,8 @@ from django.core.files.storage import storages
 from django.urls import reverse
 from django.utils import timezone
 
+from django_digest.test import Client as DigestClient
+
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
@@ -55,10 +57,23 @@ class TestServeAttachmentMedia(ServeMediaTestBase):
         self.path = self.attachment.media_file.name
 
     def test_anonymous_is_denied(self):
-        """Anonymous users cannot fetch attachments of a private form."""
+        """Anonymous users cannot fetch attachments of a private form, and are
+        asked to authenticate so Digest clients can retry with credentials."""
         self.assertFalse(self.xform.shared_data)
         response = self._get_media(self.path, self.anon)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(response["WWW-Authenticate"].startswith("Digest "))
+
+    def test_digest_user_downloads_attachment(self):
+        """A client that authenticates with Digest, as ODK Briefcase does,
+        can download the attachment bytes of a private form."""
+        self.assertFalse(self.xform.shared_data)
+        client = DigestClient()
+        client.set_authorization(self.login_username, self.login_password, "Digest")
+        response = self._get_media(self.path, client)
+        self.assertEqual(response.status_code, 200)
+        with self.attachment.media_file.open("rb") as media_file:
+            self.assertEqual(self._response_bytes(response), media_file.read())
 
     def test_user_without_role_is_denied(self):
         """A user with no role on the form cannot fetch its attachments."""
@@ -84,7 +99,7 @@ class TestServeAttachmentMedia(ServeMediaTestBase):
         """A thumbnail path is authorized against its parent attachment."""
         thumbnail_path = get_path(self.path, "-small")
         response = self._get_media(thumbnail_path, self.anon)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_owner_downloads_thumbnail(self):
         """The form owner can fetch a generated thumbnail."""
@@ -152,7 +167,7 @@ class TestServeXLSFormMedia(ServeMediaTestBase):
 
     def test_anonymous_is_denied(self):
         response = self._get_media(self.path, self.anon)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_user_without_role_is_denied(self):
         stranger = self._login_stranger()
@@ -201,7 +216,7 @@ class TestServeMetaDataMedia(ServeMediaTestBase):
 
     def test_anonymous_is_denied(self):
         response = self._get_media(self.path, self.anon)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_user_without_role_is_denied(self):
         stranger = self._login_stranger()
@@ -287,7 +302,7 @@ class TestServeExportMedia(ServeMediaTestBase):
 
     def test_anonymous_is_denied(self):
         response = self._get_media(self.path, self.anon)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_user_without_role_is_denied(self):
         stranger = self._login_stranger()
@@ -349,7 +364,7 @@ class TestServeExportMedia(ServeMediaTestBase):
         self.xform.shared_data = True
         self.xform.save()
         response = self._get_media(self.path, self.anon)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
 
 class TestServeInstanceMetaDataMedia(ServeMediaTestBase):
@@ -378,7 +393,7 @@ class TestServeInstanceMetaDataMedia(ServeMediaTestBase):
         self.xform.shared = True
         self.xform.save()
         response = self._get_media(self.path, self.anon)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_owner_downloads_submission_document(self):
         response = self._get_media(self.path)

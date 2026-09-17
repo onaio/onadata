@@ -276,6 +276,37 @@ class DigestAuthentication(BaseAuthentication):
         return response["WWW-Authenticate"]
 
 
+def media_auth_challenge():
+    """Returns the ``401`` Digest challenge that prompts for credentials."""
+    return HttpDigestAuthenticator().build_challenge_response()
+
+
+def authenticate_media_request(request):
+    """Identifies the user behind a media download on a plain Django view.
+
+    Media links are followed by clients such as ODK Briefcase that hold no
+    session and authenticate with Digest or API token credentials instead,
+    Digest only once they have been challenged for them.
+
+    Returns a ``401`` challenge when the credentials are rejected, otherwise
+    None with ``request.user`` set to the authenticated user, if any.
+    """
+    if request.user.is_authenticated:
+        return None
+
+    for authenticator in (DigestAuthentication(), TokenAuthentication()):
+        try:
+            credentials = authenticator.authenticate(request)
+        except AuthenticationFailed:
+            return media_auth_challenge()
+
+        if credentials is not None:
+            request.user = credentials[0]
+            break
+
+    return None
+
+
 class LockoutBasicAuthentication(BasicAuthentication):
     """HTTP Basic authentication with failed-login lockout.
 

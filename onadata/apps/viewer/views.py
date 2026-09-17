@@ -44,6 +44,10 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export, ExportTypeError
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
+from onadata.libs.authentication import (
+    authenticate_media_request,
+    media_auth_challenge,
+)
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.chart_tools import build_chart_data
 from onadata.libs.utils.common_tools import get_uuid
@@ -893,7 +897,13 @@ def attachment_url(request, size="medium"):
     if attachment is None:
         return HttpResponseNotFound(_("Attachment not found"))
 
+    challenge = authenticate_media_request(request)
+    if challenge is not None:
+        return challenge
+
     if not has_attachment_permission(attachment, request):
+        if not request.user.is_authenticated:
+            return media_auth_challenge()
         return HttpResponseForbidden(_("Not shared."))
 
     if size == "original" and no_redirect == "true":

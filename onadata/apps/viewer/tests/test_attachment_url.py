@@ -13,6 +13,8 @@ from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from django_digest.test import Client as DigestClient
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.logger.models import Attachment
@@ -91,11 +93,49 @@ class TestAttachmentUrl(TestBase):
         )
         self.assertEqual(response.status_code, 200)  # no redirects to amazon
 
-    def test_anon_cannot_access_attachment_on_private_form(self):
-        """Anonymous users are denied attachments of a form that is not shared."""
+    def test_anon_is_challenged_for_attachment_on_private_form(self):
+        """Anonymous users are asked to authenticate for the attachments of a
+        form that is not shared, so Digest clients can retry with credentials."""
         self.assertFalse(self.xform.shared_data)
         response = self.anon.get(self.url, {"attachment_id": self.attachment.id})
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(response["WWW-Authenticate"].startswith("Digest "))
+
+    def test_digest_user_can_access_attachment_on_private_form(self):
+        """A client that authenticates with Digest, as ODK Briefcase does,
+        can download the attachments of a private form it has access to."""
+        self.assertFalse(self.xform.shared_data)
+        client = DigestClient()
+        client.set_authorization(self.login_username, self.login_password, "Digest")
+        response = client.get(self.url, {"attachment_id": self.attachment.id})
+        self.assertEqual(response.status_code, 302)
+
+    def test_digest_user_without_access_is_denied_attachment(self):
+        """Digest credentials of a user with no role on the form are refused
+        outright rather than challenged again."""
+        self._create_user("alice", "alice")
+        client = DigestClient()
+        client.set_authorization("alice", "alice", "Digest")
+        response = client.get(self.url, {"attachment_id": self.attachment.id})
         self.assertEqual(response.status_code, 403)
+
+    def test_wrong_digest_password_is_challenged_again(self):
+        """Wrong Digest credentials do not get the attachment."""
+        client = DigestClient()
+        client.set_authorization(self.login_username, "wrong-password", "Digest")
+        response = client.get(self.url, {"attachment_id": self.attachment.id})
+        self.assertEqual(response.status_code, 401)
+
+    def test_api_token_user_can_access_attachment_on_private_form(self):
+        """A client holding an API token can download the attachments of a
+        private form it has access to."""
+        token, _created = Token.objects.get_or_create(user=self.user)
+        response = self.anon.get(
+            self.url,
+            {"attachment_id": self.attachment.id},
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+        )
+        self.assertEqual(response.status_code, 302)
 
     def test_other_user_cannot_access_attachment(self):
         """A user with no role on the form is denied its attachments."""
@@ -114,7 +154,8 @@ class TestAttachmentUrl(TestBase):
         response = self.anon.get(
             self.url, {"attachment_id": self.attachment.id, "no_redirect": "true"}
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
+        self.assertNotIn("Content-Disposition", response)
 
     def test_meta_perms_restrict_collaborator_to_own_submissions(self):
         """With meta perms on, a collaborator cannot read others' attachments."""
