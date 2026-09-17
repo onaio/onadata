@@ -231,7 +231,17 @@ jobs:
           then
             summary="0 Issues"
           fi
-          echo "SUMMARY=$summary" >> $GITHUB_ENV
+          availability=$(jq -r '
+            [.runs[0].results[] |
+              (.message.text // "" |
+                [scan("Fixed Version:([^\n]*)") | .[0] |
+                  gsub("^\\s+|\\s+$"; "") |
+                  select(length > 0)] | length > 0)
+            ] |
+            (map(select(.)) | length) as $fixable |
+            "Fixable: \($fixable) | No fix available: \(length - $fixable)"
+          ' trivy-results.sarif)
+          echo "SUMMARY=$summary | $availability" >> $GITHUB_ENV
 
       - name: Extract detailed vulnerabilities
         run: |
@@ -242,10 +252,16 @@ jobs:
               $rules[.ruleIndex] as $rule |
               ($rule.properties.tags[] |
                 select(. == "CRITICAL" or . == "HIGH")) as $severity |
+              ($result.message.text // "" |
+                [scan("Fixed Version:([^\n]*)") | .[0] |
+                  gsub("^\\s+|\\s+$"; "") |
+                  select(length > 0)] | join(", ")) as $fixed |
+              select($fixed != "") |
               {
                 result: $result,
                 rule: $rule,
-                severity: $severity
+                severity: $severity,
+                fixed: $fixed
               }
             ] |
             sort_by(if .severity == "CRITICAL" then 0 else 1 end) |
@@ -254,6 +270,7 @@ jobs:
               .result as $result |
               .rule as $rule |
               .severity as $severity |
+              .fixed as $fixed |
               ($result.locations[0].message.text | split(":")[0] |
                 if contains("site-packages/") then
                   split("site-packages/")[1]
@@ -267,11 +284,6 @@ jobs:
               ($result.message.text |
                 capture("Installed Version: (?<ver>[^\n]+)") |
                 .ver) as $installed |
-              ($result.message.text |
-                capture("Fixed Version: ?(?<fix>[^\n]*)") |
-                .fix) as $rawfixed |
-              (if $rawfixed == "" then "Not available"
-               else $rawfixed end) as $fixed |
               (if $severity == "CRITICAL" then "🔴"
                elif $severity == "HIGH" then "🟠"
                else "⚪" end) as $icon |
@@ -285,7 +297,7 @@ jobs:
 
           if [ -z "$details" ]
           then
-            details="No vulnerabilities found in the scanned severity levels."
+            details="No fixable CRITICAL/HIGH vulnerabilities found."
           fi
 
           # Escape for GitHub Actions environment
@@ -314,7 +326,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "🔍 *Found Vulnerabilities (Top 10):*"
+                    "text": "🔍 *Fixable Vulnerabilities (CRITICAL/HIGH, Top 10)*"
                   }
                 },
                 {
