@@ -274,7 +274,7 @@ Response
 List Organization members (v2)
 ------------------------------
 
-Get a list of organization members, each with their role in the organization. This is the same information as the ``users`` of an organization.
+Get a list of organization members, each with their role in the organization. This is the same information as the ``users`` of an organization. Members are listed alphabetically by username, and owners are included.
 
 .. raw:: html
 
