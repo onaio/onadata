@@ -70,3 +70,41 @@ class EntityDetailTestCase(TestAbstractViewSet):
         url = f"/api/v2/entity-lists/{self.entity_list.pk}/entities"
         response = self.client.delete(url, data={"entity_ids": [self.entity.pk]})
         self.assertEqual(response.status_code, 204)
+
+
+class OrganizationListTestCase(TestAbstractViewSet):
+    """Organization list tests"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._org_create()
+        self.url = "/api/v2/orgs"
+
+    def test_get(self):
+        """GET list of Organizations"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([org["org"] for org in response.data], ["denoinc"])
+
+    def test_search(self):
+        """The list is searched through the `search` query parameter"""
+        response = self.client.get(self.url, {"search": "nothing-by-this-name"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+
+class OrganizationDetailTestCase(TestAbstractViewSet):
+    """Organization retrieve tests"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._org_create()
+        self.url = "/api/v2/orgs/denoinc"
+
+    def test_get(self):
+        """GET Organization"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["org"], "denoinc")

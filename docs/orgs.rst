@@ -75,8 +75,12 @@ Example
       curl -X GET https://api.ona.io/api/v1/orgs?shared_with=username
 
 
-Get a paginated list of Organizations
--------------------------------------
+Get a paginated list of Organizations (v2)
+------------------------------------------
+Version 2 of the organizations API, ``/api/v2/orgs``, supports everything described on this page for ``/api/v1/orgs``: registering, retrieving, updating and deleting an organization, and managing its members. Replace ``v1`` with ``v2`` in the URL. Responses have the same shape, except that an organization's ``url`` points to ``/api/v2/orgs/{username}``.
+
+On top of that, the version 2 list endpoint ``GET /api/v2/orgs`` adds pagination, search and a filter by your role. ``GET /api/v1/orgs`` is unchanged: it returns every organization in one response and accepts none of these parameters.
+
 Returns a list of organizations using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
 - ``page`` - Integer representing the page.
@@ -88,37 +92,37 @@ The response body remains a list. Links to the ``first``, ``prev``, ``next`` and
 
 .. raw:: html
 
-   <pre class="prettyprint"><b>GET</b> /api/v1/orgs?<code>page</code>=<code>1</code>&<code>page_size</code>=<code>2</code></pre>
+   <pre class="prettyprint"><b>GET</b> /api/v2/orgs?<code>page</code>=<code>1</code>&<code>page_size</code>=<code>2</code></pre>
 
 Example
 ^^^^^^^
 
 ::
 
-      curl -X GET "https://api.ona.io/api/v1/orgs?page=1&page_size=2"
+      curl -X GET "https://api.ona.io/api/v2/orgs?page=1&page_size=2"
 
 Response headers
 ^^^^^^^^^^^^^^^^
 
 ::
 
-      Link: <https://api.ona.io/api/v1/orgs?page=2&page_size=2>; rel="next", <https://api.ona.io/api/v1/orgs?page=5&page_size=2>; rel="last"
+      Link: <https://api.ona.io/api/v2/orgs?page=2&page_size=2>; rel="next", <https://api.ona.io/api/v2/orgs?page=5&page_size=2>; rel="last"
 
 
-Search Organizations
---------------------
+Search Organizations (v2)
+-------------------------
 Use the ``search`` parameter to return only the organizations whose name or username (the ``org`` field) contains the search term. The match is partial and not case sensitive. Only organizations the requesting user has access to are searched.
 
 .. raw:: html
 
-   <pre class="prettyprint"><b>GET</b> /api/v1/orgs?<code>search</code>=<code>{term}</code></pre>
+   <pre class="prettyprint"><b>GET</b> /api/v2/orgs?<code>search</code>=<code>{term}</code></pre>
 
 Example
 ^^^^^^^
 
 ::
 
-      curl -X GET https://api.ona.io/api/v1/orgs?search=health
+      curl -X GET https://api.ona.io/api/v2/orgs?search=health
 
 ``search`` can be combined with ``role``, ``shared_with``, ``page`` and ``page_size``.
 
@@ -127,11 +131,11 @@ Example
 
 ::
 
-      curl -X GET "https://api.ona.io/api/v1/orgs?search=health&shared_with=username&page=1&page_size=20"
+      curl -X GET "https://api.ona.io/api/v2/orgs?search=health&shared_with=username&page=1&page_size=20"
 
 
-Filter Organizations by your role
----------------------------------
+Filter Organizations by your role (v2)
+--------------------------------------
 Use the ``role`` parameter to return only the organizations where you, the requesting user, hold that role or a higher one. For example, ``role=manager`` returns the organizations you manage or own.
 
 ``role`` accepts ``member`` and any role a member of an organization can be given: ``owner``, ``manager``, ``editor``, ``editor-minor``, ``editor-no-download``, ``dataentry``, ``dataentry-minor``, ``dataentry-only``, ``readonly`` and ``readonly-no-download``. Any other value returns a ``400`` error.
@@ -143,14 +147,14 @@ Use the ``role`` parameter to return only the organizations where you, the reque
 
 .. raw:: html
 
-   <pre class="prettyprint"><b>GET</b> /api/v1/orgs?<code>role</code>=<code>{role}</code></pre>
+   <pre class="prettyprint"><b>GET</b> /api/v2/orgs?<code>role</code>=<code>{role}</code></pre>
 
 Example
 ^^^^^^^
 
 ::
 
-      curl -X GET https://api.ona.io/api/v1/orgs?role=manager
+      curl -X GET https://api.ona.io/api/v2/orgs?role=manager
 
 ``role`` can be combined with ``search``, ``shared_with``, ``page`` and ``page_size``.
 
@@ -159,7 +163,7 @@ Example
 
 ::
 
-      curl -X GET "https://api.ona.io/api/v1/orgs?role=manager&search=health&page=1&page_size=20"
+      curl -X GET "https://api.ona.io/api/v2/orgs?role=manager&search=health&page=1&page_size=20"
 
 
 Retrieve Organization Profile Information
