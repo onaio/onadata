@@ -289,7 +289,7 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
             + [o.user for o in filtered_queryset]
         )
 
-        return queryset.model.objects.filter(user__in=org_users, user__is_active=True)
+        return queryset.filter(user__in=org_users, user__is_active=True)
 
 
 # pylint: disable=too-few-public-methods
