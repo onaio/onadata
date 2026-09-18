@@ -77,7 +77,11 @@ Example
 
 Get a paginated list of Organizations (v2)
 ------------------------------------------
-Version 2 of the organizations API, ``/api/v2/orgs``, supports everything described on this page for ``/api/v1/orgs``: registering, retrieving, updating and deleting an organization, and managing its members. Replace ``v1`` with ``v2`` in the URL. Responses have the same shape, except that an organization's ``url`` points to ``/api/v2/orgs/{username}``.
+Version 2 of the organizations API, ``/api/v2/orgs``, supports everything described on this page for ``/api/v1/orgs``: registering, retrieving, updating and deleting an organization, and managing its members. Replace ``v1`` with ``v2`` in the URL. Responses have the same shape, with these exceptions:
+
+- An organization's ``url`` points to ``/api/v2/orgs/{username}``.
+- The list of organizations leaves out each organization's ``users``. Get them from the members endpoint below, or from the organization itself.
+- The list of an organization's members returns each member's details, not only the username. See `List Organization members (v2)`_.
 
 On top of that, the version 2 list endpoint ``GET /api/v2/orgs`` adds pagination, search and a filter by your role. ``GET /api/v1/orgs`` is unchanged: it returns every organization in one response and accepts none of these parameters.
 
@@ -266,6 +270,44 @@ Response
 ::
 
       ["member1", "member2"]
+
+List Organization members (v2)
+------------------------------
+
+Get a list of organization members, each with their role in the organization. This is the same information as the ``users`` of an organization.
+
+.. raw:: html
+
+   <pre class="prettyprint"><b>GET</b> /api/v2/orgs/{username}/members</pre>
+
+Example
+^^^^^^^
+
+::
+
+      curl -X GET https://api.ona.io/api/v2/orgs/modilabs/members
+
+Response
+^^^^^^^^
+
+::
+
+      [
+          {
+              "user": "member1",
+              "role": "owner",
+              "first_name": "Member",
+              "last_name": "One",
+              "gravatar": "https://secure.gravatar.com/avatar/xxxxxx"
+          },
+          {
+              "user": "member2",
+              "role": "member",
+              "first_name": "Member",
+              "last_name": "Two",
+              "gravatar": "https://secure.gravatar.com/avatar/xxxxxx"
+          }
+      ]
 
 Add a user to an organization
 -----------------------------
