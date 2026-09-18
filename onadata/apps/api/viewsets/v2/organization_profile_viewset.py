@@ -21,6 +21,9 @@ from onadata.libs.filters import (
     OrganizationsSharedWithUserFilter,
 )
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.serializers.v2.organization_serializer import (
+    OrganizationListSerializer,
+)
 
 
 def serializer_from_settings():
@@ -36,30 +39,6 @@ def serializer_from_settings():
     return OrganizationSerializer
 
 
-def list_serializer_from(serializer_class):
-    """Return the serializer without an organization's users.
-
-    They are costly to build for every organization in a list. They are
-    returned by the members endpoint instead.
-    """
-
-    # pylint: disable=too-few-public-methods
-    class OrganizationListSerializer(serializer_class):
-        """Organization profile list serializer for v2 API"""
-
-        def get_fields(self):
-            """Leave out `users`
-
-            Overrides super().get_fields()
-            """
-            fields = super().get_fields()
-            fields.pop("users", None)
-
-            return fields
-
-    return OrganizationListSerializer
-
-
 # pylint: disable=too-many-ancestors
 class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
     """List, Retrieve, Update, Create/Register Organizations."""
@@ -67,7 +46,6 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
     # Ordered so that pages neither overlap nor skip records
     queryset = OrganizationProfileViewSetV1.queryset.order_by("user__username")
     serializer_class = serializer_from_settings()
-    list_serializer_class = list_serializer_from(serializer_class)
     filter_backends = (
         OrganizationPermissionFilter,
         OrganizationsSharedWithUserFilter,
@@ -84,7 +62,7 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
         Overrides super().get_serializer_class()
         """
         if self.action == "list":
-            return self.list_serializer_class
+            return OrganizationListSerializer
 
         return super().get_serializer_class()
 
