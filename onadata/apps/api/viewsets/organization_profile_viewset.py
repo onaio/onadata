@@ -12,6 +12,7 @@ from django.utils.module_loading import import_string
 
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from reversion.views import RevisionMixin
@@ -24,12 +25,14 @@ from onadata.apps.messaging.constants import KMS_KEY, KMS_KEY_ROTATED
 from onadata.apps.messaging.serializers import send_message
 from onadata.libs.filters import (
     OrganizationPermissionFilter,
+    OrganizationRoleFilter,
     OrganizationsSharedWithUserFilter,
 )
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.organization_member_serializer import (
     OrganizationMemberSerializer,
 )
@@ -74,7 +77,14 @@ class OrganizationProfileViewSet(
     serializer_class = serializer_from_settings()
     lookup_field = "user"
     permission_classes = [permissions.OrganizationProfilePermissions]
-    filter_backends = (OrganizationPermissionFilter, OrganizationsSharedWithUserFilter)
+    filter_backends = (
+        OrganizationPermissionFilter,
+        OrganizationsSharedWithUserFilter,
+        OrganizationRoleFilter,
+        SearchFilter,
+    )
+    search_fields = ("name", "user__username")
+    pagination_class = StandardPageNumberPagination
 
     def get_serializer_class(self):
         """Override `get_serializer_class` method"""
@@ -82,6 +92,10 @@ class OrganizationProfileViewSet(
             return RotateOrganizationKeySerializer
 
         return super().get_serializer_class()
+
+    def filter_queryset(self, queryset):
+        """Order by username so that pages neither overlap nor skip records"""
+        return super().filter_queryset(queryset).order_by("user__username")
 
     def retrieve(self, request, *args, **kwargs):
         """Get organization from cache or db"""

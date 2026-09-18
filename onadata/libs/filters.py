@@ -35,6 +35,7 @@ from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
     CAN_VIEW_PROJECT,
     ROLES,
+    MemberRole,
     exclude_items_from_queryset_using_xform_meta_perms,
 )
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
@@ -251,7 +252,7 @@ class ProjectRoleFilter(filters.BaseFilterBackend):
 
         role = role.strip()
         if role not in ROLES:
-            raise ParseError(_(f"Unknown role: {role}"))
+            raise ParseError(_("Unknown role: %(role)s") % {"role": role})
         perms = [
             f"logger.{codename}"
             for codename in ROLES[role].class_to_permissions.get(Project, [])
@@ -858,6 +859,59 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
                 raise Http404 from non_existent_object
 
         return queryset
+
+
+# `member` is the role of a user who was added to an organization without one,
+# so it is not in ROLES.
+ORGANIZATION_ROLES = {**ROLES, MemberRole.name: MemberRole}
+
+
+# pylint: disable=too-few-public-methods
+class OrganizationRoleFilter(filters.BaseFilterBackend):
+    """Organization `role` filter using the `role` query parameter."""
+
+    def filter_queryset(self, request, queryset, view):
+        """Filter by the requesting user's role (from object permissions).
+
+        ``?role=manager`` returns organizations where the user holds that
+        role **or any higher role**. We require the requested role's full
+        OrganizationProfile permission set, and higher roles hold a superset
+        of a lower role's permissions, so this yields "that role and above".
+
+        Only applies when listing: the members endpoint reads ``role`` as the
+        role to give a member.
+        """
+        role = request.query_params.get("role")
+
+        if not role or view.action != "list":
+            return queryset
+
+        role = role.strip()
+
+        if role not in ORGANIZATION_ROLES:
+            raise ParseError(_("Unknown role: %(role)s") % {"role": role})
+
+        perms = [
+            f"api.{codename}"
+            for codename in ORGANIZATION_ROLES[role].class_to_permissions.get(
+                OrganizationProfile, []
+            )
+        ]
+
+        if not perms:
+            # A role that grants no OrganizationProfile permissions is the
+            # lowest there is: a user holding it is reported as a member. So
+            # every organization the user can list is "that role and above".
+            return queryset
+
+        return get_objects_for_user(
+            request.user,
+            perms,
+            klass=queryset,
+            any_perm=False,
+            accept_global_perms=False,
+            with_superuser=False,
+        )
 
 
 # pylint: disable=too-few-public-methods
