@@ -108,3 +108,21 @@ class OrganizationDetailTestCase(TestAbstractViewSet):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["org"], "denoinc")
+
+
+class OrganizationMembersTestCase(TestAbstractViewSet):
+    """Organization members tests"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._org_create()
+        self.url = "/api/v2/orgs/denoinc/members"
+
+    def test_get(self):
+        """GET Organization members"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            sorted(member["user"] for member in response.data), ["bob", "denoinc"]
+        )

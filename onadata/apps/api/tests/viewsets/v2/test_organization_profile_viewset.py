@@ -32,7 +32,8 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
     def test_get_all(self):
         """GET all organizations returns each one as the v1 list does
 
-        Only `url` differs: it points to the v2 endpoint.
+        Only `url` differs, as it points to the v2 endpoint, and `users`, as
+        it is left out.
         """
         self._org_create()
         v1_view = OrganizationProfileViewSetV1.as_view({"get": "list"})
@@ -44,10 +45,14 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.get("Cache-Control"))
         self.assertEqual([org["org"] for org in response.data], ["denoinc"])
-        self.assertEqual(
-            [{**org, "url": None} for org in response.data],
-            [{**org, "url": None} for org in v1_response.data],
-        )
+        expected = []
+
+        for org in v1_response.data:
+            org = {**org, "url": None}
+            del org["users"]
+            expected.append(org)
+
+        self.assertEqual([{**org, "url": None} for org in response.data], expected)
 
     def test_url_is_v2(self):
         """An organization's `url` points to its v2 endpoint"""
@@ -60,6 +65,17 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
         self.assertEqual(
             response.data[0]["url"], "http://testserver/api/v2/orgs/denoinc"
         )
+
+    def test_users_not_returned(self):
+        """An organization's users are left out of the list"""
+        self._org_create()
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([org["org"] for org in response.data], ["denoinc"])
+        self.assertNotIn("users", response.data[0])
 
     def test_inactive_organization(self):
         """An inactive organization is left out"""
@@ -491,6 +507,39 @@ class OrganizationMembersTestCase(TestAbstractViewSet):
         """Clear the cache between tests"""
         super().tearDown()
         cache.clear()
+
+    def test_get(self):
+        """GET members returns each one as the organization's `users` does"""
+        self._org_create()
+        self.profile_data["username"] = "aboy"
+        aboy = self._create_user_profile().user
+        add_user_to_organization(self.organization, aboy)
+        view = OrganizationProfileViewSet.as_view({"get": "members"})
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        members = {member["user"]: dict(member) for member in response.data}
+        self.assertEqual(sorted(members), ["aboy", "bob", "denoinc"])
+        gravatar = members["aboy"].pop("gravatar")
+        self.assertTrue(gravatar.startswith("https://secure.gravatar.com/avatar/"))
+        self.assertEqual(
+            members["aboy"],
+            {
+                "user": "aboy",
+                "role": "member",
+                "first_name": "Bob",
+                "last_name": "erama",
+            },
+        )
+        self.assertEqual(members["bob"]["role"], "owner")
+
+        retrieve_view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        retrieve_response = retrieve_view(request, user="denoinc")
+
+        self.assertEqual(response.data, retrieve_response.data["users"])
 
     def test_put_bad_role_query_param(self):
         """A member's `role` sent in the query string is not a list filter"""
