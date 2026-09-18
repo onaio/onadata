@@ -81,13 +81,15 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             return super().members(request, *args, **kwargs)
 
         organization = self.get_object()
-        # Owners first, as in an organization's `users`
-        owners = list(get_organization_owners(organization))
-        members = get_organization_members(organization).exclude(
-            pk__in=[owner.pk for owner in owners]
+        # The creator of an organization is an owner without being in the
+        # members team, as an organization's `users` has it
+        members = (
+            get_organization_owners(organization)
+            .union(get_organization_members(organization))
+            .order_by("username")
         )
         serializer = OrganizationMemberListSerializer(
-            [*owners, *members],
+            members,
             many=True,
             context={**self.get_serializer_context(), "organization": organization},
         )

@@ -492,19 +492,30 @@ class OrganizationMembersTestCase(TestAbstractViewSet):
         cache.clear()
 
     def test_get(self):
-        """GET members returns each one as the organization's `users` does"""
+        """GET members returns each one as the organization's `users` does
+
+        They are ordered by username and each is returned once.
+        """
         self._org_create()
         self.profile_data["username"] = "aboy"
         aboy = self._create_user_profile().user
         add_user_to_organization(self.organization, aboy)
+        # an owner added this way is in both the owners and the members team
+        self.profile_data["username"] = "cate"
+        cate = self._create_user_profile().user
+        add_user_to_organization(self.organization, cate, "owner")
         view = OrganizationProfileViewSet.as_view({"get": "members"})
 
         request = self.factory.get("/", **self.extra)
         response = view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
+        # bob, cate and denoinc are owners, aboy is not
+        self.assertEqual(
+            [member["user"] for member in response.data],
+            ["aboy", "bob", "cate", "denoinc"],
+        )
         members = {member["user"]: dict(member) for member in response.data}
-        self.assertEqual(sorted(members), ["aboy", "bob", "denoinc"])
         gravatar = members["aboy"].pop("gravatar")
         self.assertTrue(gravatar.startswith("https://secure.gravatar.com/avatar/"))
         self.assertEqual(
@@ -522,7 +533,11 @@ class OrganizationMembersTestCase(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         retrieve_response = retrieve_view(request, user="denoinc")
 
-        self.assertEqual(response.data, retrieve_response.data["users"])
+        # the same members as `users`, which lists owners first
+        self.assertEqual(
+            response.data,
+            sorted(retrieve_response.data["users"], key=lambda user: user["user"]),
+        )
 
     def test_put_bad_role_query_param(self):
         """A member's `role` sent in the query string is not a list filter"""
