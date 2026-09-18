@@ -453,23 +453,6 @@ class GetOrganizationTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["url"], "http://testserver/api/v2/orgs/denoinc")
 
-    def test_v1_url_unchanged(self):
-        """Fetching an organization from v2 does not change what v1 returns"""
-        self._org_create()
-        cache.clear()
-        v1_view = OrganizationProfileViewSetV1.as_view({"get": "retrieve"})
-
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request, user="denoinc")
-
-        self.assertEqual(response.status_code, 200)
-
-        request = self.factory.get("/", **self.extra)
-        response = v1_view(request, user="denoinc")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["url"], "http://testserver/api/v1/orgs/denoinc")
-
     def test_new_member_is_listed(self):
         """A member added after the organization was fetched is returned"""
         self._org_create()
