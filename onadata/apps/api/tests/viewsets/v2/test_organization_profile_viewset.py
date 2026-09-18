@@ -4,12 +4,10 @@ import json
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.tools import add_user_to_organization
-from onadata.apps.api.viewsets.organization_profile_viewset import (
-    OrganizationProfileViewSet as OrganizationProfileViewSetV1,
-)
 from onadata.apps.api.viewsets.v2.organization_profile_viewset import (
     OrganizationProfileViewSet,
 )
@@ -30,52 +28,38 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
         cache.clear()
 
     def test_get_all(self):
-        """GET all organizations returns each one as the v1 list does
-
-        Only `url` differs, as it points to the v2 endpoint, and `users`, as
-        it is left out.
-        """
+        """GET all organizations"""
         self._org_create()
-        v1_view = OrganizationProfileViewSetV1.as_view({"get": "list"})
 
         request = self.factory.get("/", **self.extra)
         response = self.view(request)
-        v1_response = v1_view(self.factory.get("/", **self.extra))
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.get("Cache-Control"))
-        self.assertEqual([org["org"] for org in response.data], ["denoinc"])
-        expected = []
-
-        for org in v1_response.data:
-            org = {**org, "url": None}
-            del org["users"]
-            expected.append(org)
-
-        self.assertEqual([{**org, "url": None} for org in response.data], expected)
-
-    def test_url_is_v2(self):
-        """An organization's `url` points to its v2 endpoint"""
-        self._org_create()
-
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request)
-
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.data[0]["url"], "http://testserver/api/v2/orgs/denoinc"
+            response.data,
+            [
+                {
+                    "url": "http://testserver/api/v2/orgs/denoinc",
+                    "org": "denoinc",
+                    "user": "http://testserver/api/v1/users/denoinc",
+                    "creator": "http://testserver/api/v1/users/bob",
+                    "name": "Dennis",
+                    "city": "Denoville",
+                    "country": "US",
+                    "home_page": "deno.com",
+                    "twitter": "denoinc",
+                    "description": "",
+                    "require_auth": False,
+                    "address": "",
+                    "phonenumber": "",
+                    "num_of_submissions": 0,
+                    "date_modified": timezone.localtime(
+                        self.organization.date_modified
+                    ).isoformat(),
+                }
+            ],
         )
-
-    def test_users_not_returned(self):
-        """An organization's users are left out of the list"""
-        self._org_create()
-
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual([org["org"] for org in response.data], ["denoinc"])
-        self.assertNotIn("users", response.data[0])
 
     def test_inactive_organization(self):
         """An inactive organization is left out"""
@@ -492,10 +476,7 @@ class OrganizationMembersTestCase(TestAbstractViewSet):
         cache.clear()
 
     def test_get(self):
-        """GET members returns each one as the organization's `users` does
-
-        They are ordered by username and each is returned once.
-        """
+        """GET members returns each one once, ordered by username"""
         self._org_create()
         self.profile_data["username"] = "aboy"
         aboy = self._create_user_profile().user
@@ -510,33 +491,38 @@ class OrganizationMembersTestCase(TestAbstractViewSet):
         response = view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-        # bob, cate and denoinc are owners, aboy is not
-        self.assertEqual(
-            [member["user"] for member in response.data],
-            ["aboy", "bob", "cate", "denoinc"],
-        )
-        members = {member["user"]: dict(member) for member in response.data}
-        gravatar = members["aboy"].pop("gravatar")
-        self.assertTrue(gravatar.startswith("https://secure.gravatar.com/avatar/"))
-        self.assertEqual(
-            members["aboy"],
-            {
-                "user": "aboy",
-                "role": "member",
-                "first_name": "Bob",
-                "last_name": "erama",
-            },
-        )
-        self.assertEqual(members["bob"]["role"], "owner")
-
-        retrieve_view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
-        request = self.factory.get("/", **self.extra)
-        retrieve_response = retrieve_view(request, user="denoinc")
-
-        # the same members as `users`, which lists owners first
         self.assertEqual(
             response.data,
-            sorted(retrieve_response.data["users"], key=lambda user: user["user"]),
+            [
+                {
+                    "user": "aboy",
+                    "role": "member",
+                    "first_name": "Bob",
+                    "last_name": "erama",
+                    "gravatar": aboy.profile.gravatar,
+                },
+                {
+                    "user": "bob",
+                    "role": "owner",
+                    "first_name": "Bob",
+                    "last_name": "erama",
+                    "gravatar": self.user.profile.gravatar,
+                },
+                {
+                    "user": "cate",
+                    "role": "owner",
+                    "first_name": "Bob",
+                    "last_name": "erama",
+                    "gravatar": cate.profile.gravatar,
+                },
+                {
+                    "user": "denoinc",
+                    "role": "owner",
+                    "first_name": "Dennis",
+                    "last_name": "",
+                    "gravatar": self.organization.gravatar,
+                },
+            ],
         )
 
     def test_put_bad_role_query_param(self):
