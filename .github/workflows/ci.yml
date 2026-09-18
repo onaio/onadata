@@ -289,7 +289,25 @@ jobs:
           then
             summary="0 Issues"
           fi
-          echo "SUMMARY=$summary" >> $GITHUB_ENV
+          jq -r --arg summary "$summary" '
+            .runs[0].tool.driver.rules as $rules |
+            [.runs[0].results[] |
+              {
+                tags: $rules[.ruleIndex].properties.tags,
+                fixable: (.message.text // "" |
+                  [scan("Fixed Version:([^\n]*)") | .[0] |
+                    gsub("^\\s+|\\s+$"; "") |
+                    select(length > 0)] | length > 0)
+              }
+            ] |
+            map(select(.fixable)) as $fixable |
+            (["CRITICAL", "HIGH", "LOW", "MEDIUM", "UNKNOWN"] |
+              map(. as $severity |
+                "\($severity): \($fixable | map(select(.tags | index($severity))) | length)") |
+              join(" | ")) as $fixable_by_severity |
+            "SUMMARY=\($summary) | Fixable: \($fixable | length) | No fix available: \(length - ($fixable | length))",
+            "FIXABLE_BY_SEVERITY=\($fixable_by_severity)"
+          ' trivy_results.sarif >> "$GITHUB_ENV"
 
       - name: Extract detailed vulnerabilities
         if: github.event_name == 'push' || github.event_name == 'pull_request'
@@ -301,10 +319,16 @@ jobs:
               $rules[.ruleIndex] as $rule |
               ($rule.properties.tags[] |
                 select(. == "CRITICAL" or . == "HIGH")) as $severity |
+              ($result.message.text // "" |
+                [scan("Fixed Version:([^\n]*)") | .[0] |
+                  gsub("^\\s+|\\s+$"; "") |
+                  select(length > 0)] | join(", ")) as $fixed |
+              select($fixed != "") |
               {
                 result: $result,
                 rule: $rule,
-                severity: $severity
+                severity: $severity,
+                fixed: $fixed
               }
             ] |
             sort_by(if .severity == "CRITICAL" then 0 else 1 end) |
@@ -313,6 +337,7 @@ jobs:
               .result as $result |
               .rule as $rule |
               .severity as $severity |
+              .fixed as $fixed |
               ($result.locations[0].message.text | split(":")[0] |
                 if contains("site-packages/") then
                   split("site-packages/")[1]
@@ -326,11 +351,6 @@ jobs:
               ($result.message.text |
                 capture("Installed Version: (?<ver>[^\n]+)") |
                 .ver) as $installed |
-              ($result.message.text |
-                capture("Fixed Version: ?(?<fix>[^\n]*)") |
-                .fix) as $rawfixed |
-              (if $rawfixed == "" then "Not available"
-               else $rawfixed end) as $fixed |
               (if $severity == "CRITICAL" then "🔴"
                elif $severity == "HIGH" then "🟠"
                else "⚪" end) as $icon |
@@ -344,7 +364,7 @@ jobs:
 
           if [ -z "$details" ]
           then
-            details="No vulnerabilities found in the scanned severity levels."
+            details="No fixable CRITICAL/HIGH vulnerabilities found."
           fi
 
           # Escape for GitHub Actions environment
@@ -364,7 +384,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "[Ona Data] Trivy scan results for ${{ github.head_ref || github.base_ref || env.version }}: ${{ env.SUMMARY }}"
+                    "text": "[Ona Data] Trivy scan results for ${{ github.head_ref || github.base_ref || env.version }}: ${{ env.SUMMARY }}\nFixable by severity: ${{ env.FIXABLE_BY_SEVERITY }}"
                   }
                 },
                 {
@@ -374,7 +394,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "🔍 *Found Vulnerabilities (Top 10):*"
+                    "text": "🔍 *Fixable Vulnerabilities (CRITICAL/HIGH, Top 10)*"
                   }
                 },
                 {
