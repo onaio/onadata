@@ -9,6 +9,10 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 
+from onadata.apps.api.tools import (
+    get_organization_members,
+    get_organization_owners,
+)
 from onadata.apps.api.viewsets.organization_profile_viewset import (
     OrganizationProfileViewSet as OrganizationProfileViewSetV1,
 )
@@ -23,6 +27,7 @@ from onadata.libs.filters import (
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.v2.organization_serializer import (
     OrganizationListSerializer,
+    OrganizationMemberListSerializer,
 )
 
 
@@ -76,10 +81,17 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             return super().members(request, *args, **kwargs)
 
         organization = self.get_object()
-        # Members are returned as they are in an organization's `users`
-        users_field = self.get_serializer(organization).fields["users"]
-        users = users_field.to_representation(users_field.get_attribute(organization))
+        # Owners first, as in an organization's `users`
+        owners = list(get_organization_owners(organization))
+        members = get_organization_members(organization).exclude(
+            pk__in=[owner.pk for owner in owners]
+        )
+        serializer = OrganizationMemberListSerializer(
+            [*owners, *members],
+            many=True,
+            context={**self.get_serializer_context(), "organization": organization},
+        )
         # pylint: disable=attribute-defined-outside-init
-        self.etag_data = json.dumps(users)
+        self.etag_data = json.dumps(serializer.data)
 
-        return Response(users)
+        return Response(serializer.data)
