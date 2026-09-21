@@ -2,6 +2,8 @@
 Organization serializer for v2 API
 """
 
+from collections.abc import Mapping
+
 from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
@@ -11,6 +13,9 @@ from onadata.apps.api.viewsets.organization_profile_viewset import (
     serializer_from_settings as serializer_from_settings_v1,
 )
 from onadata.libs.permissions import MemberRole, get_role_in_org
+from onadata.libs.serializers.organization_member_serializer import (
+    OrganizationMemberSerializer as OrganizationMemberSerializerV1,
+)
 from onadata.libs.utils.gravatar import get_gravatar_img_link
 
 # pylint: disable=invalid-name
@@ -122,3 +127,45 @@ class OrganizationMemberListSerializer(serializers.ModelSerializer):
     def get_gravatar(self, obj):
         """Return the Gravatar URL of the member."""
         return get_gravatar_img_link(obj)
+
+
+class OrganizationMemberSerializer(OrganizationMemberSerializerV1):
+    """Serializer for adding, updating and removing a member of an Organization
+
+    A member is added on POST. On PUT and PATCH the role of the member is
+    changed, or the member is removed if `remove` is true. The organization
+    and the request are passed in the context.
+    """
+
+    username = serializers.CharField(max_length=255)
+    # Not part of the input: the organization is the one being accessed
+    organization = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # The role is what changes when a member is updated, unless the
+        # member is being removed
+        self.fields["role"].required = self._is_update() and not self._is_remove()
+
+    def _is_update(self):
+        request = self.context.get("request")
+
+        return request is not None and request.method in ("PUT", "PATCH")
+
+    def _is_remove(self):
+        # There is no input when the serializer is not given data, and the
+        # input may not be an object
+        initial_data = getattr(self, "initial_data", None)
+        remove = (
+            initial_data.get("remove") if isinstance(initial_data, Mapping) else None
+        )
+
+        return self._is_update() and remove in serializers.BooleanField.TRUE_VALUES
+
+    def validate(self, attrs):
+        attrs["organization"] = self.context["organization"]
+        # A member is only removed when updating
+        attrs["remove"] = self._is_remove()
+
+        return super().validate(attrs)

@@ -375,6 +375,48 @@ Response
           }
       ]
 
+Add, update and remove Organization members (v2)
+------------------------------------------------
+
+An owner of the organization adds a member, changes the role of a member and removes a member. The member is sent as JSON in the request body.
+
+- ``username`` - The username of the member. Required.
+- ``role`` - The role of the member: ``owner``, ``manager``, ``editor``, ``editor-minor``, ``editor-no-download``, ``dataentry``, ``dataentry-minor``, ``dataentry-only``, ``readonly`` or ``readonly-no-download``. Optional when adding a member. Required when updating a member, unless the member is being removed.
+- ``remove`` - When updating a member, ``true`` removes the member from the organization.
+- ``email_msg`` and ``email_subject`` - An email with this message is sent to the member. ``email_subject`` is optional.
+
+A member is added with ``POST``. The role of a member is changed, or the member is removed, with ``PUT`` or ``PATCH``. Each request returns the usernames of the organization's members. Get their roles from `List Organization members (v2)`_.
+
+.. raw:: html
+
+   <pre class="prettyprint">
+   <b>POST</b> /api/v2/orgs/{username}/members
+   <b>PUT</b> /api/v2/orgs/{username}/members
+   <b>PATCH</b> /api/v2/orgs/{username}/members
+   </pre>
+
+Example
+^^^^^^^
+
+Add a member, change the member's role, then remove the member.
+
+::
+
+      curl -X POST -d '{"username": "member1", "role": "editor"}' https://api.ona.io/api/v2/orgs/modilabs/members -H "Content-Type: application/json"
+
+      curl -X PATCH -d '{"username": "member1", "role": "manager"}' https://api.ona.io/api/v2/orgs/modilabs/members -H "Content-Type: application/json"
+
+      curl -X PATCH -d '{"username": "member1", "remove": true}' https://api.ona.io/api/v2/orgs/modilabs/members -H "Content-Type: application/json"
+
+Response
+^^^^^^^^
+
+The response to adding the member:
+
+::
+
+      ["member1", "modilabs"]
+
 Add a user to an organization
 -----------------------------
 

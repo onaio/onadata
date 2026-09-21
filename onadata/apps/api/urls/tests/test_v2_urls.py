@@ -126,3 +126,22 @@ class OrganizationMembersTestCase(TestAbstractViewSet):
         self.assertEqual(
             sorted(member["user"] for member in response.data), ["bob", "denoinc"]
         )
+
+    def test_patch(self):
+        """PATCH Organization member"""
+        self.profile_data["username"] = "aboy"
+        self._create_user_profile()
+        self.client.post(self.url, data={"username": "aboy"}, format="json")
+
+        response = self.client.patch(
+            self.url, data={"username": "aboy", "role": "editor"}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(sorted(response.data), ["aboy", "denoinc"])
+
+    def test_delete(self):
+        """DELETE is not supported. A member is removed by updating."""
+        response = self.client.delete(
+            self.url, data={"username": "denoinc"}, format="json"
+        )
+        self.assertEqual(response.status_code, 405)
