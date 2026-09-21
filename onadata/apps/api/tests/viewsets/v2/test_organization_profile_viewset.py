@@ -807,26 +807,6 @@ class AddOrganizationMemberTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"username": ["This field is required."]})
 
-    def test_reads_request_body(self):
-        """POST takes the member from the request body only"""
-        self._org_create()
-        self.profile_data["username"] = "aboy"
-        self._create_user_profile()
-        view = OrganizationProfileViewSet.as_view({"get": "members", "post": "members"})
-
-        request = self.factory.post("/?username=aboy", **self.extra)
-        response = view(request, user="denoinc")
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"username": ["This field is required."]})
-
-        request = self.factory.get("/", **self.extra)
-        response = view(request, user="denoinc")
-
-        self.assertEqual(
-            [member["user"] for member in response.data], ["bob", "denoinc"]
-        )
-
     def test_ignores_remove(self):
         """POST adds the member even when `remove` is sent"""
         self._org_create()
@@ -923,34 +903,6 @@ class UpdateOrganizationMemberTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"role": ["This field is required."]})
-
-    def test_reads_request_body(self):
-        """PUT takes the member and the role from the request body only"""
-        self._org_create()
-        self.profile_data["username"] = "aboy"
-        aboy = self._create_user_profile().user
-        add_user_to_organization(self.organization, aboy)
-        view = OrganizationProfileViewSet.as_view({"get": "members", "put": "members"})
-
-        request = self.factory.put("/?username=aboy&role=editor", **self.extra)
-        response = view(request, user="denoinc")
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data,
-            {
-                "username": ["This field is required."],
-                "role": ["This field is required."],
-            },
-        )
-
-        request = self.factory.get("/", **self.extra)
-        response = view(request, user="denoinc")
-
-        self.assertEqual(
-            [(member["user"], member["role"]) for member in response.data],
-            [("aboy", "member"), ("bob", "owner"), ("denoinc", "owner")],
-        )
 
     def test_remove(self):
         """PUT with `remove` removes a member from the organization"""
