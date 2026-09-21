@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test onadata.libs.utils.user_auth."""
 
 from django.contrib.auth.models import AnonymousUser

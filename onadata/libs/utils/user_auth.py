@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 User authentication utility functions.
 """
@@ -89,14 +88,14 @@ def has_permission(xform, owner, request, shared=False):
     user = request.user
     return (
         shared
-        or xform.shared_data  # noqa W503
-        or (  # noqa W503
+        or xform.shared_data
+        or (
             hasattr(request, "session")
-            and request.session.get("public_link") == xform.uuid  # noqa W503
+            and request.session.get("public_link") == xform.uuid
         )
-        or owner == user  # noqa W503
-        or user.has_perm("logger.view_xform", xform)  # noqa W503
-        or user.has_perm("logger.change_xform", xform)  # noqa W503
+        or owner == user
+        or user.has_perm("logger.view_xform", xform)
+        or user.has_perm("logger.change_xform", xform)
     )
 
 
@@ -136,8 +135,8 @@ def has_edit_permission(xform, owner, request, shared=False):
     user = request.user
     return (
         (shared and xform.shared_data)
-        or owner == user  # noqa W503
-        or user.has_perm("logger.change_xform", xform)  # noqa W503
+        or owner == user
+        or user.has_perm("logger.change_xform", xform)
     )
 
 
@@ -241,9 +240,7 @@ def basic_http_auth(func):
 def http_auth_string(username, password):
     """Return a basic authentication string with username and password."""
     credentials = (
-        base64.b64encode(f"{username}:{password}".encode("utf-8"))
-        .decode("utf-8")
-        .strip()
+        base64.b64encode(f"{username}:{password}".encode()).decode("utf-8").strip()
     )
     auth_string = f"Basic {credentials}"
 
