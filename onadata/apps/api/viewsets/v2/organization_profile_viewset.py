@@ -2,8 +2,6 @@
 OrganizationProfile viewset for v2 API
 """
 
-import json
-
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
@@ -156,8 +154,6 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             serializer = self.get_serializer(data=request.data, context=context)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            # pylint: disable=attribute-defined-outside-init
-            self.etag_data = json.dumps(serializer.data)
             status_code = (
                 status.HTTP_201_CREATED
                 if request.method == "POST"
@@ -174,7 +170,4 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             .order_by("username")
         )
         serializer = self.get_serializer(members, many=True, context=context)
-        # pylint: disable=attribute-defined-outside-init
-        self.etag_data = json.dumps(serializer.data)
-
         return Response(serializer.data)
