@@ -1,14 +1,21 @@
-# -*- coding: utf-8 -*-
 """Test onadata.libs.utils.user_auth."""
+
+from unittest.mock import patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.test.client import RequestFactory
 
+from rest_framework.authtoken.models import Token
+
+from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.models.share_xform import ShareXForm
 from onadata.libs.permissions import EditorRole
-from onadata.libs.utils.user_auth import has_attachment_permission
+from onadata.libs.utils.user_auth import (
+    has_attachment_permission,
+    invalidate_and_regen_tokens,
+)
 
 
 class TestHasAttachmentPermission(TestBase):
@@ -105,3 +112,42 @@ class TestHasAttachmentPermission(TestBase):
         self.assertFalse(
             has_attachment_permission(self.attachment, self._request(alice))
         )
+
+
+class TestInvalidateAndRegenTokens(TestBase):
+    """Test invalidate_and_regen_tokens()."""
+
+    def setUp(self):
+        super().setUp()
+        # A Token is created by a post_save signal on User; a TempToken is not.
+        self.old_token = Token.objects.get(user=self.user)
+        self.old_temp_token = TempToken.objects.create(user=self.user)
+
+    def test_both_tokens_are_replaced(self):
+        """Old tokens are dropped and the new keys are returned."""
+        result = invalidate_and_regen_tokens(user=self.user)
+
+        self.assertFalse(Token.objects.filter(key=self.old_token.key).exists())
+        self.assertFalse(TempToken.objects.filter(key=self.old_temp_token.key).exists())
+        self.assertEqual(result["access_token"], Token.objects.get(user=self.user).key)
+        self.assertEqual(
+            result["temp_token"], TempToken.objects.get(user=self.user).key
+        )
+
+    def test_interrupted_rotation_leaves_tokens_intact(self):
+        """A failure part-way through must not strand the user without a token.
+
+        Rotation deletes before it recreates, so anything that kills the
+        request in between - a worker timeout, a pod restart - would otherwise
+        leave the user permanently tokenless.
+        """
+        with (
+            patch.object(
+                TempToken.objects, "create", side_effect=RuntimeError("interrupted")
+            ),
+            self.assertRaises(RuntimeError),
+        ):
+            invalidate_and_regen_tokens(user=self.user)
+
+        self.assertTrue(Token.objects.filter(key=self.old_token.key).exists())
+        self.assertTrue(TempToken.objects.filter(key=self.old_temp_token.key).exists())
