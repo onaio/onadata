@@ -38,9 +38,6 @@ from six.moves.urllib.error import URLError
 from six.moves.urllib.request import urlopen
 
 from onadata.apps.api.models import OrganizationProfile, Team
-from onadata.apps.api.models.organization_profile import (
-    get_organization_members_team,
-)
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import (
     Entity,
@@ -154,7 +151,16 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     # pylint: disable=no-self-use
     def _add_user_to_organization(self, organization, user, role=None):
-        user.groups.add(get_organization_members_team(organization))
+        members_team, created = Team.objects.get_or_create(
+            name=f"{organization.user.username}#members",
+            organization=organization.user,
+        )
+
+        if created:
+            # The organization's own user is a member of it
+            organization.user.groups.add(members_team)
+
+        user.groups.add(members_team)
 
         if role is not None:
             ROLES[role].add(user, organization)
