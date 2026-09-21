@@ -457,6 +457,7 @@ class GetOrganizationTestCase(TestAbstractViewSet):
             {
                 "url": "http://testserver/api/v2/orgs/denoinc",
                 "org": "denoinc",
+                "user": "http://testserver/api/v1/users/denoinc",
                 "email": "mail@mail-server.org",
                 "creator": "http://testserver/api/v1/users/bob",
                 "metadata": {},
@@ -561,6 +562,7 @@ class CreateOrganizationTestCase(TestAbstractViewSet):
             {
                 "url": "http://testserver/api/v2/orgs/denoinc",
                 "org": "denoinc",
+                "user": "http://testserver/api/v1/users/denoinc",
                 "email": "mail@mail-server.org",
                 "creator": "http://testserver/api/v1/users/bob",
                 "metadata": {},
@@ -619,6 +621,7 @@ class UpdateOrganizationTestCase(TestAbstractViewSet):
             {
                 "url": "http://testserver/api/v2/orgs/denoinc",
                 "org": "denoinc",
+                "user": "http://testserver/api/v1/users/denoinc",
                 "email": "mail@mail-server.org",
                 "creator": "http://testserver/api/v1/users/bob",
                 "metadata": {},

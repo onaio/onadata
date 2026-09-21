@@ -72,8 +72,8 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
         """Get the organization by its username
 
         Overrides super().get_object(), which reads how to look up the
-        organization from the serializer's `user` field. That field is not
-        returned in v2.
+        organization from the `user` field of the serializer of the action.
+        The serializers of the members have no such field.
         """
         if self.kwargs.get(self.lookup_field) is None:
             raise ParseError(f"Expected URL keyword argument `{self.lookup_field}`.")
