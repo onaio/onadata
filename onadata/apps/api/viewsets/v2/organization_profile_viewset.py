@@ -38,9 +38,9 @@ from onadata.libs.utils.cache_tools import safe_cache_get, safe_cache_set
 class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
     """List, Retrieve, Update, Create Organizations."""
 
-    queryset = OrganizationProfileViewSetV1.queryset.select_related(
-        "user", "creator"
-    ).order_by("user__username")
+    queryset = OrganizationProfileViewSetV1.queryset.select_related("user").order_by(
+        "user__username"
+    )
     serializer_class = OrganizationSerializer
     filter_backends = (
         OrganizationPermissionFilter,
