@@ -15,6 +15,7 @@ from onadata.apps.api.viewsets.v2.organization_profile_viewset import (
     OrganizationProfileViewSet,
 )
 from onadata.apps.main.models import UserProfile
+from onadata.libs.utils.cache_tools import ORG_PROFILE_V2_CACHE
 
 
 class GetOrganizationListTestCase(TestAbstractViewSet):
@@ -577,7 +578,16 @@ class CreateOrganizationTestCase(TestAbstractViewSet):
                 "date_modified": timezone.localtime(
                     organization.date_modified
                 ).isoformat(),
+                "current_user_role": "owner",
             },
+        )
+
+        # The organization is cached without the user specific fields
+        expected_cache = {**response.data}
+        del expected_cache["current_user_role"]
+
+        self.assertEqual(
+            cache.get(f"{ORG_PROFILE_V2_CACHE}denoinc-owner"), expected_cache
         )
 
 
@@ -626,7 +636,16 @@ class UpdateOrganizationTestCase(TestAbstractViewSet):
                 "date_modified": timezone.localtime(
                     self.organization.date_modified
                 ).isoformat(),
+                "current_user_role": "owner",
             },
+        )
+
+        # The organization is cached without the user specific fields
+        expected_cache = {**response.data}
+        del expected_cache["current_user_role"]
+
+        self.assertEqual(
+            cache.get(f"{ORG_PROFILE_V2_CACHE}denoinc-owner"), expected_cache
         )
 
 

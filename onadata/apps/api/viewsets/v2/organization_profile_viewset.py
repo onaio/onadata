@@ -10,6 +10,7 @@ from rest_framework.filters import SearchFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
+from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tools import (
     get_org_profile_cache_key,
     get_organization_members,
@@ -97,12 +98,40 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             base_data = self.get_serializer(organization).data
             safe_cache_set(cache_key, base_data)
 
-        # Inject user specific fields, which are never cached
-        private_data = OrganizationPrivateSerializer(
-            organization, context={"request": request}
-        ).data
+        return Response({**base_data, **self._get_private_data(organization)})
 
-        return Response({**base_data, **private_data})
+    def create(self, request, *args, **kwargs):
+        """Create an Organization
+
+        Overrides super().create(), which caches the response
+        """
+        response = super().create(request, *args, **kwargs)
+        organization = OrganizationProfile.objects.get(
+            user__username=response.data["org"]
+        )
+        response.data = {**response.data, **self._get_private_data(organization)}
+
+        return response
+
+    def update(self, request, *args, **kwargs):
+        """Update an Organization
+
+        Overrides super().update(), which caches the response
+        """
+        response = super().update(request, *args, **kwargs)
+        # super() has checked that the user may update the organization
+        organization = OrganizationProfile.objects.get(
+            user__username=self.kwargs[self.lookup_field]
+        )
+        response.data = {**response.data, **self._get_private_data(organization)}
+
+        return response
+
+    def _get_private_data(self, organization):
+        """Return the user specific fields, which are never cached"""
+        return OrganizationPrivateSerializer(
+            organization, context={"request": self.request}
+        ).data
 
     @action(methods=["DELETE", "GET", "POST", "PUT"], detail=True)
     def members(self, request, *args, **kwargs):

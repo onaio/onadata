@@ -229,7 +229,7 @@ Response
 Retrieve Organization Profile Information (v2)
 ----------------------------------------------
 
-``current_user_role`` is your role in the organization: ``owner``, ``manager``, ``editor`` or ``member``. It is ``null`` if you do not belong to the organization or are not logged in.
+``current_user_role`` is your role in the organization: ``owner``, ``manager``, ``editor`` or ``member``. It is ``null`` if you do not belong to the organization or are not logged in. It is also returned when an organization is registered or updated.
 
 ``email``, ``metadata`` and ``encryption_keys`` are only returned to the organization's owners and managers. To get the organization's members, see `List Organization members (v2)`_.
 
