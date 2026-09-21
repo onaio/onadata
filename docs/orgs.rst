@@ -115,6 +115,7 @@ Response
         {
             "url": "https://api.ona.io/api/v2/orgs/healthorg",
             "org": "healthorg",
+            "user": "https://api.ona.io/api/v1/users/healthorg",
             "name": "Health Organization",
             "creator": "https://api.ona.io/api/v1/users/demo",
             "num_of_submissions": 120,
@@ -123,6 +124,7 @@ Response
         {
             "url": "https://api.ona.io/api/v2/orgs/modilabs",
             "org": "modilabs",
+            "user": "https://api.ona.io/api/v1/users/modilabs",
             "name": "Modi Labs Research",
             "creator": "https://api.ona.io/api/v1/users/demo",
             "num_of_submissions": 0,

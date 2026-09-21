@@ -67,6 +67,9 @@ class OrganizationListSerializer(serializers.HyperlinkedModelSerializer):
         view_name="organizationprofile-v2-detail", lookup_field="user"
     )
     org = serializers.CharField(source="user.username", read_only=True)
+    user = serializers.HyperlinkedRelatedField(
+        view_name="user-detail", lookup_field="username", read_only=True
+    )
     creator = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
@@ -76,6 +79,7 @@ class OrganizationListSerializer(serializers.HyperlinkedModelSerializer):
         fields = (
             "url",
             "org",
+            "user",
             "name",
             "creator",
             "num_of_submissions",
