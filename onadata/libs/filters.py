@@ -284,12 +284,16 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
             return queryset.model.objects.all()
 
         filtered_queryset = super().filter_queryset(request, queryset, view)
-        org_users = set(
-            [group.team.organization for group in request.user.groups.all()]
-            + [o.user for o in filtered_queryset]
-        )
+        # The organizations of the teams the user is in, and the organizations
+        # the user has permissions on. Fetched as ids so that the number of
+        # queries does not grow with the number of organizations.
+        org_user_ids = set(
+            request.user.groups.filter(team__isnull=False).values_list(
+                "team__organization", flat=True
+            )
+        ) | set(filtered_queryset.values_list("user", flat=True))
 
-        return queryset.filter(user__in=org_users, user__is_active=True)
+        return queryset.filter(user__in=org_user_ids, user__is_active=True)
 
 
 # pylint: disable=too-few-public-methods
