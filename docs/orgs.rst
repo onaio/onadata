@@ -77,22 +77,16 @@ Example
 
 Get a paginated list of Organizations (v2)
 ------------------------------------------
-Version 2 of the organizations API, ``/api/v2/orgs``, supports everything described on this page for ``/api/v1/orgs``: registering, retrieving, updating and deleting an organization, and managing its members. Replace ``v1`` with ``v2`` in the URL. Responses have the same shape, with these exceptions:
+Version 2 of the organizations API is served at ``/api/v2/orgs``. It supports registering, retrieving, updating and deleting an organization, and managing its members.
 
-- An organization's ``url`` points to ``/api/v2/orgs/{username}``.
-- An organization's ``users`` are not returned, neither in the list of organizations nor for a single organization. Get them from the members endpoint, see `List Organization members (v2)`_.
-- The list of an organization's members returns each member's details, not only the username.
-
-On top of that, the version 2 list endpoint ``GET /api/v2/orgs`` adds pagination, search and a filter by your role. ``GET /api/v1/orgs`` is unchanged: it returns every organization in one response and accepts none of these parameters.
-
-Returns a list of organizations using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
+Returns a list of the organizations you have access to, using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
 - ``page`` - Integer representing the page.
 - ``page_size`` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the ``page_size`` query param is 10,000
 
 Organizations are listed alphabetically by their username (the ``org`` field). When neither parameter is supplied, the first 1,000 organizations are returned.
 
-The response body remains a list. Links to the ``first``, ``prev``, ``next`` and ``last`` pages are returned in the ``Link`` response header, where they apply.
+The response body is a list. Links to the ``first``, ``prev``, ``next`` and ``last`` pages are returned in the ``Link`` response header, where they apply.
 
 .. raw:: html
 
@@ -251,7 +245,7 @@ Response
 Retrieve Organization Profile Information (v2)
 ----------------------------------------------
 
-The organization's ``users`` are not returned, see `List Organization members (v2)`_. ``email``, ``metadata`` and ``encryption_keys`` are only returned to the organization's owners and managers.
+``email``, ``metadata`` and ``encryption_keys`` are only returned to the organization's owners and managers. To get the organization's members, see `List Organization members (v2)`_.
 
 .. raw:: html
 
@@ -360,7 +354,7 @@ Response
 List Organization members (v2)
 ------------------------------
 
-Get a list of organization members, each with their role in the organization. This is the information ``/api/v1/orgs`` returns as the ``users`` of an organization. Members are listed alphabetically by username, and owners are included.
+Get a list of organization members, each with their role in the organization. Members are listed alphabetically by username, and owners are included.
 
 .. raw:: html
 
