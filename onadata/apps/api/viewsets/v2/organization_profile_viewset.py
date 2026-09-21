@@ -36,7 +36,7 @@ from onadata.libs.utils.cache_tools import safe_cache_get, safe_cache_set
 
 # pylint: disable=too-many-ancestors
 class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
-    """List, Retrieve, Update, Create/Register Organizations."""
+    """List, Retrieve, Update, Create Organizations."""
 
     # Ordered so that pages neither overlap nor skip records. The users are
     # selected as every organization in a list links to them.
