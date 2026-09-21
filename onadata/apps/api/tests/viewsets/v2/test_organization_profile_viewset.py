@@ -46,6 +46,7 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
                 {
                     "url": "http://testserver/api/v2/orgs/denoinc",
                     "org": "denoinc",
+                    "user": "http://testserver/api/v1/users/denoinc",
                     "name": "Dennis",
                     "creator": "http://testserver/api/v1/users/bob",
                     "num_of_submissions": 0,
