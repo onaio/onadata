@@ -46,6 +46,7 @@ from onadata.libs.permissions import (
     ROLES,
     ROLES_ORDERED,
     ManagerRole,
+    MemberRole,
     OwnerRole,
     get_role,
     get_role_in_org,
@@ -821,10 +822,12 @@ def get_org_profile_cache_key(user, organization, api_version="v1"):
 
 def invalidate_organization_cache(org_username):
     """Set organization cache to none for all roles, in all API versions"""
+    # `member` is the role of a user added to an organization without one
+    roles = [*ROLES, MemberRole.name]
+
     for prefix in ORG_PROFILE_CACHE_PREFIXES.values():
-        for role in ROLES_ORDERED:
-            key = f"{prefix}{org_username}-{role.name}"
-            safe_cache_delete(key)
+        for role in roles:
+            safe_cache_delete(f"{prefix}{org_username}-{role}")
 
         safe_cache_delete(f"{prefix}{org_username}-anon")
 
