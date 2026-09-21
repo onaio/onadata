@@ -10,7 +10,6 @@ from django.utils import timezone
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.api.tools import add_user_to_organization
 from onadata.apps.api.viewsets.v2.organization_profile_viewset import (
     OrganizationProfileViewSet,
 )
@@ -185,9 +184,9 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
         member, _ = User.objects.get_or_create(username="the_stalked")
         UserProfile.objects.get_or_create(user=member, name=member.username)
         self._org_create({"org": "healthshared", "name": "Alpha"})
-        add_user_to_organization(self.organization, member)
+        self._add_user_to_organization(self.organization, member)
         self._org_create({"org": "watershared", "name": "Bravo"})
-        add_user_to_organization(self.organization, member)
+        self._add_user_to_organization(self.organization, member)
         self._org_create({"org": "healthsolo", "name": "Charlie"})
 
         request = self.factory.get(
@@ -209,8 +208,8 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
         water_alice = self.organization
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._login_user_and_profile(extra_post_data=alice_data)
-        add_user_to_organization(health_alice, self.user)
-        add_user_to_organization(water_alice, self.user)
+        self._add_user_to_organization(health_alice, self.user)
+        self._add_user_to_organization(water_alice, self.user)
 
         request = self.factory.get("/", data={"search": "health"}, **self.extra)
         response = self.view(request)
@@ -268,15 +267,15 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
         carol = self._create_user_profile(
             {"username": "carol", "email": "carol@localhost.com"}
         ).user
-        add_user_to_organization(orgs["ownedorg"], carol)
-        add_user_to_organization(orgs["editororg"], carol)
+        self._add_user_to_organization(orgs["ownedorg"], carol)
+        self._add_user_to_organization(orgs["editororg"], carol)
         # alice holds a different role in each, and none in `noorg`
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._login_user_and_profile(extra_post_data=alice_data)
-        add_user_to_organization(orgs["ownedorg"], self.user, "owner")
-        add_user_to_organization(orgs["managedorg"], self.user, "manager")
-        add_user_to_organization(orgs["editororg"], self.user, "editor")
-        add_user_to_organization(orgs["memberorg"], self.user)
+        self._add_user_to_organization(orgs["ownedorg"], self.user, "owner")
+        self._add_user_to_organization(orgs["managedorg"], self.user, "manager")
+        self._add_user_to_organization(orgs["editororg"], self.user, "editor")
+        self._add_user_to_organization(orgs["memberorg"], self.user)
 
     def test_orgs_list_role_owner(self):
         """`role=owner` returns only the organizations the user owns"""
@@ -534,7 +533,7 @@ class GetOrganizationTestCase(TestAbstractViewSet):
         alice = self._create_user_profile(
             {"username": "alice", "email": "alice@localhost.com"}
         ).user
-        add_user_to_organization(self.organization, alice)
+        self._add_user_to_organization(self.organization, alice)
         carol = self._create_user_profile(
             {"username": "carol", "email": "carol@localhost.com"}
         ).user
@@ -757,11 +756,11 @@ class GetOrganizationMemberListTestCase(TestAbstractViewSet):
         self._org_create()
         self.profile_data["username"] = "aboy"
         aboy = self._create_user_profile().user
-        add_user_to_organization(self.organization, aboy)
+        self._add_user_to_organization(self.organization, aboy)
         # an owner added this way is in both the owners and the members team
         self.profile_data["username"] = "cate"
         cate = self._create_user_profile().user
-        add_user_to_organization(self.organization, cate, "owner")
+        self._add_user_to_organization(self.organization, cate, "owner")
         view = OrganizationProfileViewSet.as_view({"get": "members"})
 
         request = self.factory.get("/", **self.extra)
@@ -808,7 +807,7 @@ class GetOrganizationMemberListTestCase(TestAbstractViewSet):
         alice = self._create_user_profile(
             {"username": "alice", "email": "alice@localhost.com"}
         ).user
-        add_user_to_organization(self.organization, alice)
+        self._add_user_to_organization(self.organization, alice)
         view = OrganizationProfileViewSet.as_view({"get": "members"})
 
         request = self.factory.get(
@@ -928,7 +927,7 @@ class AddOrganizationMemberTestCase(TestAbstractViewSet):
         alice = self._create_user_profile(
             {"username": "alice", "email": "alice@localhost.com"}
         ).user
-        add_user_to_organization(self.organization, alice)
+        self._add_user_to_organization(self.organization, alice)
         self.profile_data["username"] = "aboy"
         self._create_user_profile()
         view = OrganizationProfileViewSet.as_view({"post": "members"})
@@ -957,7 +956,7 @@ class UpdateOrganizationMemberTestCase(TestAbstractViewSet):
         self._org_create()
         self.profile_data["username"] = "aboy"
         aboy = self._create_user_profile().user
-        add_user_to_organization(self.organization, aboy)
+        self._add_user_to_organization(self.organization, aboy)
         view = OrganizationProfileViewSet.as_view({"get": "members", "put": "members"})
 
         # `role` in the query string is a filter of the list of organizations.
@@ -987,7 +986,7 @@ class UpdateOrganizationMemberTestCase(TestAbstractViewSet):
         self._org_create()
         self.profile_data["username"] = "aboy"
         aboy = self._create_user_profile().user
-        add_user_to_organization(self.organization, aboy)
+        self._add_user_to_organization(self.organization, aboy)
         view = OrganizationProfileViewSet.as_view({"put": "members"})
 
         request = self.factory.put(
@@ -1006,7 +1005,7 @@ class UpdateOrganizationMemberTestCase(TestAbstractViewSet):
         self._org_create()
         self.profile_data["username"] = "aboy"
         aboy = self._create_user_profile().user
-        add_user_to_organization(self.organization, aboy)
+        self._add_user_to_organization(self.organization, aboy)
         view = OrganizationProfileViewSet.as_view({"get": "members", "put": "members"})
 
         request = self.factory.put(
@@ -1031,7 +1030,7 @@ class UpdateOrganizationMemberTestCase(TestAbstractViewSet):
         self._org_create()
         self.profile_data["username"] = "aboy"
         aboy = self._create_user_profile().user
-        add_user_to_organization(self.organization, aboy)
+        self._add_user_to_organization(self.organization, aboy)
         view = OrganizationProfileViewSet.as_view({"get": "members", "put": "members"})
 
         request = self.factory.put(
