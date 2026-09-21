@@ -80,8 +80,8 @@ Get a paginated list of Organizations (v2)
 Version 2 of the organizations API, ``/api/v2/orgs``, supports everything described on this page for ``/api/v1/orgs``: registering, retrieving, updating and deleting an organization, and managing its members. Replace ``v1`` with ``v2`` in the URL. Responses have the same shape, with these exceptions:
 
 - An organization's ``url`` points to ``/api/v2/orgs/{username}``.
-- The list of organizations leaves out each organization's ``users``. Get them from the members endpoint below, or from the organization itself.
-- The list of an organization's members returns each member's details, not only the username. See `List Organization members (v2)`_.
+- An organization's ``users`` are not returned, neither in the list of organizations nor for a single organization. Get them from the members endpoint, see `List Organization members (v2)`_.
+- The list of an organization's members returns each member's details, not only the username.
 
 On top of that, the version 2 list endpoint ``GET /api/v2/orgs`` adds pagination, search and a filter by your role. ``GET /api/v1/orgs`` is unchanged: it returns every organization in one response and accepts none of these parameters.
 
@@ -111,6 +111,48 @@ Response headers
 ::
 
       Link: <https://api.ona.io/api/v2/orgs?page=2&page_size=2>; rel="next", <https://api.ona.io/api/v2/orgs?page=5&page_size=2>; rel="last"
+
+Response
+^^^^^^^^
+
+::
+
+    [
+        {
+            "url": "https://api.ona.io/api/v2/orgs/healthorg",
+            "org": "healthorg",
+            "user": "https://api.ona.io/api/v1/users/healthorg",
+            "creator": "https://api.ona.io/api/v1/users/demo",
+            "name": "Health Organization",
+            "city": "Nairobi",
+            "country": "KE",
+            "home_page": "",
+            "twitter": "",
+            "description": "",
+            "require_auth": false,
+            "address": "",
+            "phonenumber": "",
+            "num_of_submissions": 120,
+            "date_modified": "2026-09-18T12:00:00.000000Z"
+        },
+        {
+            "url": "https://api.ona.io/api/v2/orgs/modilabs",
+            "org": "modilabs",
+            "user": "https://api.ona.io/api/v1/users/modilabs",
+            "creator": "https://api.ona.io/api/v1/users/demo",
+            "name": "Modi Labs Research",
+            "city": "New York",
+            "country": "US",
+            "home_page": "",
+            "twitter": "",
+            "description": "",
+            "require_auth": false,
+            "address": "",
+            "phonenumber": "",
+            "num_of_submissions": 0,
+            "date_modified": "2026-09-18T12:00:00.000000Z"
+        }
+    ]
 
 
 Search Organizations (v2)
@@ -146,7 +188,7 @@ Use the ``role`` parameter to return only the organizations where you, the reque
 
 - ``owner`` - organizations you own.
 - ``manager`` - organizations you manage or own.
-- ``editor`` down to ``readonly`` - organizations where you have been given a role. These roles all carry the same access to an organization, so they return the same organizations. They are the ones where your ``role`` in the organization's ``users`` list is ``editor``, ``manager`` or ``owner``.
+- ``editor`` down to ``readonly`` - organizations where you have been given a role. These roles all carry the same access to an organization, so they return the same organizations. They are the ones where your ``role`` among the organization's members is ``editor``, ``manager`` or ``owner``.
 - ``member`` and ``readonly-no-download`` - every organization you belong to. This is the same as leaving ``role`` out.
 
 .. raw:: html
@@ -204,6 +246,50 @@ Response
         "require_auth": false,
         "user": "https://api.ona.io/api/v1/users/modilabs",
         "creator": "https://api.ona.io/api/v1/users/demo"
+    }
+
+Retrieve Organization Profile Information (v2)
+----------------------------------------------
+
+The organization's ``users`` are not returned, see `List Organization members (v2)`_. ``email``, ``metadata`` and ``encryption_keys`` are only returned to the organization's owners and managers.
+
+.. raw:: html
+
+   <pre class="prettyprint"><b>GET</b> /api/v2/orgs/{username}</pre>
+
+
+Example
+^^^^^^^
+
+::
+
+      curl -X GET https://api.ona.io/api/v2/orgs/modilabs
+
+
+Response
+^^^^^^^^
+
+::
+
+    {
+        "url": "https://api.ona.io/api/v2/orgs/modilabs",
+        "org": "modilabs",
+        "user": "https://api.ona.io/api/v1/users/modilabs",
+        "email": "modilabs@localhost.com",
+        "creator": "https://api.ona.io/api/v1/users/demo",
+        "metadata": {},
+        "name": "Modi Labs Research",
+        "encryption_keys": [],
+        "city": "New York",
+        "country": "US",
+        "home_page": "",
+        "twitter": "",
+        "description": "",
+        "require_auth": false,
+        "address": "",
+        "phonenumber": "",
+        "num_of_submissions": 0,
+        "date_modified": "2026-09-18T12:00:00.000000Z"
     }
 
 Partial updates of Organization Profile Information
@@ -274,7 +360,7 @@ Response
 List Organization members (v2)
 ------------------------------
 
-Get a list of organization members, each with their role in the organization. This is the same information as the ``users`` of an organization. Members are listed alphabetically by username, and owners are included.
+Get a list of organization members, each with their role in the organization. This is the information ``/api/v1/orgs`` returns as the ``users`` of an organization. Members are listed alphabetically by username, and owners are included.
 
 .. raw:: html
 

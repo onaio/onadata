@@ -426,8 +426,8 @@ class GetOrganizationTestCase(TestAbstractViewSet):
         super().tearDown()
         cache.clear()
 
-    def test_url_is_v2(self):
-        """An organization's `url` points to its v2 endpoint"""
+    def test_get(self):
+        """GET an organization"""
         # creating it through v1 caches what v1 returns
         self._org_create()
 
@@ -435,36 +435,31 @@ class GetOrganizationTestCase(TestAbstractViewSet):
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["url"], "http://testserver/api/v2/orgs/denoinc")
-
-    def test_new_member_is_listed(self):
-        """A member added after the organization was fetched is returned"""
-        self._org_create()
-        self.profile_data["username"] = "aboy"
-        self._create_user_profile()
-
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request, user="denoinc")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn("aboy", [user["user"] for user in response.data["users"]])
-
-        members_view = OrganizationProfileViewSet.as_view({"post": "members"})
-        request = self.factory.post(
-            "/",
-            data=json.dumps({"username": "aboy"}),
-            content_type="application/json",
-            **self.extra,
+        self.assertEqual(
+            response.data,
+            {
+                "url": "http://testserver/api/v2/orgs/denoinc",
+                "org": "denoinc",
+                "user": "http://testserver/api/v1/users/denoinc",
+                "email": "mail@mail-server.org",
+                "creator": "http://testserver/api/v1/users/bob",
+                "metadata": {},
+                "name": "Dennis",
+                "encryption_keys": [],
+                "city": "Denoville",
+                "country": "US",
+                "home_page": "deno.com",
+                "twitter": "denoinc",
+                "description": "",
+                "require_auth": False,
+                "address": "",
+                "phonenumber": "",
+                "num_of_submissions": 0,
+                "date_modified": timezone.localtime(
+                    self.organization.date_modified
+                ).isoformat(),
+            },
         )
-        response = members_view(request, user="denoinc")
-
-        self.assertEqual(response.status_code, 201)
-
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request, user="denoinc")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("aboy", [user["user"] for user in response.data["users"]])
 
 
 class OrganizationMembersTestCase(TestAbstractViewSet):
@@ -523,6 +518,33 @@ class OrganizationMembersTestCase(TestAbstractViewSet):
                     "gravatar": self.organization.gravatar,
                 },
             ],
+        )
+
+    def test_post(self):
+        """POST adds a member to the organization"""
+        self._org_create()
+        self.profile_data["username"] = "aboy"
+        self._create_user_profile()
+        view = OrganizationProfileViewSet.as_view({"get": "members", "post": "members"})
+
+        request = self.factory.post(
+            "/",
+            data=json.dumps({"username": "aboy"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(sorted(response.data), ["aboy", "denoinc"])
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [(member["user"], member["role"]) for member in response.data],
+            [("aboy", "member"), ("bob", "owner"), ("denoinc", "owner")],
         )
 
     def test_put_bad_role_query_param(self):
