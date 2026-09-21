@@ -10,12 +10,32 @@ from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.viewsets.organization_profile_viewset import (
     serializer_from_settings as serializer_from_settings_v1,
 )
-from onadata.libs.permissions import get_role_in_org
+from onadata.libs.permissions import MemberRole, get_role_in_org
 from onadata.libs.utils.gravatar import get_gravatar_img_link
 
 # pylint: disable=invalid-name
 User = get_user_model()
 OrganizationSerializerV1 = serializer_from_settings_v1()
+
+
+def get_current_user_role(organization, request):
+    """Return the role of the request user in the organization."""
+    user = request.user
+
+    if user.is_anonymous:
+        return None
+
+    role = get_role_in_org(user, organization)
+
+    if role != MemberRole.name:
+        return role
+
+    # `member` is also what a user with no permissions on the organization
+    # gets, so check that the user belongs to one of its teams
+    if user.groups.filter(team__organization=organization.user).exists():
+        return role
+
+    return None
 
 
 class OrganizationSerializer(OrganizationSerializerV1):
@@ -68,6 +88,20 @@ class OrganizationListSerializer(serializers.HyperlinkedModelSerializer):
             "num_of_submissions",
             "date_modified",
         )
+
+
+class OrganizationPrivateSerializer(serializers.ModelSerializer):
+    """User specific fields for an Organization"""
+
+    current_user_role = serializers.SerializerMethodField()
+
+    def get_current_user_role(self, obj):
+        """Return the role of the request user in the organization."""
+        return get_current_user_role(obj, self.context["request"])
+
+    class Meta:
+        model = OrganizationProfile
+        fields = ("current_user_role",)
 
 
 class OrganizationMemberListSerializer(serializers.ModelSerializer):

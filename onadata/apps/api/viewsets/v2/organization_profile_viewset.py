@@ -9,6 +9,7 @@ from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 
 from onadata.apps.api.tools import (
+    get_org_profile_cache_key,
     get_organization_members,
     get_organization_owners,
 )
@@ -24,8 +25,10 @@ from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.v2.organization_serializer import (
     OrganizationListSerializer,
     OrganizationMemberListSerializer,
+    OrganizationPrivateSerializer,
     OrganizationSerializer,
 )
+from onadata.libs.utils.cache_tools import safe_cache_get, safe_cache_set
 
 
 # pylint: disable=too-many-ancestors
@@ -54,6 +57,28 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             return OrganizationListSerializer
 
         return super().get_serializer_class()
+
+    def retrieve(self, request, *args, **kwargs):
+        """Retrieve a single Organization
+
+        Overrides super().retrieve()
+        """
+        organization = self.get_object()
+        cache_key = get_org_profile_cache_key(
+            request.user, organization, self.api_version
+        )
+        base_data = safe_cache_get(cache_key)
+
+        if base_data is None:
+            base_data = self.get_serializer(organization).data
+            safe_cache_set(cache_key, base_data)
+
+        # Inject user specific fields, which are never cached
+        private_data = OrganizationPrivateSerializer(
+            organization, context={"request": request}
+        ).data
+
+        return Response({**base_data, **private_data})
 
     @action(methods=["DELETE", "GET", "POST", "PUT"], detail=True)
     def members(self, request, *args, **kwargs):

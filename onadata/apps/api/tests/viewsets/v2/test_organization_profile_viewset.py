@@ -458,8 +458,58 @@ class GetOrganizationTestCase(TestAbstractViewSet):
                 "date_modified": timezone.localtime(
                     self.organization.date_modified
                 ).isoformat(),
+                "current_user_role": "owner",
             },
         )
+
+    def test_current_user_role_not_a_member(self):
+        """`current_user_role` is null for a user outside the organization"""
+        self._org_create()
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["current_user_role"])
+
+    def test_current_user_role_anonymous(self):
+        """`current_user_role` is null for an anonymous user"""
+        self._org_create()
+
+        request = self.factory.get("/")
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["current_user_role"])
+
+    def test_current_user_role_not_cached(self):
+        """`current_user_role` is the role of the user making the request
+
+        A member and a user outside the organization are served the same
+        cached organization.
+        """
+        self._org_create()
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        add_user_to_organization(self.organization, alice)
+        carol = self._create_user_profile(
+            {"username": "carol", "email": "carol@localhost.com"}
+        ).user
+
+        request = self.factory.get("/", HTTP_AUTHORIZATION=f"Token {alice.auth_token}")
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["current_user_role"], "member")
+
+        request = self.factory.get("/", HTTP_AUTHORIZATION=f"Token {carol.auth_token}")
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["current_user_role"])
 
 
 class OrganizationMembersTestCase(TestAbstractViewSet):
