@@ -142,9 +142,12 @@ def set_kpi_formbuilder_permissions(sender, instance=None, created=False, **kwar
             hasattr(settings, "KPI_FORMBUILDER_URL") and settings.KPI_FORMBUILDER_URL
         )
         if kpi_formbuilder_url:
+            # Tokens are created alongside the User but deleted on rotation
+            # and on deactivation, so one may be absent by now.
+            token, _ = Token.objects.get_or_create(user=instance.user)
             auth_header = {
                 ONADATA_KOBOCAT_AUTH_HEADER: jwt.encode(
-                    {API_TOKEN: instance.user.auth_token.key},
+                    {API_TOKEN: token.key},
                     getattr(settings, "JWT_SECRET_KEY", "jwt"),
                     algorithm=getattr(settings, "JWT_ALGORITHM", "HS256"),
                 )
