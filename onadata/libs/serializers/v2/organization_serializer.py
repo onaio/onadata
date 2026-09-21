@@ -7,11 +7,28 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.viewsets.organization_profile_viewset import (
+    serializer_from_settings as serializer_from_settings_v1,
+)
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.utils.gravatar import get_gravatar_img_link
 
 # pylint: disable=invalid-name
 User = get_user_model()
+OrganizationSerializerV1 = serializer_from_settings_v1()
+
+
+class OrganizationSerializer(OrganizationSerializerV1):
+    """Serializer for an Organization
+
+    Extends the v1 serializer, from settings or the default.
+    """
+
+    url = serializers.HyperlinkedIdentityField(
+        view_name="organizationprofile-v2-detail", lookup_field="user"
+    )
+    # Left out: an organization's users are returned by the members endpoint
+    users = None
 
 
 class OrganizationListSerializer(serializers.HyperlinkedModelSerializer):

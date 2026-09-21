@@ -4,7 +4,6 @@ OrganizationProfile viewset for v2 API
 
 import json
 
-from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
@@ -16,9 +15,6 @@ from onadata.apps.api.tools import (
 from onadata.apps.api.viewsets.organization_profile_viewset import (
     OrganizationProfileViewSet as OrganizationProfileViewSetV1,
 )
-from onadata.apps.api.viewsets.organization_profile_viewset import (
-    serializer_from_settings as serializer_from_settings_v1,
-)
 from onadata.libs.filters import (
     OrganizationPermissionFilter,
     OrganizationRoleFilter,
@@ -28,20 +24,8 @@ from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.v2.organization_serializer import (
     OrganizationListSerializer,
     OrganizationMemberListSerializer,
+    OrganizationSerializer,
 )
-
-
-def serializer_from_settings():
-    """Return the v1 serializer, from settings or the default, linking to v2."""
-
-    class OrganizationSerializer(serializer_from_settings_v1()):
-        """Organization profile serializer for v2 API"""
-
-        url = serializers.HyperlinkedIdentityField(
-            view_name="organizationprofile-v2-detail", lookup_field="user"
-        )
-
-    return OrganizationSerializer
 
 
 # pylint: disable=too-many-ancestors
@@ -50,7 +34,7 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
 
     # Ordered so that pages neither overlap nor skip records
     queryset = OrganizationProfileViewSetV1.queryset.order_by("user__username")
-    serializer_class = serializer_from_settings()
+    serializer_class = OrganizationSerializer
     filter_backends = (
         OrganizationPermissionFilter,
         OrganizationsSharedWithUserFilter,
