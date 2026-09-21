@@ -4,6 +4,7 @@ OrganizationProfile viewset for v2 API
 
 import json
 
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import SearchFilter
@@ -28,6 +29,7 @@ from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.v2.organization_serializer import (
     OrganizationListSerializer,
     OrganizationMemberListSerializer,
+    OrganizationMemberSerializer,
     OrganizationPrivateSerializer,
     OrganizationSerializer,
 )
@@ -61,6 +63,12 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
         """
         if self.action == "list":
             return OrganizationListSerializer
+
+        if self.action == "members":
+            if self.request.method == "GET":
+                return OrganizationMemberListSerializer
+
+            return OrganizationMemberSerializer
 
         return super().get_serializer_class()
 
@@ -133,16 +141,31 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             organization, context={"request": self.request}
         ).data
 
-    @action(methods=["DELETE", "GET", "POST", "PUT"], detail=True)
+    @action(methods=["GET", "POST", "PUT", "PATCH"], detail=True)
     def members(self, request, *args, **kwargs):
         """Return organization members, or add, update or remove a member.
 
+        A member is removed by updating with `remove`.
+
         Overrides super().members()
         """
-        if request.method != "GET":
-            return super().members(request, *args, **kwargs)
-
         organization = self.get_object()
+        context = {**self.get_serializer_context(), "organization": organization}
+
+        if request.method != "GET":
+            serializer = self.get_serializer(data=request.data, context=context)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            # pylint: disable=attribute-defined-outside-init
+            self.etag_data = json.dumps(serializer.data)
+            status_code = (
+                status.HTTP_201_CREATED
+                if request.method == "POST"
+                else status.HTTP_200_OK
+            )
+
+            return Response(serializer.data, status=status_code)
+
         # The creator of an organization is an owner without being in the
         # members team, as an organization's `users` has it
         members = (
@@ -150,11 +173,7 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             .union(get_organization_members(organization))
             .order_by("username")
         )
-        serializer = OrganizationMemberListSerializer(
-            members,
-            many=True,
-            context={**self.get_serializer_context(), "organization": organization},
-        )
+        serializer = self.get_serializer(members, many=True, context=context)
         # pylint: disable=attribute-defined-outside-init
         self.etag_data = json.dumps(serializer.data)
 
