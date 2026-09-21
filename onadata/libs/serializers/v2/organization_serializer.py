@@ -54,14 +54,6 @@ class OrganizationSerializer(OrganizationSerializerV1):
     )
     # Left out: an organization's users are returned by the members endpoint
     users = None
-    # Left out: a link to the v1 user, whose username is `org`. `user` is both
-    # declared by the v1 serializer and a model field. `None` removes the
-    # declaration, without which it cannot be excluded, and `exclude` stops a
-    # field from being generated for the model field.
-    user = None
-
-    class Meta(OrganizationSerializerV1.Meta):
-        exclude = (*OrganizationSerializerV1.Meta.exclude, "user")
 
 
 class OrganizationListSerializer(serializers.HyperlinkedModelSerializer):

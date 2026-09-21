@@ -254,6 +254,7 @@ Response
     {
         "url": "https://api.ona.io/api/v2/orgs/modilabs",
         "org": "modilabs",
+        "user": "https://api.ona.io/api/v1/users/modilabs",
         "email": "modilabs@localhost.com",
         "creator": "https://api.ona.io/api/v1/users/demo",
         "metadata": {},
