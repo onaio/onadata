@@ -4,8 +4,11 @@ import json
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
+from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.tools import add_user_to_organization
 from onadata.apps.api.viewsets.v2.organization_profile_viewset import (
@@ -42,17 +45,8 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
                 {
                     "url": "http://testserver/api/v2/orgs/denoinc",
                     "org": "denoinc",
-                    "user": "http://testserver/api/v1/users/denoinc",
-                    "creator": "http://testserver/api/v1/users/bob",
                     "name": "Dennis",
-                    "city": "Denoville",
-                    "country": "US",
-                    "home_page": "deno.com",
-                    "twitter": "denoinc",
-                    "description": "",
-                    "require_auth": False,
-                    "address": "",
-                    "phonenumber": "",
+                    "creator": "http://testserver/api/v1/users/bob",
                     "num_of_submissions": 0,
                     "date_modified": timezone.localtime(
                         self.organization.date_modified
@@ -60,6 +54,28 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
                 }
             ],
         )
+
+    def test_query_count(self):
+        """The number of queries does not grow with the organizations listed"""
+        self._org_create({"org": "alpha", "name": "Alpha"})
+        self._org_create({"org": "bravo", "name": "Bravo"})
+        # Warm up what is cached once, such as content types
+        self.view(self.factory.get("/", **self.extra))
+
+        with CaptureQueriesContext(connection) as queries_for_two:
+            response = self.view(self.factory.get("/", **self.extra))
+
+        self.assertEqual(len(response.data), 2)
+
+        self._org_create({"org": "charlie", "name": "Charlie"})
+        self._org_create({"org": "delta", "name": "Delta"})
+        self._org_create({"org": "echo", "name": "Echo"})
+
+        with CaptureQueriesContext(connection) as queries_for_five:
+            response = self.view(self.factory.get("/", **self.extra))
+
+        self.assertEqual(len(response.data), 5)
+        self.assertEqual(len(queries_for_five), len(queries_for_two))
 
     def test_inactive_organization(self):
         """An inactive organization is left out"""
@@ -440,7 +456,6 @@ class GetOrganizationTestCase(TestAbstractViewSet):
             {
                 "url": "http://testserver/api/v2/orgs/denoinc",
                 "org": "denoinc",
-                "user": "http://testserver/api/v1/users/denoinc",
                 "email": "mail@mail-server.org",
                 "creator": "http://testserver/api/v1/users/bob",
                 "metadata": {},
@@ -510,6 +525,135 @@ class GetOrganizationTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.data["current_user_role"])
+
+
+class CreateOrganizationTestCase(TestAbstractViewSet):
+    """Tests for POST an organization"""
+
+    def tearDown(self):
+        """Clear the cache between tests"""
+        super().tearDown()
+        cache.clear()
+
+    def test_create(self):
+        """POST creates an organization"""
+        view = OrganizationProfileViewSet.as_view({"post": "create"})
+        data = {
+            "org": "denoinc",
+            "name": "Dennis",
+            "email": "mail@mail-server.org",
+            "city": "Denoville",
+            "country": "US",
+            "home_page": "deno.com",
+            "twitter": "denoinc",
+        }
+
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+        organization = OrganizationProfile.objects.get(user__username="denoinc")
+        self.assertEqual(
+            response.data,
+            {
+                "url": "http://testserver/api/v2/orgs/denoinc",
+                "org": "denoinc",
+                "email": "mail@mail-server.org",
+                "creator": "http://testserver/api/v1/users/bob",
+                "metadata": {},
+                "name": "Dennis",
+                "encryption_keys": [],
+                "city": "Denoville",
+                "country": "US",
+                "home_page": "deno.com",
+                "twitter": "denoinc",
+                "description": "",
+                "require_auth": False,
+                "address": "",
+                "phonenumber": "",
+                "num_of_submissions": 0,
+                "date_modified": timezone.localtime(
+                    organization.date_modified
+                ).isoformat(),
+            },
+        )
+
+
+class UpdateOrganizationTestCase(TestAbstractViewSet):
+    """Tests for PATCH an organization"""
+
+    def tearDown(self):
+        """Clear the cache between tests"""
+        super().tearDown()
+        cache.clear()
+
+    def test_patch(self):
+        """PATCH updates an organization"""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"patch": "partial_update"})
+
+        request = self.factory.patch(
+            "/",
+            data=json.dumps({"city": "Nairobi"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.organization.refresh_from_db()
+        self.assertEqual(
+            response.data,
+            {
+                "url": "http://testserver/api/v2/orgs/denoinc",
+                "org": "denoinc",
+                "email": "mail@mail-server.org",
+                "creator": "http://testserver/api/v1/users/bob",
+                "metadata": {},
+                "name": "Dennis",
+                "encryption_keys": [],
+                "city": "Nairobi",
+                "country": "US",
+                "home_page": "deno.com",
+                "twitter": "denoinc",
+                "description": "",
+                "require_auth": False,
+                "address": "",
+                "phonenumber": "",
+                "num_of_submissions": 0,
+                "date_modified": timezone.localtime(
+                    self.organization.date_modified
+                ).isoformat(),
+            },
+        )
+
+
+class DeleteOrganizationTestCase(TestAbstractViewSet):
+    """Tests for DELETE an organization"""
+
+    def tearDown(self):
+        """Clear the cache between tests"""
+        super().tearDown()
+        cache.clear()
+
+    def test_delete(self):
+        """DELETE removes an organization"""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view(
+            {"delete": "destroy", "get": "retrieve"}
+        )
+
+        request = self.factory.delete("/", **self.extra)
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 204)
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 404)
 
 
 class OrganizationMembersTestCase(TestAbstractViewSet):

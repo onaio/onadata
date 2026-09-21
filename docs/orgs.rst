@@ -115,38 +115,22 @@ Response
         {
             "url": "https://api.ona.io/api/v2/orgs/healthorg",
             "org": "healthorg",
-            "user": "https://api.ona.io/api/v1/users/healthorg",
-            "creator": "https://api.ona.io/api/v1/users/demo",
             "name": "Health Organization",
-            "city": "Nairobi",
-            "country": "KE",
-            "home_page": "",
-            "twitter": "",
-            "description": "",
-            "require_auth": false,
-            "address": "",
-            "phonenumber": "",
+            "creator": "https://api.ona.io/api/v1/users/demo",
             "num_of_submissions": 120,
             "date_modified": "2026-09-18T12:00:00.000000Z"
         },
         {
             "url": "https://api.ona.io/api/v2/orgs/modilabs",
             "org": "modilabs",
-            "user": "https://api.ona.io/api/v1/users/modilabs",
-            "creator": "https://api.ona.io/api/v1/users/demo",
             "name": "Modi Labs Research",
-            "city": "New York",
-            "country": "US",
-            "home_page": "",
-            "twitter": "",
-            "description": "",
-            "require_auth": false,
-            "address": "",
-            "phonenumber": "",
+            "creator": "https://api.ona.io/api/v1/users/demo",
             "num_of_submissions": 0,
             "date_modified": "2026-09-18T12:00:00.000000Z"
         }
     ]
+
+An organization's profile, such as its city and description, is returned when the organization is retrieved, see `Retrieve Organization Profile Information (v2)`_.
 
 
 Search Organizations (v2)
@@ -270,7 +254,6 @@ Response
     {
         "url": "https://api.ona.io/api/v2/orgs/modilabs",
         "org": "modilabs",
-        "user": "https://api.ona.io/api/v1/users/modilabs",
         "email": "modilabs@localhost.com",
         "creator": "https://api.ona.io/api/v1/users/demo",
         "metadata": {},

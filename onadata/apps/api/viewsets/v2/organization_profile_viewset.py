@@ -5,7 +5,9 @@ OrganizationProfile viewset for v2 API
 import json
 
 from rest_framework.decorators import action
+from rest_framework.exceptions import ParseError
 from rest_framework.filters import SearchFilter
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from onadata.apps.api.tools import (
@@ -35,8 +37,11 @@ from onadata.libs.utils.cache_tools import safe_cache_get, safe_cache_set
 class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
     """List, Retrieve, Update, Create/Register Organizations."""
 
-    # Ordered so that pages neither overlap nor skip records
-    queryset = OrganizationProfileViewSetV1.queryset.order_by("user__username")
+    # Ordered so that pages neither overlap nor skip records. The users are
+    # selected as every organization in a list links to them.
+    queryset = OrganizationProfileViewSetV1.queryset.select_related(
+        "user", "creator"
+    ).order_by("user__username")
     serializer_class = OrganizationSerializer
     filter_backends = (
         OrganizationPermissionFilter,
@@ -57,6 +62,25 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             return OrganizationListSerializer
 
         return super().get_serializer_class()
+
+    def get_object(self, queryset=None):
+        """Get the organization by its username
+
+        Overrides super().get_object(), which reads how to look up the
+        organization from the serializer's `user` field. That field is not
+        returned in v2.
+        """
+        if self.kwargs.get(self.lookup_field) is None:
+            raise ParseError(f"Expected URL keyword argument `{self.lookup_field}`.")
+
+        if queryset is None:
+            queryset = self.filter_queryset(self.get_queryset())
+
+        obj = get_object_or_404(queryset, user__username=self.kwargs[self.lookup_field])
+        # May raise a permission denied
+        self.check_object_permissions(self.request, obj)
+
+        return obj
 
     def retrieve(self, request, *args, **kwargs):
         """Retrieve a single Organization
