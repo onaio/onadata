@@ -491,15 +491,37 @@ class GetOrganizationTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.data["current_user_role"])
 
-    def test_current_user_role_anonymous(self):
-        """`current_user_role` is null for an anonymous user"""
+    def test_anonymous_user(self):
+        """An anonymous user gets the organization without what is for its owners"""
         self._org_create()
 
         request = self.factory.get("/")
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(response.data["current_user_role"])
+        self.assertEqual(
+            response.data,
+            {
+                "url": "http://testserver/api/v2/orgs/denoinc",
+                "org": "denoinc",
+                "user": "http://testserver/api/v1/users/denoinc",
+                "creator": "http://testserver/api/v1/users/bob",
+                "name": "Dennis",
+                "city": "Denoville",
+                "country": "US",
+                "home_page": "deno.com",
+                "twitter": "denoinc",
+                "description": "",
+                "require_auth": False,
+                "address": "",
+                "phonenumber": "",
+                "num_of_submissions": 0,
+                "date_modified": timezone.localtime(
+                    self.organization.date_modified
+                ).isoformat(),
+                "current_user_role": None,
+            },
+        )
 
     def test_current_user_role_not_cached(self):
         """`current_user_role` is the role of the user making the request
@@ -592,6 +614,22 @@ class CreateOrganizationTestCase(TestAbstractViewSet):
             cache.get(f"{ORG_PROFILE_V2_CACHE}denoinc-owner"), expected_cache
         )
 
+    def test_anonymous_user(self):
+        """An anonymous user cannot create an organization"""
+        view = OrganizationProfileViewSet.as_view({"post": "create"})
+
+        request = self.factory.post(
+            "/",
+            data=json.dumps({"org": "denoinc", "name": "Dennis"}),
+            content_type="application/json",
+        )
+        response = view(request)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(
+            OrganizationProfile.objects.filter(user__username="denoinc").exists()
+        )
+
 
 class UpdateOrganizationTestCase(TestAbstractViewSet):
     """Tests for PATCH an organization"""
@@ -651,6 +689,20 @@ class UpdateOrganizationTestCase(TestAbstractViewSet):
             cache.get(f"{ORG_PROFILE_V2_CACHE}denoinc-owner"), expected_cache
         )
 
+    def test_anonymous_user(self):
+        """An anonymous user cannot update an organization"""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"patch": "partial_update"})
+
+        request = self.factory.patch(
+            "/", data=json.dumps({"city": "Nairobi"}), content_type="application/json"
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 401)
+        self.organization.refresh_from_db()
+        self.assertEqual(self.organization.city, "Denoville")
+
 
 class DeleteOrganizationTestCase(TestAbstractViewSet):
     """Tests for DELETE an organization"""
@@ -676,6 +728,19 @@ class DeleteOrganizationTestCase(TestAbstractViewSet):
         response = view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_user(self):
+        """An anonymous user cannot delete an organization"""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "destroy"})
+
+        request = self.factory.delete("/")
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(
+            OrganizationProfile.objects.filter(user__username="denoinc").exists()
+        )
 
 
 class GetOrganizationMemberListTestCase(TestAbstractViewSet):
@@ -758,6 +823,16 @@ class GetOrganizationMemberListTestCase(TestAbstractViewSet):
             [("alice", "member"), ("bob", "owner"), ("denoinc", "owner")],
         )
 
+    def test_anonymous_user(self):
+        """An anonymous user cannot list the members"""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"get": "members"})
+
+        request = self.factory.get("/")
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 404)
+
 
 class AddOrganizationMemberTestCase(TestAbstractViewSet):
     """Tests for POST a member of an organization"""
@@ -824,6 +899,27 @@ class AddOrganizationMemberTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(sorted(response.data), ["aboy", "denoinc"])
+
+    def test_anonymous_user(self):
+        """An anonymous user cannot add a member"""
+        self._org_create()
+        self.profile_data["username"] = "aboy"
+        self._create_user_profile()
+        view = OrganizationProfileViewSet.as_view({"get": "members", "post": "members"})
+
+        request = self.factory.post(
+            "/", data=json.dumps({"username": "aboy"}), content_type="application/json"
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 401)
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="denoinc")
+
+        self.assertEqual(
+            [member["user"] for member in response.data], ["bob", "denoinc"]
+        )
 
     def test_not_owner(self):
         """Only an owner of the organization can add a member"""
@@ -903,6 +999,31 @@ class UpdateOrganizationMemberTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"role": ["This field is required."]})
+
+    def test_anonymous_user(self):
+        """An anonymous user cannot update a member"""
+        self._org_create()
+        self.profile_data["username"] = "aboy"
+        aboy = self._create_user_profile().user
+        add_user_to_organization(self.organization, aboy)
+        view = OrganizationProfileViewSet.as_view({"get": "members", "put": "members"})
+
+        request = self.factory.put(
+            "/",
+            data=json.dumps({"username": "aboy", "role": "editor"}),
+            content_type="application/json",
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 401)
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="denoinc")
+
+        self.assertEqual(
+            [(member["user"], member["role"]) for member in response.data],
+            [("aboy", "member"), ("bob", "owner"), ("denoinc", "owner")],
+        )
 
     def test_remove(self):
         """PUT with `remove` removes a member from the organization"""
