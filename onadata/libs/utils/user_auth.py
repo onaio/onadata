@@ -9,6 +9,7 @@ from functools import wraps
 from django.apps import apps
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.sites.models import Site
+from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 
@@ -288,17 +289,11 @@ def invalidate_and_regen_tokens(user):
     Invalidates a users Access and Temp tokens and
     generates new ones
     """
-    try:
+    with transaction.atomic():
         TempToken.objects.filter(user=user).delete()
-    except TempToken.DoesNotExist:
-        pass
-
-    try:
         Token.objects.filter(user=user).delete()
-    except Token.DoesNotExist:
-        pass
 
-    access_token = Token.objects.create(user=user).key
-    temp_token = TempToken.objects.create(user=user).key
+        access_token = Token.objects.create(user=user).key
+        temp_token = TempToken.objects.create(user=user).key
 
     return {"access_token": access_token, "temp_token": temp_token}
