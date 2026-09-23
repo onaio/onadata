@@ -78,7 +78,6 @@ class OrganizationListSerializer(serializers.HyperlinkedModelSerializer):
             "org",
             "user",
             "name",
-            "num_of_submissions",
             "date_modified",
         )
 
