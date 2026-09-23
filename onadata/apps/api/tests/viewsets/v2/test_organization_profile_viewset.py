@@ -47,7 +47,6 @@ class GetOrganizationListTestCase(TestAbstractViewSet):
                     "org": "denoinc",
                     "user": "http://testserver/api/v1/users/denoinc",
                     "name": "Dennis",
-                    "num_of_submissions": 0,
                     "date_modified": timezone.localtime(
                         self.organization.date_modified
                     ).isoformat(),

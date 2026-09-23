@@ -117,7 +117,6 @@ Response
             "org": "healthorg",
             "user": "https://api.ona.io/api/v1/users/healthorg",
             "name": "Health Organization",
-            "num_of_submissions": 120,
             "date_modified": "2026-09-18T12:00:00.000000Z"
         },
         {
@@ -125,7 +124,6 @@ Response
             "org": "modilabs",
             "user": "https://api.ona.io/api/v1/users/modilabs",
             "name": "Modi Labs Research",
-            "num_of_submissions": 0,
             "date_modified": "2026-09-18T12:00:00.000000Z"
         }
     ]
