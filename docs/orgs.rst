@@ -384,7 +384,7 @@ An owner of the organization adds a member, changes the role of a member and rem
 - ``remove`` - When updating a member, ``true`` removes the member from the organization.
 - ``email_msg`` and ``email_subject`` - An email with this message is sent to the member. ``email_subject`` is optional.
 
-A member is added with ``POST``. The role of a member is changed, or the member is removed, with ``PUT`` or ``PATCH``. Each request returns the usernames of the organization's members. Get their roles from `List Organization members (v2)`_.
+A member is added with ``POST``. The role of a member is changed, or the member is removed, with ``PUT`` or ``PATCH``. Adding or updating a member returns the member, as in `List Organization members (v2)`_. Removing a member returns ``204 No Content``.
 
 .. raw:: html
 
@@ -414,7 +414,13 @@ The response to adding the member:
 
 ::
 
-      ["member1", "modilabs"]
+      {
+          "user": "member1",
+          "role": "editor",
+          "first_name": "Member",
+          "last_name": "One",
+          "gravatar": "https://secure.gravatar.com/avatar/xxxxxx"
+      }
 
 Add a user to an organization
 -----------------------------

@@ -137,7 +137,8 @@ class OrganizationMembersTestCase(TestAbstractViewSet):
             self.url, data={"username": "aboy", "role": "editor"}, format="json"
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(sorted(response.data), ["aboy", "denoinc"])
+        self.assertEqual(response.data["user"], "aboy")
+        self.assertEqual(response.data["role"], "editor")
 
     def test_delete(self):
         """DELETE is not supported. A member is removed by updating."""
