@@ -2,6 +2,8 @@
 OrganizationProfile viewset for v2 API
 """
 
+from django.contrib.auth import get_user_model
+
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
@@ -32,6 +34,9 @@ from onadata.libs.serializers.v2.organization_serializer import (
     OrganizationSerializer,
 )
 from onadata.libs.utils.cache_tools import safe_cache_get, safe_cache_set
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 # pylint: disable=too-many-ancestors
@@ -152,6 +157,12 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
             serializer = self.get_serializer(data=request.data, context=context)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            if serializer.validated_data["remove"]:
+                return Response(status=status.HTTP_204_NO_CONTENT)
+
+            member = User.objects.get(username=serializer.validated_data["username"])
+            serializer = OrganizationMemberListSerializer(member, context=context)
             status_code = (
                 status.HTTP_201_CREATED
                 if request.method == "POST"

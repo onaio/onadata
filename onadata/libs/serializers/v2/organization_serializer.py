@@ -121,12 +121,7 @@ class OrganizationMemberListSerializer(serializers.ModelSerializer):
 
 
 class OrganizationMemberSerializer(OrganizationMemberSerializerV1):
-    """Serializer for adding, updating and removing a member of an Organization
-
-    A member is added on POST. On PUT and PATCH the role of the member is
-    changed, or the member is removed if `remove` is true. The organization
-    and the request are passed in the context.
-    """
+    """Serializer for adding, updating and removing a member of an Organization"""
 
     username = serializers.CharField(max_length=255)
     # Not part of the input: the organization is the one being accessed
@@ -160,3 +155,8 @@ class OrganizationMemberSerializer(OrganizationMemberSerializerV1):
         attrs["remove"] = self._is_remove()
 
         return super().validate(attrs)
+
+    # The view returns the member. super().data returns the usernames of the
+    # members, and only once the input has been validated, which the
+    # browsable API does not do to fill in its form.
+    data = serializers.Serializer.data

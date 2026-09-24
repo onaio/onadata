@@ -844,7 +844,7 @@ class AddOrganizationMemberTestCase(TestAbstractViewSet):
         """POST adds a member to the organization"""
         self._org_create()
         self.profile_data["username"] = "aboy"
-        self._create_user_profile()
+        aboy = self._create_user_profile().user
         view = OrganizationProfileViewSet.as_view({"get": "members", "post": "members"})
 
         request = self.factory.post(
@@ -856,7 +856,16 @@ class AddOrganizationMemberTestCase(TestAbstractViewSet):
         response = view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(sorted(response.data), ["aboy", "denoinc"])
+        self.assertEqual(
+            response.data,
+            {
+                "user": "aboy",
+                "role": "member",
+                "first_name": "Bob",
+                "last_name": "erama",
+                "gravatar": aboy.profile.gravatar,
+            },
+        )
 
         request = self.factory.get("/", **self.extra)
         response = view(request, user="denoinc")
@@ -884,7 +893,7 @@ class AddOrganizationMemberTestCase(TestAbstractViewSet):
         """POST adds the member even when `remove` is sent"""
         self._org_create()
         self.profile_data["username"] = "aboy"
-        self._create_user_profile()
+        aboy = self._create_user_profile().user
         view = OrganizationProfileViewSet.as_view({"post": "members"})
 
         request = self.factory.post(
@@ -896,7 +905,16 @@ class AddOrganizationMemberTestCase(TestAbstractViewSet):
         response = view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(sorted(response.data), ["aboy", "denoinc"])
+        self.assertEqual(
+            response.data,
+            {
+                "user": "aboy",
+                "role": "member",
+                "first_name": "Bob",
+                "last_name": "erama",
+                "gravatar": aboy.profile.gravatar,
+            },
+        )
 
     def test_anonymous_user(self):
         """An anonymous user cannot add a member"""
@@ -968,7 +986,16 @@ class UpdateOrganizationMemberTestCase(TestAbstractViewSet):
         response = view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(sorted(response.data), ["aboy", "denoinc"])
+        self.assertEqual(
+            response.data,
+            {
+                "user": "aboy",
+                "role": "editor",
+                "first_name": "Bob",
+                "last_name": "erama",
+                "gravatar": aboy.profile.gravatar,
+            },
+        )
 
         request = self.factory.get("/", **self.extra)
         response = view(request, user="denoinc")
@@ -1039,8 +1066,8 @@ class UpdateOrganizationMemberTestCase(TestAbstractViewSet):
         )
         response = view(request, user="denoinc")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, ["denoinc"])
+        self.assertEqual(response.status_code, 204)
+        self.assertIsNone(response.data)
 
         request = self.factory.get("/", **self.extra)
         response = view(request, user="denoinc")
