@@ -2054,6 +2054,105 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(Attachment.objects.count(), 3)
         self.assertEqual(Attachment.objects.filter(name="1335783522563.jpg").count(), 2)
 
+    def _post_enc_edit(self, deprecated_id, media_names=("submission.xml.enc",)):
+        """POST an encrypted edit to the form-level Enketo endpoint."""
+        manifest_file = BytesIO(self._enc_instance_manifest_xml().encode("utf-8"))
+        manifest_file.name = "xml_submission_file"
+        data = {"xml_submission_file": manifest_file}
+
+        for name in media_names:
+            data[name] = InMemoryUploadedFile(
+                file=BytesIO(b"fake-content"),
+                field_name=name,
+                name=name,
+                content_type="application/octet-stream",
+                size=len(b"fake-content"),
+                charset=None,
+            )
+
+        request = self.factory.post(
+            f"/enketo/{self.xform.pk}/submission",
+            data,
+            HTTP_X_OPENROSA_DEPRECATED_ID=deprecated_id,
+        )
+        request.user = AnonymousUser()
+
+        return self.view(request, xform_pk=self.xform.pk)
+
+    def test_edit_managed_submission_via_deprecated_id_header(self):
+        """An encrypted edit replaces the submission named in the header."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        original_uuid = original_instance.uuid
+
+        response = self._post_enc_edit(f"uuid:{original_uuid}")
+
+        self.assertContains(response, "Successful submission", status_code=201)
+        self.assertEqual(Instance.objects.count(), 1)
+        edited_instance = Instance.objects.get()
+        self.assertEqual(edited_instance.pk, original_instance.pk)
+        self.assertEqual(edited_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f")
+        self.assertEqual(edited_instance.xml, self._enc_instance_manifest_xml())
+        history = InstanceHistory.objects.get(xform_instance=edited_instance)
+        self.assertEqual(history.uuid, original_uuid)
+        self.assertEqual(history.xml, original_instance.xml)
+
+    def test_edit_managed_submission_via_deprecated_id_header_multi_request(self):
+        """Media sent in a later request of the same edit is saved."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        deprecated_id = f"uuid:{original_instance.uuid}"
+
+        response = self._post_enc_edit(deprecated_id)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self._post_enc_edit(deprecated_id, media_names=("sunset.png.enc",))
+
+        self.assertContains(
+            response, "Duplicate submission", status_code=status.HTTP_202_ACCEPTED
+        )
+        self.assertEqual(Instance.objects.count(), 1)
+        self.assertEqual(
+            sorted(
+                Attachment.objects.filter(
+                    instance=original_instance, deleted_at__isnull=True
+                ).values_list("name", flat=True)
+            ),
+            ["submission.xml.enc", "sunset.png.enc"],
+        )
+        self.assertEqual(
+            InstanceHistory.objects.filter(xform_instance=original_instance).count(),
+            1,
+        )
+
+    def test_edit_managed_submission_via_deprecated_id_header_permission_denied(
+        self,
+    ):
+        """A user who can submit but not edit cannot replace the submission."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        self.org.user.profile.require_auth = True
+        self.org.user.profile.save(update_fields=["require_auth"])
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        DataEntryRole.add(alice_profile.user, XForm.objects.get(pk=self.xform.pk))
+        manifest_file = BytesIO(self._enc_instance_manifest_xml().encode("utf-8"))
+        manifest_file.name = "xml_submission_file"
+        request = self.factory.post(
+            f"/enketo/{self.xform.pk}/submission",
+            {"xml_submission_file": manifest_file},
+            HTTP_X_OPENROSA_DEPRECATED_ID=f"uuid:{original_instance.uuid}",
+            HTTP_AUTHORIZATION=f"Token {alice_profile.user.auth_token}",
+        )
+
+        response = self.view(request, xform_pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        original_instance.refresh_from_db()
+        self.assertEqual(original_instance.uuid, "a10ead67-7415-47da-b823-0947ab8a8ef0")
+        self.assertEqual(Instance.objects.count(), 1)
+
 
 class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
     """Tests for editing submissions via XFormSubmissionViewSet."""

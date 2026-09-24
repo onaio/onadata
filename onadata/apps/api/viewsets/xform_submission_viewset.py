@@ -3,6 +3,8 @@
 XFormSubmissionViewSet module
 """
 
+from xml.parsers.expat import ExpatError
+
 from django.conf import settings
 from django.http import UnreadablePostError
 from django.shortcuts import get_object_or_404
@@ -17,6 +19,7 @@ from rest_framework.response import Response
 from onadata.apps.api.permissions import IsAuthenticatedSubmission
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Instance
+from onadata.apps.logger.xform_instance_parser import get_deprecated_uuid_from_xml
 from onadata.libs import filters
 from onadata.libs.authentication import (
     DigestAuthentication,
@@ -129,6 +132,11 @@ class XFormSubmissionViewSet(
                 status=status.HTTP_204_NO_CONTENT, template_name=self.template_name
             )
 
+        instance = self._get_deprecated_instance(request, kwargs.get("xform_pk"))
+
+        if instance is not None:
+            return self._edit(instance)
+
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
@@ -143,16 +151,48 @@ class XFormSubmissionViewSet(
                 status=status.HTTP_204_NO_CONTENT, template_name=self.template_name
             )
 
-        instance_pk = kwargs.get("pk")
-        xform_pk = kwargs.get("xform_pk")
         instance = get_object_or_404(
-            Instance,
-            pk=instance_pk,
+            self._get_editable_instances(kwargs.get("xform_pk")), pk=kwargs.get("pk")
+        )
+
+        return self._edit(instance)
+
+    def _get_editable_instances(self, xform_pk):
+        return Instance.objects.filter(
             xform_id=xform_pk,
             xform__deleted_at__isnull=True,
             xform__project__organization__is_active=True,
         )
-        serializer = self.get_serializer(instance, data=request.data)
+
+    def _get_deprecated_instance(self, request, xform_pk):
+        """Return the submission replaced by an edit whose XML does not name it.
+
+        The deprecatedID of an encrypted edit is inside the encrypted file, so
+        the X-OpenRosa-Deprecated-Id header Enketo sends is used instead.
+        """
+        deprecated_id = request.headers.get("X-OpenRosa-Deprecated-Id")
+        xml_file = request.FILES.get("xml_submission_file")
+
+        if not (xform_pk and deprecated_id and xml_file):
+            return None
+
+        xml = xml_file.read()
+        xml_file.seek(0)
+
+        try:
+            if get_deprecated_uuid_from_xml(xml):
+                return None
+        except (ExpatError, ValueError):
+            return None
+
+        return (
+            self._get_editable_instances(xform_pk)
+            .filter(uuid=deprecated_id.removeprefix("uuid:"))
+            .first()
+        )
+
+    def _edit(self, instance):
+        serializer = self.get_serializer(instance, data=self.request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         headers = self.get_success_headers(serializer.data)
