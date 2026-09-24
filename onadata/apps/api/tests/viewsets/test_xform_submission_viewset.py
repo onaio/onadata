@@ -2079,8 +2079,8 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
         return self.view(request, xform_pk=self.xform.pk)
 
-    def test_edit_managed_submission_via_deprecated_id_header(self):
-        """An encrypted edit replaces the submission named in the header."""
+    def test_edit_managed_submission(self):
+        """An encrypted edit replaces the original submission."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
         original_uuid = original_instance.uuid
@@ -2097,7 +2097,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(history.uuid, original_uuid)
         self.assertEqual(history.xml, original_instance.xml)
 
-    def test_edit_managed_submission_via_deprecated_id_header_multi_request(self):
+    def test_edit_managed_submission_multi_request(self):
         """Media sent in a later request of the same edit is saved."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
@@ -2125,9 +2125,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             1,
         )
 
-    def test_edit_managed_submission_via_deprecated_id_header_permission_denied(
-        self,
-    ):
+    def test_edit_managed_submission_permission_denied(self):
         """A user who can submit but not edit cannot replace the submission."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
