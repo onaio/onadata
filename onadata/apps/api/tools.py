@@ -46,6 +46,7 @@ from onadata.libs.permissions import (
     ROLES,
     ROLES_ORDERED,
     ManagerRole,
+    MemberRole,
     OwnerRole,
     get_role,
     get_role_in_org,
@@ -58,7 +59,7 @@ from onadata.libs.utils.api_export_tools import (
     get_metadata_format,
 )
 from onadata.libs.utils.cache_tools import (
-    ORG_PROFILE_CACHE,
+    ORG_PROFILE_CACHE_PREFIXES,
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
@@ -806,25 +807,29 @@ def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
     return resp
 
 
-def get_org_profile_cache_key(user, organization):
-    """Return cache key given user and organization profile"""
+def get_org_profile_cache_key(user, organization, api_version="v1"):
+    """Return cache key given user, organization profile and API version"""
+    prefix = ORG_PROFILE_CACHE_PREFIXES[api_version]
     org_username = organization.user.username
 
     if user.is_anonymous:
-        return f"{ORG_PROFILE_CACHE}{org_username}-anon"
+        return f"{prefix}{org_username}-anon"
 
     user_role = get_role_in_org(user, organization)
 
-    return f"{ORG_PROFILE_CACHE}{org_username}-{user_role}"
+    return f"{prefix}{org_username}-{user_role}"
 
 
 def invalidate_organization_cache(org_username):
-    """Set organization cache to none for all roles"""
-    for role in ROLES_ORDERED:
-        key = f"{ORG_PROFILE_CACHE}{org_username}-{role.name}"
-        safe_cache_delete(key)
+    """Set organization cache to none for all roles, in all API versions"""
+    # `member` is the role of a user added to an organization without one
+    roles = [*ROLES, MemberRole.name]
 
-    safe_cache_delete(f"{ORG_PROFILE_CACHE}{org_username}-anon")
+    for prefix in ORG_PROFILE_CACHE_PREFIXES.values():
+        for role in roles:
+            safe_cache_delete(f"{prefix}{org_username}-{role}")
+
+        safe_cache_delete(f"{prefix}{org_username}-anon")
 
 
 def _get_xform_list_cache_key_prefix(xform_or_project):

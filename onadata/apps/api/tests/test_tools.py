@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 
 from onadata.apps.api.models.organization_profile import (
@@ -13,6 +14,8 @@ from onadata.apps.api.models.organization_profile import (
 from onadata.apps.api.tools import (
     add_user_to_organization,
     do_publish_xlsform,
+    get_org_profile_cache_key,
+    invalidate_organization_cache,
     invalidate_xform_list_cache,
     remove_user_from_organization,
 )
@@ -293,3 +296,99 @@ class InvalidateXFormListCacheTestCase(TestBase):
             self.assertIsNone(
                 cache.get(f"xfm-list-{self.xform.project.pk}-Project-{role}")
             )
+
+
+class GetOrgProfileCacheKeyTestCase(TestBase):
+    """Tests for get_org_profile_cache_key"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.org_user = User.objects.create(username="onaorg")
+        self.org = OrganizationProfile.objects.create(
+            user=self.org_user, name="Ona Org", creator=self.user
+        )
+        self.alice = self._create_user("alice", "1234&&")
+
+    def test_v1(self):
+        """The key is for the v1 API by default"""
+        self.assertEqual(
+            get_org_profile_cache_key(self.user, self.org), "org-profile-onaorg-owner"
+        )
+        self.assertEqual(
+            get_org_profile_cache_key(self.user, self.org, "v1"),
+            "org-profile-onaorg-owner",
+        )
+
+    def test_v2(self):
+        """The key for the v2 API differs from that of the v1 API"""
+        self.assertEqual(
+            get_org_profile_cache_key(self.user, self.org, "v2"),
+            "org-v2-profile-onaorg-owner",
+        )
+
+    def test_role(self):
+        """The key is for the role of the user in the organization"""
+        self.assertEqual(
+            get_org_profile_cache_key(self.alice, self.org), "org-profile-onaorg-member"
+        )
+
+        ManagerRole.add(self.alice, self.org)
+
+        self.assertEqual(
+            get_org_profile_cache_key(self.alice, self.org),
+            "org-profile-onaorg-manager",
+        )
+
+    def test_anonymous_user(self):
+        """The key for an anonymous user is not for a role"""
+        self.assertEqual(
+            get_org_profile_cache_key(AnonymousUser(), self.org),
+            "org-profile-onaorg-anon",
+        )
+        self.assertEqual(
+            get_org_profile_cache_key(AnonymousUser(), self.org, "v2"),
+            "org-v2-profile-onaorg-anon",
+        )
+
+
+class InvalidateOrganizationCacheTestCase(TestBase):
+    """Tests for invalidate_organization_cache"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.cache_keys = []
+
+        for prefix in ("org-profile-", "org-v2-profile-"):
+            self.cache_keys.append(f"{prefix}onaorg-anon")
+            # The role of a user added to an organization without one
+            self.cache_keys.append(f"{prefix}onaorg-member")
+
+            for role in ROLES:
+                self.cache_keys.append(f"{prefix}onaorg-{role}")
+
+        # Simulate cached data
+        for key in self.cache_keys:
+            cache.set(key, "data")
+
+    def tearDown(self):
+        super().tearDown()
+        cache.clear()
+
+    def test_cache_invalidated(self):
+        """Cache invalidated for every role, in every API version"""
+        invalidate_organization_cache("onaorg")
+
+        for key in self.cache_keys:
+            self.assertIsNone(cache.get(key), key)
+
+    def test_other_organization(self):
+        """Cache of another organization is not invalidated"""
+        cache.set("org-profile-otherorg-owner", "data")
+        cache.set("org-v2-profile-otherorg-owner", "data")
+
+        invalidate_organization_cache("onaorg")
+
+        self.assertEqual(cache.get("org-profile-otherorg-owner"), "data")
+        self.assertEqual(cache.get("org-v2-profile-otherorg-owner"), "data")

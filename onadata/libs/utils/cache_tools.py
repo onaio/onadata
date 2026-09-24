@@ -92,6 +92,14 @@ def get_bbox_cache_ttl():
 
 # Cache names used in organization profile viewset
 ORG_PROFILE_CACHE = "org-profile-"
+# The key ends with the organization's username, which may contain hyphens. Not
+# named `org-profile-v2-` so that it never matches the v1 key of an
+# organization named `v2-...`
+ORG_PROFILE_V2_CACHE = "org-v2-profile-"
+ORG_PROFILE_CACHE_PREFIXES = {
+    "v1": ORG_PROFILE_CACHE,
+    "v2": ORG_PROFILE_V2_CACHE,
+}
 
 # cache login attempts
 LOCKOUT_IP = "lockout_ip-"
