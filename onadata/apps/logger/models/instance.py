@@ -23,7 +23,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from defusedxml import ElementTree
 from deprecated import deprecated
 from multidb.pinning import use_master
 from taggit.managers import TaggableManager
@@ -35,6 +34,7 @@ from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
     clean_and_parse_xml,
     get_uuid_from_xml,
+    is_encrypted_submission,
 )
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
@@ -825,13 +825,7 @@ class Instance(models.Model, InstanceBaseClass):
 
     def check_encrypted(self) -> bool:
         """Checks if submission XML is encrypted."""
-        try:
-            tree = ElementTree.fromstring(self.xml)
-
-        except ElementTree.ParseError:
-            return False
-
-        return tree.attrib.get("encrypted") == "yes"
+        return is_encrypted_submission(self.xml)
 
     @property
     def num_of_media(self):

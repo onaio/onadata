@@ -2054,549 +2054,326 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(Attachment.objects.count(), 3)
         self.assertEqual(Attachment.objects.filter(name="1335783522563.jpg").count(), 2)
 
+    def _post_enc_submission(
+        self,
+        deprecated_id=None,
+        media_names=("submission.xml.enc",),
+        instance_id=None,
+        **extra,
+    ):
+        """POST an encrypted submission to the form-level Enketo endpoint.
 
-class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
-    """Tests for editing submissions via XFormSubmissionViewSet."""
+        The submission is an edit when ``deprecated_id`` is given.
+        """
+        manifest_xml = self._enc_instance_manifest_xml()
 
-    def setUp(self):
-        super().setUp()
-        self.view = XFormSubmissionViewSet.as_view({"post": "update"})
-        self._publish_xls_form_to_project()
-
-    def test_edit_submission_unmanaged(self):
-        """Editing a submission for a unmanaged form."""
-        # Create initial submission
-        survey = self.surveys[0]
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission(submission_path)
-        self.assertEqual(Instance.objects.count(), 1)
-        instance = Instance.objects.first()
-        original_uuid = instance.uuid
-
-        # Edit the submission
-        edit_submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            f"{survey}_edited.xml",
-        )
-
-        with open(edit_submission_path, "rb") as sf:
-            data = {"xml_submission_file": sf}
-            request = self.factory.post(
-                f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
+        if instance_id:
+            manifest_xml = manifest_xml.replace(
+                "8780874c-fe70-4060-ab6e-c8e5228ed85f", instance_id
             )
-            request.user = AnonymousUser()
-            response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
 
-        self.assertContains(response, "Successful submission", status_code=201)
+        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
+        manifest_file.name = "xml_submission_file"
+        data = {"xml_submission_file": manifest_file}
+
+        for name in media_names:
+            data[name] = InMemoryUploadedFile(
+                file=BytesIO(b"fake-content"),
+                field_name=name,
+                name=name,
+                content_type="application/octet-stream",
+                size=len(b"fake-content"),
+                charset=None,
+            )
+
+        if deprecated_id:
+            extra["HTTP_X_OPENROSA_DEPRECATED_ID"] = deprecated_id
+
+        request = self.factory.post(
+            f"/enketo/{self.xform.pk}/submission", data, **extra
+        )
+
+        if "HTTP_AUTHORIZATION" not in extra:
+            request.user = AnonymousUser()
+
+        return self.view(request, xform_pk=self.xform.pk)
+
+    def _assert_openrosa_response(self, response):
         self.assertTrue(response.has_header("X-OpenRosa-Version"))
         self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
         self.assertTrue(response.has_header("Date"))
         self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
         self.assertEqual(
             response["Location"],
-            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
+            f"http://testserver/enketo/{self.xform.pk}/submission",
         )
-
-        # Verify the submission was edited
-        # The instance count stays the same but the uuid changes
-        self.assertEqual(Instance.objects.count(), 1)
-        edited_instance = Instance.objects.first()
-        new_uuid = "6b2cc313-fc09-437e-8139-fcd32f695d41"
-        self.assertEqual(edited_instance.uuid, new_uuid)
-        self.assertNotEqual(edited_instance.uuid, original_uuid)
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async")
-    @patch("onadata.libs.utils.logger_tools.send_message")
-    def test_edit_submission_managed(self, mock_send_message, mock_decrypt_async):
-        """Editing a submission for a managed form stores encrypted XML as-is."""
+    def test_managed_submission_queued_for_decryption_once(self, mock_decrypt_async):
+        """A managed form's submission is queued for decryption once."""
         self._publish_managed_form()
-        enc_submission_name = "submission.xml.enc"
-        enc_sunset_name = "sunset.png.enc"
-        enc_forest_name = "forest.mp4.enc"
-        fake_content = b"fake-content"
-        manifest_xml = self._enc_instance_manifest_xml()
 
-        # Simulate existing decrypted submission
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._post_enc_submission(
+                media_names=("submission.xml.enc", "sunset.png.enc", "forest.mp4.enc")
+            )
+
+        self.assertContains(response, "Successful submission", status_code=201)
+        mock_decrypt_async.delay.assert_called_once_with(Instance.objects.get().pk)
+
+    @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async")
+    def test_managed_submission_multi_request_queued_for_decryption_once(
+        self, mock_decrypt_async
+    ):
+        """A managed form's submission sent in parts is queued for decryption once."""
+        self._publish_managed_form()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._post_enc_submission()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mock_decrypt_async.delay.assert_not_called()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._post_enc_submission(
+                media_names=("sunset.png.enc", "forest.mp4.enc")
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        mock_decrypt_async.delay.assert_called_once_with(Instance.objects.get().pk)
+
+    @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async")
+    def test_edit_managed_submission(self, mock_decrypt_async):
+        """An edit of a managed form's submission replaces the original."""
+        self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
+        original_uuid = original_instance.uuid
         Attachment.objects.bulk_create(
             [
                 Attachment(
                     instance=original_instance,
-                    mimetype="application/octet-stream",
-                    name=enc_sunset_name,
-                    deleted_at=timezone.now(),
+                    mimetype=mimetype,
+                    name=name,
                     media_file=SimpleUploadedFile(
-                        enc_sunset_name,
-                        fake_content,
-                        content_type="application/octet-stream",
+                        name, b"fake-content", content_type=mimetype
                     ),
-                ),
-                Attachment(
-                    instance=original_instance,
-                    mimetype="application/octet-stream",
-                    name=enc_forest_name,
-                    deleted_at=timezone.now(),
-                    media_file=SimpleUploadedFile(
-                        enc_forest_name,
-                        fake_content,
-                        content_type="application/octet-stream",
-                    ),
-                ),
-                Attachment(
-                    instance=original_instance,
-                    mimetype="application/octet-stream",
-                    name=enc_submission_name,
-                    deleted_at=timezone.now(),
-                    media_file=SimpleUploadedFile(
-                        enc_submission_name,
-                        fake_content,
-                        content_type="application/octet-stream",
-                    ),
-                ),
-                Attachment(
-                    instance=original_instance,
-                    mimetype="image/png",
-                    name="sunset.jpg",
-                    media_file=SimpleUploadedFile(
-                        "sunset.jpg",
-                        fake_content,
-                        content_type="image/png",
-                    ),
-                ),
-                Attachment(
-                    instance=original_instance,
-                    mimetype="video/mp4",
-                    name="forest.mp4",
-                    media_file=SimpleUploadedFile(
-                        "forest.mp4",
-                        fake_content,
-                        content_type="video/mp4",
-                    ),
-                ),
+                )
+                for name, mimetype in [
+                    ("sunset.jpg", "image/png"),
+                    ("forest.mp4", "video/mp4"),
+                ]
             ]
         )
-
-        original_dec_sunset = Attachment.objects.get(name="sunset.jpg")
-        original_dec_forest = Attachment.objects.get(name="forest.mp4")
-        original_uuid = original_instance.uuid
-
-        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
-        manifest_file.name = "xml_submission_file"
-        enc_submission_file = InMemoryUploadedFile(
-            file=BytesIO(fake_content),
-            field_name=enc_submission_name,
-            name=enc_submission_name,
-            content_type="application/octet-stream",
-            size=len(fake_content),
-            charset=None,
-        )
-        enc_sunset_file = InMemoryUploadedFile(
-            file=BytesIO(fake_content),
-            field_name=enc_sunset_name,
-            name=enc_sunset_name,
-            content_type="application/octet-stream",
-            size=len(fake_content),
-            charset=None,
-        )
-        enc_forest_file = InMemoryUploadedFile(
-            file=BytesIO(fake_content),
-            field_name=enc_forest_name,
-            name=enc_forest_name,
-            content_type="application/octet-stream",
-            size=len(fake_content),
-            charset=None,
-        )
-        data = {
-            "xml_submission_file": manifest_file,
-            enc_submission_name: enc_submission_file,
-            enc_sunset_name: enc_sunset_file,
-            enc_forest_name: enc_forest_file,
-        }
+        enc_names = ("submission.xml.enc", "sunset.png.enc", "forest.mp4.enc")
 
         with self.captureOnCommitCallbacks(execute=True):
-            request = self.factory.post(
-                f"/enketo/{self.xform.pk}/{original_instance.pk}/submission", data
-            )
-            request.user = AnonymousUser()
-            response = self.view(
-                request, xform_pk=self.xform.pk, pk=original_instance.pk
+            response = self._post_enc_submission(
+                f"uuid:{original_uuid}", media_names=enc_names
             )
 
         self.assertContains(response, "Successful submission", status_code=201)
-        self.assertTrue(response.has_header("X-OpenRosa-Version"))
-        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
-        self.assertTrue(response.has_header("Date"))
-        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
-        self.assertEqual(
-            response["Location"],
-            f"http://testserver/enketo/{self.xform.pk}/{original_instance.pk}/submission",
-        )
-
-        # Verify the submission was edited
-        self.assertEqual(Instance.objects.count(), 1)
-        edited_instance = Instance.objects.first()
-
+        self._assert_openrosa_response(response)
+        edited_instance = Instance.objects.get()
+        self.assertEqual(edited_instance.pk, original_instance.pk)
         self.assertEqual(edited_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f")
-        self.assertNotEqual(edited_instance.uuid, original_uuid)
         self.assertTrue(edited_instance.is_encrypted)
-        self.assertEqual(edited_instance.xml, manifest_xml)
+        self.assertEqual(edited_instance.xml, self._enc_instance_manifest_xml())
         self.assertTrue(edited_instance.media_all_received)
-
-        # Old submission is stored in InstanceHistory
         history = InstanceHistory.objects.get(xform_instance=edited_instance)
         self.assertEqual(history.uuid, original_uuid)
         self.assertEqual(history.xml, original_instance.xml)
-
-        mock_send_message.assert_called_once_with(
-            instance_id=edited_instance.id,
-            target_id=self.xform.id,
-            target_type="xform",
-            user=None,
-            message_verb="submission_edited",
-        )
-        # Instance is queued for decryption
         mock_decrypt_async.delay.assert_called_once_with(edited_instance.pk)
+        self.assertEqual(
+            sorted(
+                Attachment.objects.filter(
+                    instance=edited_instance, deleted_at__isnull=True
+                ).values_list("name", flat=True)
+            ),
+            sorted(enc_names),
+        )
 
-        # Old attachments are deleted
-        original_dec_sunset.refresh_from_db()
-        original_dec_forest.refresh_from_db()
-        self.assertIsNotNone(original_dec_sunset.deleted_at)
-        self.assertIsNotNone(original_dec_forest.deleted_at)
-
-        # Encrypted files are saved afresh
-        for name in {enc_submission_name, enc_forest_name, enc_sunset_name}:
-            self.assertTrue(
-                Attachment.objects.filter(name=name, deleted_at__isnull=True).exists()
-            )
-
-    def test_edit_managed_duplicate_saves_extra_attachments(self):
-        """Extra attachments sent in a separate request are saved."""
+    def test_edit_managed_submission_multi_request(self):
+        """Media sent later for an edit of a managed form's submission is saved."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
-        manifest_xml = self._enc_instance_manifest_xml()
-        fake_content = b"fake-content"
-        enc_submission_name = "submission.xml.enc"
-        enc_sunset_name = "sunset.png.enc"
+        deprecated_id = f"uuid:{original_instance.uuid}"
 
-        # First request: send manifest + submission.xml.enc only (no media yet)
-        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
-        manifest_file.name = "xml_submission_file"
-        enc_submission_file = InMemoryUploadedFile(
-            file=BytesIO(fake_content),
-            field_name=enc_submission_name,
-            name=enc_submission_name,
-            content_type="application/octet-stream",
-            size=len(fake_content),
-            charset=None,
-        )
-
-        data = {
-            "xml_submission_file": manifest_file,
-            enc_submission_name: enc_submission_file,
-        }
-        request = self.factory.post(
-            f"/enketo/{self.xform.pk}/{original_instance.pk}/submission", data
-        )
-        request.user = AnonymousUser()
-        response = self.view(request, xform_pk=self.xform.pk, pk=original_instance.pk)
+        response = self._post_enc_submission(deprecated_id)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        # Verify the edit was applied
+        response = self._post_enc_submission(
+            deprecated_id, media_names=("sunset.png.enc",)
+        )
+
+        self.assertContains(
+            response, "Duplicate submission", status_code=status.HTTP_202_ACCEPTED
+        )
+        self._assert_openrosa_response(response)
         self.assertEqual(Instance.objects.count(), 1)
-        edited_instance = Instance.objects.first()
+        self.assertEqual(
+            sorted(
+                Attachment.objects.filter(
+                    instance=original_instance, deleted_at__isnull=True
+                ).values_list("name", flat=True)
+            ),
+            ["submission.xml.enc", "sunset.png.enc"],
+        )
+        self.assertEqual(
+            InstanceHistory.objects.filter(xform_instance=original_instance).count(),
+            1,
+        )
+
+    def test_edit_managed_submission_conflict(self):
+        """A stale edit of a managed form's submission is rejected."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        deprecated_id = f"uuid:{original_instance.uuid}"
+        response = self._post_enc_submission(deprecated_id)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self._post_enc_submission(
+            deprecated_id, instance_id="0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11"
+        )
+
+        self.assertContains(
+            response,
+            "Submission has been modified since it was last fetched.",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+        self._assert_openrosa_response(response)
+        edited_instance = Instance.objects.get()
         self.assertEqual(edited_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f")
-        self.assertEqual(Attachment.objects.filter(instance=edited_instance).count(), 1)
 
-        # Second request: same manifest + extra media attachment
-        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
-        manifest_file.name = "xml_submission_file"
-        enc_sunset_file = InMemoryUploadedFile(
-            file=BytesIO(fake_content),
-            field_name=enc_sunset_name,
-            name=enc_sunset_name,
-            content_type="application/octet-stream",
-            size=len(fake_content),
-            charset=None,
+    @override_settings(INSTANCE_EDIT_CONFLICT_RESOLUTION="last_write_wins")
+    def test_edit_managed_submission_conflict_last_write_wins(self):
+        """A stale edit of a managed form's submission wins if last write wins."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        deprecated_id = f"uuid:{original_instance.uuid}"
+        response = self._post_enc_submission(deprecated_id)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self._post_enc_submission(
+            deprecated_id, instance_id="0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11"
         )
 
-        data = {
-            "xml_submission_file": manifest_file,
-            enc_sunset_name: enc_sunset_file,
-        }
-        request = self.factory.post(
-            f"/enketo/{self.xform.pk}/{edited_instance.pk}/submission", data
-        )
-        request.user = AnonymousUser()
-        response = self.view(request, xform_pk=self.xform.pk, pk=edited_instance.pk)
-
-        # Duplicate submission returns 202
-        self.assertEqual(response.status_code, 202)
-        self.assertTrue(response.has_header("X-OpenRosa-Version"))
-        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
-        self.assertTrue(response.has_header("Date"))
-        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertContains(response, "Successful submission", status_code=201)
+        edited_instance = Instance.objects.get()
+        self.assertEqual(edited_instance.pk, original_instance.pk)
+        self.assertEqual(edited_instance.uuid, "0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11")
         self.assertEqual(
-            response["Location"],
-            f"http://testserver/enketo/{self.xform.pk}/{edited_instance.pk}/submission",
+            sorted(
+                InstanceHistory.objects.filter(
+                    xform_instance=edited_instance
+                ).values_list("uuid", flat=True)
+            ),
+            sorted([original_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f"]),
         )
 
-        # Extra attachment should have been saved; both attachments are active
-        att_qs = Attachment.objects.filter(instance=edited_instance)
-        self.assertEqual(att_qs.count(), 2)
-        self.assertTrue(
-            att_qs.filter(name=enc_submission_name, deleted_at__isnull=True).exists()
+    def test_edit_managed_submission_resent_after_later_edit(self):
+        """A managed form's edit resent after a later edit is a duplicate."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        response = self._post_enc_submission(f"uuid:{original_instance.uuid}")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response = self._post_enc_submission(
+            "uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f",
+            instance_id="0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11",
         )
-        self.assertTrue(
-            att_qs.filter(name=enc_sunset_name, deleted_at__isnull=True).exists()
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self._post_enc_submission(f"uuid:{original_instance.uuid}")
+
+        self.assertContains(
+            response, "Duplicate submission", status_code=status.HTTP_202_ACCEPTED
+        )
+        edited_instance = Instance.objects.get()
+        self.assertEqual(edited_instance.uuid, "0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11")
+
+    def test_edit_managed_submission_permission_denied(self):
+        """A submit-only user cannot edit a managed form's submission."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        self.org.user.profile.require_auth = True
+        self.org.user.profile.save(update_fields=["require_auth"])
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        DataEntryRole.add(alice_profile.user, XForm.objects.get(pk=self.xform.pk))
+
+        response = self._post_enc_submission(
+            f"uuid:{original_instance.uuid}",
+            HTTP_AUTHORIZATION=f"Token {alice_profile.user.auth_token}",
         )
 
-    def test_edit_submission_permission_denied(self):
-        """Editing a submission is rejected when user lacks permission."""
-        # Create initial submission
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self._assert_openrosa_response(response)
+        original_instance.refresh_from_db()
+        self.assertEqual(original_instance.uuid, "a10ead67-7415-47da-b823-0947ab8a8ef0")
+        self.assertEqual(Instance.objects.count(), 1)
+
+    def test_edit_managed_submission_of_another_form(self):
+        """An edit on a managed form does not replace another form's submission."""
         survey = self.surveys[0]
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission(submission_path)
-        instance = Instance.objects.first()
-
-        # Require auth on the form
-        self.xform.require_auth = True
-        self.xform.save(update_fields=["require_auth"])
-
-        # Create a second user without submission permission
-        alice_data = {"username": "alice", "email": "alice@localhost.com"}
-        alice_profile = self._create_user_profile(alice_data)
-
-        edit_submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            f"{survey}_edited.xml",
-        )
-
-        with open(edit_submission_path, "rb") as sf:
-            data = {"xml_submission_file": sf}
-            request = self.factory.post(
-                f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
+        self._make_submission(
+            os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                survey,
+                f"{survey}.xml",
             )
-            request.user = alice_profile.user
-            response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
+        )
+        other_instance = Instance.objects.get()
+        other_uuid = other_instance.uuid
+        self._publish_managed_form()
 
-        self.assertEqual(response.status_code, 403)
-        self.assertTrue(response.has_header("X-OpenRosa-Version"))
-        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
-        self.assertTrue(response.has_header("Date"))
-        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
-        self.assertEqual(
-            response["Location"],
-            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
+        response = self._post_enc_submission(f"uuid:{other_uuid}")
+
+        self.assertContains(response, "Successful submission", status_code=201)
+        other_instance.refresh_from_db()
+        self.assertEqual(other_instance.uuid, other_uuid)
+        self.assertFalse(
+            InstanceHistory.objects.filter(xform_instance=other_instance).exists()
+        )
+        self.assertTrue(
+            Instance.objects.filter(
+                xform=self.xform, uuid="8780874c-fe70-4060-ab6e-c8e5228ed85f"
+            ).exists()
         )
 
-    @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=False)
-    def test_edit_encryption_key_not_found_reject(self):
-        """Edit is rejected if encryption key not found."""
+    @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
+    def test_edit_managed_submission_encryption_key_not_found_accept(self):
+        """A managed form's edit is accepted if its key is missing and allowed."""
         self._publish_managed_form()
         instance = self._submit_decrypted_instance()
-        # Remove XFormKey so no key is found for the version
         self.xform.kms_keys.all().delete()
 
-        manifest_xml = self._enc_instance_manifest_xml()
-        xml_file = BytesIO(manifest_xml.encode("utf-8"))
-        xml_file.name = "xml_submission_file"
-        data = {"xml_submission_file": xml_file}
-        request = self.factory.post(
-            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
-        )
-        request.user = AnonymousUser()
-        response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-        self.assertContains(
-            response,
-            "Encryption key does not exist or is disabled.",
-            status_code=400,
-        )
-        self.assertTrue(response.has_header("X-OpenRosa-Version"))
-        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
-        self.assertTrue(response.has_header("Date"))
-        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
-        self.assertEqual(
-            response["Location"],
-            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
-        )
+        response = self._post_enc_submission(f"uuid:{instance.uuid}")
 
-    @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=False)
-    def test_edit_encryption_key_disabled_reject(self):
-        """Edit is rejected if encryption key is disabled."""
+        self.assertContains(response, "Successful submission", status_code=201)
+        self._assert_openrosa_response(response)
+        edited_instance = Instance.objects.get()
+        self.assertEqual(edited_instance.pk, instance.pk)
+        self.assertEqual(edited_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f")
+
+    @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
+    def test_edit_managed_submission_encryption_key_disabled_accept(self):
+        """A managed form's edit is accepted if its key is disabled and allowed."""
         self._publish_managed_form()
         instance = self._submit_decrypted_instance()
-        # Disable the KMSKey
         xform_key = self.xform.kms_keys.first()
         xform_key.kms_key.disabled_at = timezone.now()
         xform_key.kms_key.save(update_fields=["disabled_at"])
 
-        manifest_xml = self._enc_instance_manifest_xml()
-        xml_file = BytesIO(manifest_xml.encode("utf-8"))
-        xml_file.name = "xml_submission_file"
-        data = {"xml_submission_file": xml_file}
-        request = self.factory.post(
-            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
-        )
-        request.user = AnonymousUser()
-        response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-
-        self.assertContains(
-            response,
-            "Encryption key does not exist or is disabled.",
-            status_code=400,
-        )
-        self.assertTrue(response.has_header("X-OpenRosa-Version"))
-        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
-        self.assertTrue(response.has_header("Date"))
-        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
-        self.assertEqual(
-            response["Location"],
-            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
-        )
-
-    @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
-    def test_edit_encryption_key_not_found_accept(self):
-        """Edit is accepted if encryption key not found and setting allows it."""
-        self._publish_managed_form()
-        instance = self._submit_decrypted_instance()
-        # Remove XFormKey so no key is found for the version
-        self.xform.kms_keys.all().delete()
-
-        manifest_xml = self._enc_instance_manifest_xml()
-        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
-        manifest_file.name = "xml_submission_file"
-        fake_content = b"fake-content"
-        enc_submission_file = InMemoryUploadedFile(
-            file=BytesIO(fake_content),
-            field_name="submission.xml.enc",
-            name="submission.xml.enc",
-            content_type="application/octet-stream",
-            size=len(fake_content),
-            charset=None,
-        )
-        data = {
-            "xml_submission_file": manifest_file,
-            "submission.xml.enc": enc_submission_file,
-        }
-        request = self.factory.post(
-            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
-        )
-        request.user = AnonymousUser()
-        response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
+        response = self._post_enc_submission(f"uuid:{instance.uuid}")
 
         self.assertContains(response, "Successful submission", status_code=201)
-        self.assertTrue(response.has_header("X-OpenRosa-Version"))
-        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
-        self.assertTrue(response.has_header("Date"))
-        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
-        self.assertEqual(
-            response["Location"],
-            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
-        )
-
-    @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
-    def test_edit_encryption_key_disabled_accept(self):
-        """Edit is accepted if encryption key is disabled and setting allows it."""
-        self._publish_managed_form()
-        instance = self._submit_decrypted_instance()
-        # Disable the KMSKey
-        xform_key = self.xform.kms_keys.first()
-        xform_key.kms_key.disabled_at = timezone.now()
-        xform_key.kms_key.save(update_fields=["disabled_at"])
-
-        manifest_xml = self._enc_instance_manifest_xml()
-        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
-        manifest_file.name = "xml_submission_file"
-        fake_content = b"fake-content"
-        enc_submission_file = InMemoryUploadedFile(
-            file=BytesIO(fake_content),
-            field_name="submission.xml.enc",
-            name="submission.xml.enc",
-            content_type="application/octet-stream",
-            size=len(fake_content),
-            charset=None,
-        )
-        data = {
-            "xml_submission_file": manifest_file,
-            "submission.xml.enc": enc_submission_file,
-        }
-        request = self.factory.post(
-            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
-        )
-        request.user = AnonymousUser()
-        response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-
-        self.assertContains(response, "Successful submission", status_code=201)
-        self.assertTrue(response.has_header("X-OpenRosa-Version"))
-        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
-        self.assertTrue(response.has_header("Date"))
-        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
-        self.assertEqual(
-            response["Location"],
-            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
-        )
-
-    def test_edit_submission_wrong_xform(self):
-        """Editing a submission with a mismatched xform_pk returns 404."""
-        # Create initial submission
-        survey = self.surveys[0]
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission(submission_path)
-        instance = Instance.objects.first()
-
-        # Publish a second form
-        md = """
-        | survey  |
-        |         | type | name | label  |
-        |         | text | city | City?  |
-        """
-        other_xform = self._publish_markdown(md, self.user, id_string="other")
-
-        edit_submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            f"{survey}_edited.xml",
-        )
-
-        with open(edit_submission_path, "rb") as sf:
-            data = {"xml_submission_file": sf}
-            request = self.factory.post(
-                f"/enketo/{other_xform.pk}/{instance.pk}/submission", data
-            )
-            request.user = AnonymousUser()
-            response = self.view(request, xform_pk=other_xform.pk, pk=instance.pk)
-
-        self.assertEqual(response.status_code, 404)
+        self._assert_openrosa_response(response)
+        edited_instance = Instance.objects.get()
+        self.assertEqual(edited_instance.pk, instance.pk)
+        self.assertEqual(edited_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f")
