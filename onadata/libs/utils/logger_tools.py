@@ -179,53 +179,68 @@ def _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml):
     process_submission.send(sender=instance.__class__, instance=instance)
 
 
+def get_edited_instance(xform_id, old_uuid, new_uuid):
+    """Return the submission an edit applies to.
+
+    :param xform_id: The id of the form the edit is submitted to.
+    :param old_uuid: The uuid of the submission the edit replaces.
+    :param new_uuid: The uuid of the edit.
+    :returns: A tuple ``(instance, applied)``. ``instance`` is None when no
+        submission of the form was ever ``old_uuid``, and ``applied`` is True
+        when the edit was already saved.
+    :raises InstanceEditConflictError: When the submission was edited since and
+        the conflict resolution setting rejects the edit.
+    """
+    instance = Instance.objects.filter(uuid=old_uuid, xform_id=xform_id).first()
+
+    if instance:
+        return instance, False
+
+    instance = Instance.objects.filter(uuid=new_uuid, xform_id=xform_id).first()
+
+    if instance:
+        return instance, True
+
+    histories = InstanceHistory.objects.filter(xform_instance__xform_id=xform_id).only(
+        "xform_instance"
+    )
+    history = histories.filter(uuid=new_uuid).first()
+
+    if history:
+        return history.xform_instance, True
+
+    history = histories.filter(uuid=old_uuid).first()
+
+    if history is None:
+        return None, False
+
+    resolution_strategy = getattr(
+        settings, "INSTANCE_EDIT_CONFLICT_RESOLUTION", INSTANCE_EDIT_CONFLICT_REJECT
+    )
+
+    if resolution_strategy == INSTANCE_EDIT_CONFLICT_REJECT:
+        raise InstanceEditConflictError()
+
+    if resolution_strategy != INSTANCE_EDIT_CONFLICT_LAST_WINS:
+        raise ValueError(f"Unsupported resolution strategy: {resolution_strategy}")
+
+    return history.xform_instance, False
+
+
 # pylint: disable=too-many-arguments, too-many-positional-arguments
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=None):
-    def handle_edit_conflict(instance, old_uuid):
-        resolution_strategy = getattr(
-            settings, "INSTANCE_EDIT_CONFLICT_RESOLUTION", INSTANCE_EDIT_CONFLICT_REJECT
-        )
-        if resolution_strategy == INSTANCE_EDIT_CONFLICT_LAST_WINS:
-            _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml)
-        elif resolution_strategy == INSTANCE_EDIT_CONFLICT_REJECT:
-            raise InstanceEditConflictError()
-        else:
-            raise ValueError(f"Unsupported resolution strategy: {resolution_strategy}")
-
-    history = None
     instance = None
     message_verb = SUBMISSION_EDITED
     # check if its an edit submission
     old_uuid = get_deprecated_uuid_from_xml(xml)
 
-    def get_instance_history(uuid):
-        return (
-            InstanceHistory.objects.filter(xform_instance__xform_id=xform.pk, uuid=uuid)
-            .only("xform_instance")
-            .first()
-        )
-
     if old_uuid:
-        instance = Instance.objects.filter(uuid=old_uuid, xform_id=xform.pk).first()
+        instance, applied = get_edited_instance(xform.pk, old_uuid, new_uuid)
 
-        if instance:
+        if instance and not applied:
             _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml)
-        else:
-            history = get_instance_history(new_uuid)
 
-            if history:
-                # Edit was already applied, ignore
-                instance = history.xform_instance
-
-            else:
-                history = get_instance_history(old_uuid)
-
-                if history:
-                    # Conflict edit, resolve conflict
-                    instance = history.xform_instance
-                    handle_edit_conflict(instance, old_uuid)
-
-    if old_uuid is None or (instance is None and history is None):
+    if instance is None:
         # new submission
         message_verb = SUBMISSION_CREATED
         instance = Instance.objects.create(

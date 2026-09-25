@@ -38,6 +38,7 @@ from onadata.libs.utils.logger_tools import (
     create_instance,
     delete_xform_submissions,
     generate_content_disposition_header,
+    get_edited_instance,
     get_storages_media_download_url,
     publish_xls_form,
     publish_xml_form,
@@ -1020,6 +1021,129 @@ class SafeCreateInstanceTestCase(PyxformTestCase, TestBase):
             "Submission has been modified since it was last fetched.",
             str(error.content),
         )
+
+
+class GetEditedInstanceTestCase(TestBase):
+    """Tests for get_edited_instance"""
+
+    old_uuid = "d37ba258-ca63-4773-9535-37c1e7198516"
+    new_uuid = "5feeba39-d3fc-422a-89a9-ecdbe6c0835d"
+    latest_uuid = "f793c627-ce05-4225-8426-b59b86416754"
+
+    def setUp(self):
+        super().setUp()
+        self._create_user_and_login()
+        md = """
+        | survey |      |      |       |
+        |        | type | name | label |
+        |        | text | name | Name  |
+        """
+        self.xform = self._publish_markdown(md, self.user)
+
+    def _create_instance(self, uuid, xform=None):
+        xform = xform or self.xform
+        xml = (
+            f'<data id="{xform.id_string}"><meta>'
+            f"<instanceID>uuid:{uuid}</instanceID></meta></data>"
+        )
+
+        return Instance.objects.create(
+            xform=xform,
+            xml=xml,
+            survey_type=SurveyType.objects.get_or_create(slug="slug-foo")[0],
+        )
+
+    def _edit_instance(self, instance, uuid):
+        """Simulate an edit of ``instance`` to ``uuid``"""
+        InstanceHistory.objects.create(
+            xform_instance=instance, uuid=instance.uuid, xml=instance.xml
+        )
+        instance.xml = instance.xml.replace(instance.uuid, uuid)
+        instance.uuid = uuid
+        instance.save()
+
+    def test_submission_to_edit(self):
+        """The submission with the replaced uuid is returned"""
+        instance = self._create_instance(self.old_uuid)
+
+        self.assertEqual(
+            get_edited_instance(self.xform.pk, self.old_uuid, self.new_uuid),
+            (instance, False),
+        )
+
+    def test_no_submission(self):
+        """None is returned when no submission ever had the replaced uuid"""
+        self._create_instance(self.latest_uuid)
+
+        self.assertEqual(
+            get_edited_instance(self.xform.pk, self.old_uuid, self.new_uuid),
+            (None, False),
+        )
+
+    def test_submission_of_another_form(self):
+        """A submission of another form is not returned"""
+        md = """
+        | survey |      |      |       |
+        |        | type | name | label |
+        |        | text | city | City  |
+        """
+        other_xform = self._publish_markdown(md, self.user, id_string="other")
+        self._create_instance(self.old_uuid, xform=other_xform)
+
+        self.assertEqual(
+            get_edited_instance(self.xform.pk, self.old_uuid, self.new_uuid),
+            (None, False),
+        )
+
+    def test_edit_applied(self):
+        """The submission is returned as applied when the edit was saved"""
+        instance = self._create_instance(self.old_uuid)
+        self._edit_instance(instance, self.new_uuid)
+
+        self.assertEqual(
+            get_edited_instance(self.xform.pk, self.old_uuid, self.new_uuid),
+            (instance, True),
+        )
+
+    def test_edit_applied_and_edited_since(self):
+        """The submission is returned as applied when the edit was superseded"""
+        instance = self._create_instance(self.old_uuid)
+        self._edit_instance(instance, self.new_uuid)
+        self._edit_instance(instance, self.latest_uuid)
+
+        self.assertEqual(
+            get_edited_instance(self.xform.pk, self.old_uuid, self.new_uuid),
+            (instance, True),
+        )
+
+    @override_settings(INSTANCE_EDIT_CONFLICT_RESOLUTION="reject")
+    def test_edit_conflict_reject(self):
+        """An edit of a submission edited since is rejected"""
+        instance = self._create_instance(self.old_uuid)
+        self._edit_instance(instance, self.latest_uuid)
+
+        with self.assertRaises(InstanceEditConflictError):
+            get_edited_instance(self.xform.pk, self.old_uuid, self.new_uuid)
+
+    @override_settings(INSTANCE_EDIT_CONFLICT_RESOLUTION="last_write_wins")
+    def test_edit_conflict_last_write_wins(self):
+        """The submission edited since is returned if the last write wins"""
+        instance = self._create_instance(self.old_uuid)
+        self._edit_instance(instance, self.latest_uuid)
+
+        self.assertEqual(
+            get_edited_instance(self.xform.pk, self.old_uuid, self.new_uuid),
+            (instance, False),
+        )
+
+    @override_settings(INSTANCE_EDIT_CONFLICT_RESOLUTION="unknown")
+    def test_edit_conflict_unknown_resolution(self):
+        """An unknown conflict resolution setting raises an error"""
+        instance = self._create_instance(self.old_uuid)
+        self._edit_instance(instance, self.latest_uuid)
+
+        with self.assertRaises(ValueError):
+            get_edited_instance(self.xform.pk, self.old_uuid, self.new_uuid)
 
 
 class DeleteXFormSubmissionsTestCase(TestBase):
