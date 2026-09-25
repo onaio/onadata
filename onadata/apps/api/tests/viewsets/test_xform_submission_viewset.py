@@ -2055,10 +2055,21 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(Attachment.objects.filter(name="1335783522563.jpg").count(), 2)
 
     def _post_enc_edit(
-        self, deprecated_id, media_names=("submission.xml.enc",), **extra
+        self,
+        deprecated_id,
+        media_names=("submission.xml.enc",),
+        instance_id=None,
+        **extra,
     ):
         """POST an encrypted edit to the form-level Enketo endpoint."""
-        manifest_file = BytesIO(self._enc_instance_manifest_xml().encode("utf-8"))
+        manifest_xml = self._enc_instance_manifest_xml()
+
+        if instance_id:
+            manifest_xml = manifest_xml.replace(
+                "8780874c-fe70-4060-ab6e-c8e5228ed85f", instance_id
+            )
+
+        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
         manifest_file.name = "xml_submission_file"
         data = {"xml_submission_file": manifest_file}
 
@@ -2198,6 +2209,73 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             InstanceHistory.objects.filter(xform_instance=original_instance).count(),
             1,
         )
+
+    def test_edit_managed_submission_conflict(self):
+        """An edit of a submission that was edited since is rejected."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        deprecated_id = f"uuid:{original_instance.uuid}"
+        response = self._post_enc_edit(deprecated_id)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self._post_enc_edit(
+            deprecated_id, instance_id="0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11"
+        )
+
+        self.assertContains(
+            response,
+            "Submission has been modified since it was last fetched.",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+        self._assert_openrosa_response(response)
+        edited_instance = Instance.objects.get()
+        self.assertEqual(edited_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f")
+
+    @override_settings(INSTANCE_EDIT_CONFLICT_RESOLUTION="last_write_wins")
+    def test_edit_managed_submission_conflict_last_write_wins(self):
+        """An edit of a submission that was edited since replaces it."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        deprecated_id = f"uuid:{original_instance.uuid}"
+        response = self._post_enc_edit(deprecated_id)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self._post_enc_edit(
+            deprecated_id, instance_id="0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11"
+        )
+
+        self.assertContains(response, "Successful submission", status_code=201)
+        edited_instance = Instance.objects.get()
+        self.assertEqual(edited_instance.pk, original_instance.pk)
+        self.assertEqual(edited_instance.uuid, "0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11")
+        self.assertEqual(
+            sorted(
+                InstanceHistory.objects.filter(
+                    xform_instance=edited_instance
+                ).values_list("uuid", flat=True)
+            ),
+            sorted([original_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f"]),
+        )
+
+    def test_edit_managed_submission_resent_after_later_edit(self):
+        """An edit sent again after a later edit is a duplicate, not a conflict."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        response = self._post_enc_edit(f"uuid:{original_instance.uuid}")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response = self._post_enc_edit(
+            "uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f",
+            instance_id="0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self._post_enc_edit(f"uuid:{original_instance.uuid}")
+
+        self.assertContains(
+            response, "Duplicate submission", status_code=status.HTTP_202_ACCEPTED
+        )
+        edited_instance = Instance.objects.get()
+        self.assertEqual(edited_instance.uuid, "0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11")
 
     def test_edit_managed_submission_permission_denied(self):
         """A user who can submit but not edit cannot replace the submission."""

@@ -18,7 +18,12 @@ from rest_framework.response import Response
 from onadata.apps.api.permissions import IsAuthenticatedSubmission
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Instance
-from onadata.apps.logger.xform_instance_parser import get_deprecated_uuid_from_xml
+from onadata.apps.logger.models.instance import InstanceHistory
+from onadata.apps.logger.xform_instance_parser import (
+    InstanceEditConflictError,
+    get_deprecated_uuid_from_xml,
+    get_uuid_from_xml,
+)
 from onadata.libs import filters
 from onadata.libs.authentication import (
     DigestAuthentication,
@@ -35,9 +40,14 @@ from onadata.libs.serializers.data_serializer import (
     RapidProSubmissionSerializer,
     SubmissionSerializer,
 )
+from onadata.libs.utils.common_tags import (
+    INSTANCE_EDIT_CONFLICT_LAST_WINS,
+    INSTANCE_EDIT_CONFLICT_REJECT,
+)
 from onadata.libs.utils.logger_tools import (
     OpenRosaNotAuthenticated,
     OpenRosaResponseBadRequest,
+    OpenRosaResponseConflict,
 )
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
@@ -130,7 +140,12 @@ class XFormSubmissionViewSet(
                 status=status.HTTP_204_NO_CONTENT, template_name=self.template_name
             )
 
-        instance = self._get_deprecated_instance(request, kwargs.get("xform_pk"))
+        try:
+            instance = self._get_deprecated_instance(request, kwargs.get("xform_pk"))
+        except InstanceEditConflictError:
+            return OpenRosaResponseConflict(
+                _("Submission has been modified since it was last fetched.")
+            )
 
         if instance is not None:
             return self._edit(instance)
@@ -155,15 +170,58 @@ class XFormSubmissionViewSet(
         try:
             if get_deprecated_uuid_from_xml(xml):
                 return None
+
+            new_uuid = get_uuid_from_xml(xml)
         except (ExpatError, ValueError):
             return None
 
-        return Instance.objects.filter(
+        deprecated_uuid = deprecated_id.removeprefix("uuid:")
+        instances = Instance.objects.filter(
             xform_id=xform_pk,
-            uuid=deprecated_id.removeprefix("uuid:"),
             xform__deleted_at__isnull=True,
             xform__project__organization__is_active=True,
-        ).first()
+        )
+        instance = instances.filter(uuid=deprecated_uuid).first()
+
+        if instance is None:
+            instance = self._get_edited_since_instance(
+                instances, deprecated_uuid, new_uuid
+            )
+
+        return instance
+
+    @staticmethod
+    def _get_edited_since_instance(instances, deprecated_uuid, new_uuid):
+        """Return the submission an edit replaces if it was edited since.
+
+        Raises InstanceEditConflictError unless the last edit should win.
+        """
+        histories = InstanceHistory.objects.filter(xform_instance__in=instances)
+
+        # A later request of an edit already applied is saved as a duplicate
+        if (
+            instances.filter(uuid=new_uuid).exists()
+            or histories.filter(uuid=new_uuid).exists()
+        ):
+            return None
+
+        history = (
+            histories.filter(uuid=deprecated_uuid)
+            .select_related("xform_instance")
+            .first()
+        )
+
+        if history is None:
+            return None
+
+        resolution = getattr(
+            settings, "INSTANCE_EDIT_CONFLICT_RESOLUTION", INSTANCE_EDIT_CONFLICT_REJECT
+        )
+
+        if resolution != INSTANCE_EDIT_CONFLICT_LAST_WINS:
+            raise InstanceEditConflictError()
+
+        return history.xform_instance
 
     def _edit(self, instance):
         serializer = self.get_serializer(instance, data=self.request.data)
