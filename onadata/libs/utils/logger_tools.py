@@ -227,18 +227,50 @@ def get_edited_instance(xform_id, old_uuid, new_uuid):
     return history.xform_instance, False
 
 
+def _get_deprecated_uuid(xml, is_encrypted, request):
+    """Return the uuid of the submission an edit replaces.
+
+    :param xml: The submission XML.
+    :param is_encrypted: Whether the submission is an encrypted envelope.
+    :param request: The submission request.
+    :returns: The deprecatedID in the XML or, for an encrypted envelope whose
+        deprecatedID is inside the encrypted file, the X-OpenRosa-Deprecated-Id
+        header. None when the submission is not an edit.
+    """
+    old_uuid = get_deprecated_uuid_from_xml(xml)
+
+    if old_uuid or not is_encrypted or request is None:
+        return old_uuid
+
+    deprecated_id = request.headers.get("X-OpenRosa-Deprecated-Id", "")
+
+    return deprecated_id.removeprefix("uuid:") or None
+
+
 # pylint: disable=too-many-arguments, too-many-positional-arguments
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=None):
     instance = None
     message_verb = SUBMISSION_EDITED
+    is_encrypted = fromstring(xml).attrib.get("encrypted") == "yes"
     # check if its an edit submission
-    old_uuid = get_deprecated_uuid_from_xml(xml)
+    old_uuid = _get_deprecated_uuid(xml, is_encrypted, request)
 
     if old_uuid:
         instance, applied = get_edited_instance(xform.pk, old_uuid, new_uuid)
 
         if instance and not applied:
-            _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml)
+            if is_encrypted:
+                instance.media_all_received = False
+
+            _edit_instance(
+                instance, instance.uuid, new_uuid, submitted_by, checksum, xml
+            )
+
+            if is_encrypted:
+                # Encrypted files keep their names, so the edit's files replace them
+                instance.attachments.filter(deleted_at__isnull=True).update(
+                    deleted_at=timezone.now()
+                )
 
     if instance is None:
         # new submission
@@ -673,72 +705,6 @@ def create_instance(
     return instance
 
 
-# pylint: disable=too-many-locals
-def edit_instance(
-    request,
-    instance,
-    username,
-    xml_file,
-    media_files,
-    status="submitted_via_web",
-):
-    """Edit an existing Instance"""
-    xform = instance.xform
-    check_submission_permissions(request, xform)
-    xml_content = xml_file.read()
-    xml_file.seek(0)
-    check_encrypted_submission(xml_content, xform)
-
-    is_encrypted = fromstring(xml_content).attrib.get("encrypted") == "yes"
-
-    if is_encrypted and xform.is_was_managed:
-        xml = (
-            xml_content.decode("utf-8")
-            if isinstance(xml_content, bytes)
-            else xml_content
-        )
-        new_uuid = get_uuid_from_xml(xml)
-        checksum = sha256(xml_content).hexdigest()
-        submitted_by = request.user if request.user.is_authenticated else None
-
-        if instance.uuid == new_uuid:
-            # Duplicate submission — save extra attachments only
-            with transaction.atomic():
-                save_attachments(
-                    xform, instance, media_files, remove_deleted_media=True
-                )
-                instance.save(update_fields=["date_modified"])
-
-            raise DuplicateInstance()
-
-        instance.media_all_received = False  # Reset media_all_received
-        _edit_instance(instance, instance.uuid, new_uuid, submitted_by, checksum, xml)
-        # Delete existing attachments as the new attachments should take precedence
-        instance.attachments.filter(deleted_at__isnull=True).update(
-            deleted_at=timezone.now()
-        )
-        save_attachments(xform, instance, media_files, remove_deleted_media=True)
-        send_message(
-            instance_id=instance.id,
-            target_id=xform.id,
-            target_type=XFORM,
-            user=submitted_by,
-            message_verb=SUBMISSION_EDITED,
-        )
-
-        return instance
-
-    # For unmanaged submissions, use the standard create flow
-    return create_instance(
-        username=username,
-        xml_file=xml_file,
-        media_files=media_files,
-        uuid=None,
-        request=request,
-        status=status,
-    )
-
-
 def _create_duplicate_response(request):
     """Create a 202 response for duplicate submissions."""
     response = OpenRosaDuplicateInstance(_("Duplicate submission"))
@@ -847,34 +813,6 @@ def safe_create_instance(  # noqa C901
             "uuid": uuid,
             "request": request,
             "status": instance_status,
-        },
-    )
-
-
-@use_master
-def safe_edit_instance(
-    request,
-    instance,
-    username,
-    xml_file,
-    media_files,
-    status="submitted_via_web",
-):
-    """Edit and Instance and catch exceptions
-
-    :returns: A list [error, instance] where error is None if there was no
-        error.
-    """
-    return safe_instance_op(
-        edit_instance,
-        request=request,
-        op_kwargs={
-            "request": request,
-            "instance": instance,
-            "username": username,
-            "xml_file": xml_file,
-            "media_files": media_files,
-            "status": status,
         },
     )
 

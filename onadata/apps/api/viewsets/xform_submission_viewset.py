@@ -3,8 +3,6 @@
 XFormSubmissionViewSet module
 """
 
-from xml.parsers.expat import ExpatError
-
 from django.conf import settings
 from django.http import UnreadablePostError
 from django.utils.translation import gettext as _
@@ -17,12 +15,7 @@ from rest_framework.response import Response
 
 from onadata.apps.api.permissions import IsAuthenticatedSubmission
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.logger.models import Instance, XForm
-from onadata.apps.logger.xform_instance_parser import (
-    InstanceEditConflictError,
-    get_deprecated_uuid_from_xml,
-    get_uuid_from_xml,
-)
+from onadata.apps.logger.models import Instance
 from onadata.libs import filters
 from onadata.libs.authentication import (
     DigestAuthentication,
@@ -42,8 +35,6 @@ from onadata.libs.serializers.data_serializer import (
 from onadata.libs.utils.logger_tools import (
     OpenRosaNotAuthenticated,
     OpenRosaResponseBadRequest,
-    OpenRosaResponseConflict,
-    get_edited_instance,
 )
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
@@ -136,66 +127,7 @@ class XFormSubmissionViewSet(
                 status=status.HTTP_204_NO_CONTENT, template_name=self.template_name
             )
 
-        try:
-            instance = self._get_deprecated_instance(request, kwargs.get("xform_pk"))
-        except InstanceEditConflictError:
-            return OpenRosaResponseConflict(
-                _("Submission has been modified since it was last fetched.")
-            )
-
-        if instance is not None:
-            return self._edit(instance)
-
         return super().create(request, *args, **kwargs)
-
-    def _get_deprecated_instance(self, request, xform_pk):
-        """Return the submission replaced by an edit whose XML does not name it.
-
-        The deprecatedID of an encrypted edit is inside the encrypted file, so
-        the X-OpenRosa-Deprecated-Id header Enketo sends is used instead. An edit
-        whose XML names the submission is left to the normal submission path,
-        which reads the deprecatedID from the XML.
-        """
-        deprecated_id = request.headers.get("X-OpenRosa-Deprecated-Id")
-        xml_file = request.FILES.get("xml_submission_file")
-
-        if not (xform_pk and deprecated_id and xml_file):
-            return None
-
-        xml = xml_file.read()
-        xml_file.seek(0)
-
-        try:
-            if get_deprecated_uuid_from_xml(xml):
-                return None
-
-            new_uuid = get_uuid_from_xml(xml)
-        except (ExpatError, ValueError):
-            return None
-
-        if not XForm.objects.filter(
-            pk=xform_pk,
-            deleted_at__isnull=True,
-            project__organization__is_active=True,
-        ).exists():
-            return None
-
-        instance, applied = get_edited_instance(
-            xform_pk, deprecated_id.removeprefix("uuid:"), new_uuid
-        )
-
-        # A later request of an edit already applied is saved as a duplicate
-        return None if applied else instance
-
-    def _edit(self, instance):
-        serializer = self.get_serializer(instance, data=self.request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        headers = self.get_success_headers(serializer.data)
-
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
 
     def handle_exception(self, exc):
         """
