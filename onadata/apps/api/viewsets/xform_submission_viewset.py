@@ -152,7 +152,9 @@ class XFormSubmissionViewSet(
         """Return the submission replaced by an edit whose XML does not name it.
 
         The deprecatedID of an encrypted edit is inside the encrypted file, so
-        the X-OpenRosa-Deprecated-Id header Enketo sends is used instead.
+        the X-OpenRosa-Deprecated-Id header Enketo sends is used instead. An edit
+        whose XML names the submission is left to the normal submission path,
+        which reads the deprecatedID from the XML.
         """
         deprecated_id = request.headers.get("X-OpenRosa-Deprecated-Id")
         xml_file = request.FILES.get("xml_submission_file")
