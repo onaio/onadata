@@ -75,6 +75,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_deprecated_uuid_from_xml,
     get_submission_date_from_xml,
     get_uuid_from_xml,
+    is_encrypted_submission,
 )
 from onadata.apps.messaging.constants import (
     SUBMISSION_CREATED,
@@ -251,7 +252,7 @@ def _get_deprecated_uuid(xml, is_encrypted, request):
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=None):
     instance = None
     message_verb = SUBMISSION_EDITED
-    is_encrypted = fromstring(xml).attrib.get("encrypted") == "yes"
+    is_encrypted = is_encrypted_submission(xml)
     # check if its an edit submission
     old_uuid = _get_deprecated_uuid(xml, is_encrypted, request)
 

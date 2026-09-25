@@ -18,6 +18,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_entity_nodes_from_xml,
     get_meta_from_xml,
     get_uuid_from_xml,
+    is_encrypted_submission,
     xpath_from_xml_node,
 )
 from onadata.apps.main.tests.test_base import TestBase
@@ -304,6 +305,30 @@ class TestXFormInstanceParser(TestBase):
             self.assertEqual(3, len(xml_dict["#document"]["RW_OUNIS_2016"]["S2A"]))
             with open(json_file) as file:
                 self.assertEqual(json.loads(file.read()), xml_dict)
+
+
+class IsEncryptedSubmissionTestCase(SimpleTestCase):
+    """Tests for is_encrypted_submission"""
+
+    def test_encrypted_submission(self):
+        """An encrypted envelope is encrypted"""
+        xml = (
+            '<data xmlns="http://opendatakit.org/submissions" encrypted="yes" '
+            'id="nature"><base64EncryptedKey>key</base64EncryptedKey>'
+            "<encryptedXmlFile>submission.xml.enc</encryptedXmlFile></data>"
+        )
+
+        self.assertTrue(is_encrypted_submission(xml))
+
+    def test_unencrypted_submission(self):
+        """A plain submission is not encrypted"""
+        xml = '<data id="nature"><name>Sunset</name></data>'
+
+        self.assertFalse(is_encrypted_submission(xml))
+
+    def test_invalid_xml(self):
+        """XML that cannot be parsed is not encrypted"""
+        self.assertFalse(is_encrypted_submission("<data encrypted="))
 
 
 class GetEntityNodesFromXmlTestCase(SimpleTestCase):
