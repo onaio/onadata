@@ -2054,14 +2054,17 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(Attachment.objects.count(), 3)
         self.assertEqual(Attachment.objects.filter(name="1335783522563.jpg").count(), 2)
 
-    def _post_enc_edit(
+    def _post_enc_submission(
         self,
-        deprecated_id,
+        deprecated_id=None,
         media_names=("submission.xml.enc",),
         instance_id=None,
         **extra,
     ):
-        """POST an encrypted edit to the form-level Enketo endpoint."""
+        """POST an encrypted submission to the form-level Enketo endpoint.
+
+        The submission is an edit when ``deprecated_id`` is given.
+        """
         manifest_xml = self._enc_instance_manifest_xml()
 
         if instance_id:
@@ -2083,11 +2086,11 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 charset=None,
             )
 
+        if deprecated_id:
+            extra["HTTP_X_OPENROSA_DEPRECATED_ID"] = deprecated_id
+
         request = self.factory.post(
-            f"/enketo/{self.xform.pk}/submission",
-            data,
-            HTTP_X_OPENROSA_DEPRECATED_ID=deprecated_id,
-            **extra,
+            f"/enketo/{self.xform.pk}/submission", data, **extra
         )
 
         if "HTTP_AUTHORIZATION" not in extra:
@@ -2104,6 +2107,20 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             response["Location"],
             f"http://testserver/enketo/{self.xform.pk}/submission",
         )
+
+    @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async")
+    def test_managed_submission_queued_for_decryption_once(self, mock_decrypt_async):
+        """A managed form's submission is queued for decryption once."""
+        self._publish_managed_form()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._post_enc_submission(
+                media_names=("submission.xml.enc", "sunset.png.enc", "forest.mp4.enc")
+            )
+
+        self.assertContains(response, "Successful submission", status_code=201)
+        mock_decrypt_async.delay.assert_called_once_with(Instance.objects.get().pk)
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async")
@@ -2131,7 +2148,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         enc_names = ("submission.xml.enc", "sunset.png.enc", "forest.mp4.enc")
 
         with self.captureOnCommitCallbacks(execute=True):
-            response = self._post_enc_edit(
+            response = self._post_enc_submission(
                 f"uuid:{original_uuid}", media_names=enc_names
             )
 
@@ -2162,10 +2179,12 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         original_instance = self._submit_decrypted_instance()
         deprecated_id = f"uuid:{original_instance.uuid}"
 
-        response = self._post_enc_edit(deprecated_id)
+        response = self._post_enc_submission(deprecated_id)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        response = self._post_enc_edit(deprecated_id, media_names=("sunset.png.enc",))
+        response = self._post_enc_submission(
+            deprecated_id, media_names=("sunset.png.enc",)
+        )
 
         self.assertContains(
             response, "Duplicate submission", status_code=status.HTTP_202_ACCEPTED
@@ -2190,10 +2209,10 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
         deprecated_id = f"uuid:{original_instance.uuid}"
-        response = self._post_enc_edit(deprecated_id)
+        response = self._post_enc_submission(deprecated_id)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        response = self._post_enc_edit(
+        response = self._post_enc_submission(
             deprecated_id, instance_id="0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11"
         )
 
@@ -2212,10 +2231,10 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
         deprecated_id = f"uuid:{original_instance.uuid}"
-        response = self._post_enc_edit(deprecated_id)
+        response = self._post_enc_submission(deprecated_id)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        response = self._post_enc_edit(
+        response = self._post_enc_submission(
             deprecated_id, instance_id="0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11"
         )
 
@@ -2236,15 +2255,15 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         """A managed form's edit resent after a later edit is a duplicate."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
-        response = self._post_enc_edit(f"uuid:{original_instance.uuid}")
+        response = self._post_enc_submission(f"uuid:{original_instance.uuid}")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        response = self._post_enc_edit(
+        response = self._post_enc_submission(
             "uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f",
             instance_id="0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11",
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        response = self._post_enc_edit(f"uuid:{original_instance.uuid}")
+        response = self._post_enc_submission(f"uuid:{original_instance.uuid}")
 
         self.assertContains(
             response, "Duplicate submission", status_code=status.HTTP_202_ACCEPTED
@@ -2263,7 +2282,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         DataEntryRole.add(alice_profile.user, XForm.objects.get(pk=self.xform.pk))
 
-        response = self._post_enc_edit(
+        response = self._post_enc_submission(
             f"uuid:{original_instance.uuid}",
             HTTP_AUTHORIZATION=f"Token {alice_profile.user.auth_token}",
         )
@@ -2291,7 +2310,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         other_uuid = other_instance.uuid
         self._publish_managed_form()
 
-        response = self._post_enc_edit(f"uuid:{other_uuid}")
+        response = self._post_enc_submission(f"uuid:{other_uuid}")
 
         self.assertContains(response, "Successful submission", status_code=201)
         other_instance.refresh_from_db()
@@ -2312,7 +2331,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         instance = self._submit_decrypted_instance()
         self.xform.kms_keys.all().delete()
 
-        response = self._post_enc_edit(f"uuid:{instance.uuid}")
+        response = self._post_enc_submission(f"uuid:{instance.uuid}")
 
         self.assertContains(response, "Successful submission", status_code=201)
         self._assert_openrosa_response(response)
@@ -2329,7 +2348,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         xform_key.kms_key.disabled_at = timezone.now()
         xform_key.kms_key.save(update_fields=["disabled_at"])
 
-        response = self._post_enc_edit(f"uuid:{instance.uuid}")
+        response = self._post_enc_submission(f"uuid:{instance.uuid}")
 
         self.assertContains(response, "Successful submission", status_code=201)
         self._assert_openrosa_response(response)
