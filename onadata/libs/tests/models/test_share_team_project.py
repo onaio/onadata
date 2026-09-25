@@ -2,13 +2,16 @@
 
 from unittest.mock import call, patch
 
+from guardian.shortcuts import get_perms
+
 from onadata.apps.api.models import Team
 from onadata.apps.api.tools import add_user_to_team
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.models.share_team_project import ShareTeamProject
-from onadata.libs.permissions import ManagerRole
+from onadata.libs.permissions import ManagerRole, ReadOnlyRole
+from onadata.libs.tests.models.dataview_test_utils import create_cross_project_dataview
 from onadata.libs.utils.cache_tools import (
     PROJ_TEAM_USERS_CACHE,
     safe_cache_get,
@@ -37,6 +40,14 @@ class ShareTeamProjectTestCase(TestBase):
         )
         self.alice = self._create_user("alice", "Yuao8(-)")
         add_user_to_team(self.team, self.alice)
+        cross_project_dataview = create_cross_project_dataview(
+            self.project,
+            self.xform,
+            foreign_project_name="Foreign team project",
+            dataview_name="Cross-project team DataView",
+        )
+        self.foreign_xform = cross_project_dataview.xform
+        ReadOnlyRole.add(self.team, self.foreign_xform)
 
     def test_share(self):
         """Sharing a project with a team assigns permissions and clears cache"""
@@ -50,6 +61,10 @@ class ShareTeamProjectTestCase(TestBase):
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.project))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.xform))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.dataview_form))
+        self.assertEqual(
+            set(get_perms(self.team, self.foreign_xform)),
+            set(ReadOnlyRole.class_to_permissions[XForm]),
+        )
         # Cache is invalidated
         mock_clear_project_owner_cache.assert_called_once_with(self.project.pk)
         mock_safe_cache_delete.assert_has_calls(
@@ -80,6 +95,10 @@ class ShareTeamProjectTestCase(TestBase):
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.project))
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.xform))
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.dataview_form))
+        self.assertEqual(
+            set(get_perms(self.team, self.foreign_xform)),
+            set(ReadOnlyRole.class_to_permissions[XForm]),
+        )
         # Cache is invalidated
         mock_clear_project_owner_cache.assert_called_once_with(self.project.pk)
         mock_safe_cache_delete.assert_has_calls(

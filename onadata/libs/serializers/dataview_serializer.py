@@ -8,7 +8,7 @@ import datetime
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, PermissionDenied
 
 from onadata.apps.logger.models.data_view import (
     FILTERABLE_METADATA_COLUMNS,
@@ -17,6 +17,7 @@ from onadata.apps.logger.models.data_view import (
 )
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
+from onadata.libs.permissions import CAN_VIEW_XFORM_DATA, ManagerRole
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.api_export_tools import include_hxl_row
 from onadata.libs.utils.cache_tools import (
@@ -64,14 +65,11 @@ def _allowed_query_columns(xform):
 
 def match_columns(data, instance=None):
     """Checks if the fields in two forms are a match."""
-    matches_parent = data.get("matches_parent")
     xform = data.get("xform", instance.xform if instance else None)
     columns = data.get("columns", instance.columns if instance else None)
-    if xform and columns:
-        fields = xform.get_field_name_xpaths_only()
-        matched = [col for col in columns if col in fields]
-        matches_parent = len(matched) == len(columns) == len(fields)
-        data["matches_parent"] = matches_parent
+    if xform is not None and columns is not None:
+        fields = set(xform.get_field_name_xpaths_only())
+        data["matches_parent"] = set(columns) == fields
 
     return data
 
@@ -94,7 +92,7 @@ class DataViewMinimalSerializer(serializers.HyperlinkedModelSerializer):
     )
     columns = JsonField()
     query = JsonField(required=False)
-    matches_parent = serializers.BooleanField(default=True)
+    matches_parent = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = DataView
@@ -111,6 +109,14 @@ class DataViewMinimalSerializer(serializers.HyperlinkedModelSerializer):
             "instances_with_geopoints",
             "date_modified",
         )
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # This serializer is embedded in cached project/form responses, so it
+        # must never cache a row-filter value that excluded-data readers could
+        # later receive.
+        representation["query"] = []
+        return representation
 
 
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
@@ -133,7 +139,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     query = JsonField(required=False)
     count = serializers.SerializerMethodField()
     instances_with_geopoints = serializers.SerializerMethodField()
-    matches_parent = serializers.BooleanField(default=True)
+    matches_parent = serializers.BooleanField(read_only=True)
     last_submission_time = serializers.SerializerMethodField()
     has_hxl_support = serializers.SerializerMethodField()
 
@@ -164,6 +170,19 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
         validated_data = match_columns(validated_data)
 
         return super().create(validated_data)
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        can_view_source_data = instance.xform.shared_data or (
+            user is not None
+            and user.is_authenticated
+            and user.has_perm(CAN_VIEW_XFORM_DATA, instance.xform)
+        )
+        if not can_view_source_data:
+            representation["query"] = []
+        return representation
 
     def update(self, instance, validated_data):
         validated_data = match_columns(validated_data, instance)
@@ -199,7 +218,18 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
         return value
 
+    def validate_xform(self, value):
+        """Prevent changing a DataView's source XForm after creation."""
+        if self.instance is not None and value.pk != self.instance.xform_id:
+            raise serializers.ValidationError(
+                _("The source XForm of a DataView cannot be changed.")
+            )
+
+        return value
+
     def validate(self, attrs):
+        self._validate_publication_authority(attrs)
+
         if "xform" in attrs and attrs.get("xform"):
             xform = attrs.get("xform")
             know_dates = [e.name for e in xform.get_survey_elements_of_type("date")]
@@ -223,20 +253,53 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
         return super().validate(attrs)
 
+    def _validate_publication_authority(self, attrs):
+        """Require control of both sides of a filtered-data publication.
+
+        A DataView project is an intentional access boundary and may differ
+        from the source XForm project. Creating a DataView, or changing the
+        destination, projection, or stored row filter, therefore publishes
+        source data and requires manager-level authority over both the source
+        XForm and destination project.
+        """
+        publication_fields = {"project", "columns", "query"}
+        if self.instance is not None and publication_fields.isdisjoint(attrs):
+            return
+
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        xform = attrs.get(
+            "xform", self.instance.xform if self.instance is not None else None
+        )
+        project = attrs.get(
+            "project", self.instance.project if self.instance is not None else None
+        )
+        has_required_objects = xform is not None and project is not None
+        is_authenticated = user is not None and user.is_authenticated
+        has_publication_roles = (
+            has_required_objects
+            and is_authenticated
+            and ManagerRole.user_has_role(user, xform)
+            and ManagerRole.user_has_role(user, project)
+        )
+        if not has_publication_roles:
+            raise PermissionDenied(
+                _(
+                    "You must be a manager of both the source XForm and the "
+                    "destination project."
+                )
+            )
+
     def _validate_query_columns(self, attrs):
         """Reject unsafe or unknown ``query`` columns for the target form.
 
         Each column must be a string free of the ORM lookup separator ``__``
         (``is_safe_column``) and must appear in the form's allow-list. Validates
-        when the query is being set, or when the form is being changed under a
-        retained query. An update that touches neither the query nor the form is
+        when the query is being set. An update that does not touch the query is
         left alone so a pre-existing legacy column does not fail an unrelated
-        change. The effective form is the incoming ``xform`` (create or form
-        change) otherwise the instance's form.
+        change. The source XForm is immutable after creation.
         """
-        query_supplied = "query" in attrs
-        form_changed = "xform" in attrs and attrs.get("xform")
-        if not (query_supplied or form_changed):
+        if "query" not in attrs:
             return
 
         xform = attrs.get("xform") or (
@@ -246,8 +309,6 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             return
 
         query = attrs.get("query")
-        if query is None and self.instance is not None:
-            query = self.instance.query
 
         allowed_columns = _allowed_query_columns(xform)
         for query_item in query or []:

@@ -7,6 +7,7 @@ import json
 import geojson
 from rest_framework_gis import serializers
 
+from onadata.apps.logger.models.data_view import get_selected_geopoints
 from onadata.apps.logger.models.instance import Instance
 from onadata.libs.utils.common_tools import str_to_bool
 from onadata.libs.utils.dict_tools import get_values_matching_key
@@ -86,6 +87,15 @@ def geometry_from_string(points, simple_style):
     return geometry
 
 
+def geometry_from_dataview(dataview, instance_data):
+    """Return a geometry collection containing selected DataView points."""
+    points = [
+        geojson.Point(point)
+        for point in get_selected_geopoints(dataview, instance_data)
+    ]
+    return geojson.GeometryCollection(points) if points else None
+
+
 class GeometryField(serializers.GeometryField):
     """
     The GeometryField class - representation for single GeometryField.
@@ -115,6 +125,11 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         request = self.context.get("request")
+
+        if self.context.get("dataview") is not None:
+            ret["geometry"] = geometry_from_dataview(
+                self.context["dataview"], instance.json
+            )
 
         if instance and ret and "properties" in ret and request is not None:
             fields = request.query_params.get("fields")

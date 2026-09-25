@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
 """
 Onadata django application, provides ODK Aggregate Server APIs,
 ODK Briefcase API and a REST API to manage data analysis, collection and
 visualization.
 """
 
-from __future__ import absolute_import, unicode_literals
-
-__version__ = "5.23.0"
+__version__ = "5.30.0"
 
 
 # This will make sure the app is always imported when

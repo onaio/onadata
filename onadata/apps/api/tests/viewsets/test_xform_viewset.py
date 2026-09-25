@@ -58,6 +58,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, EntityList, Instance, Project, XForm
+from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.views import delete_xform
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -65,6 +66,7 @@ from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
 from onadata.libs.exceptions import EncryptionError
+from onadata.libs.kms.tools import encrypt_xform
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
     ROLES_ORDERED,
@@ -6219,6 +6221,55 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(version, self.xform.version)
             self.assertEqual(xform_json, self.xform.json)
             self.assertEqual(xform_xml, self.xform.xml)
+
+    def test_update_managed_encrypted_xform(self):
+        """Replacing a managed encrypted form keeps it encrypted with the managed key."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            org = self._create_organization(
+                username="valigetta", name="Valigetta Inc", created_by=self.user
+            )
+            kms_key = KMSKey.objects.create(
+                key_id="fake-key-id",
+                description="Key-2025-04-03",
+                public_key="fake-pub-key",
+                content_type=ContentType.objects.get_for_model(org),
+                object_id=org.pk,
+                provider=KMSKey.KMSProvider.AWS,
+            )
+            self.xform.user = org.user
+            self.xform.save()
+            encrypt_xform(self.xform, encrypted_by=self.user)
+            version = self.xform.version
+
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_updated.xlsx",
+            )
+            with open(path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+
+            self.assertEqual(response.status_code, 200)
+            self.xform = XForm.objects.get(pk=self.xform.pk)
+            self.assertNotEqual(version, self.xform.version)
+            self.assertIn(
+                "preferred_means", [e.name for e in self.xform.survey_elements]
+            )
+            self.assertTrue(self.xform.encrypted)
+            self.assertEqual(self.xform.json["public_key"], kms_key.public_key)
+            self.assertTrue(
+                self.xform.kms_keys.filter(
+                    version=self.xform.version, kms_key=kms_key, encrypted_by=self.user
+                ).exists()
+            )
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):

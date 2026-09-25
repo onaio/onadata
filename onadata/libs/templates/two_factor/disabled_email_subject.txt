@@ -1,0 +1,1 @@
+{% load i18n %}{% blocktranslate %}{{ deployment_name }} Two-Factor Authentication Disabled{% endblocktranslate %}

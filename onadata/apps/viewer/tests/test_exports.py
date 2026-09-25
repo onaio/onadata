@@ -287,7 +287,7 @@ class TestExports(TestBase):
         # anonymous user has to login first
         response = self.anon.post(create_export_url)
         self.assertEqual(response.status_code, 302)
-        self.assertIn("/accounts/login", response["location"])
+        self.assertIn(reverse("two_factor:login"), response["location"])
 
         response = self.client.post(create_export_url)
         self.assertEqual(response.status_code, 302)
@@ -328,7 +328,7 @@ class TestExports(TestBase):
         # anonymous user has to login first
         response = self.anon.post(delete_url, post_data)
         self.assertEqual(response.status_code, 302)
-        self.assertIn("/accounts/login", response["location"])
+        self.assertIn(reverse("two_factor:login"), response["location"])
 
         response = self.client.post(delete_url, post_data)
         self.assertEqual(response.status_code, 302)

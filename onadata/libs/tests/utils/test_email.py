@@ -6,6 +6,8 @@ Test onadata.utils.emails module.
 from datetime import datetime, timezone
 from unittest.mock import patch
 
+from django.core import mail
+from django.core.exceptions import ImproperlyConfigured
 from django.test import RequestFactory
 from django.test.utils import override_settings
 
@@ -17,8 +19,10 @@ from onadata.libs.utils.email import (
     ProjectInvitationEmail,
     get_account_deactivation_email_data,
     get_project_invitation_url,
+    get_two_factor_email_data,
     get_verification_email_data,
     get_verification_url,
+    send_generic_email,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -185,6 +189,65 @@ class TestEmail(TestBase):
         self.assertIn("Hi janedoe", email_data["message_txt"])
         self.assertIn("30 days", email_data["message_txt"])
         self.assertIn("help@example.com", email_data["message_txt"])
+
+    def test_send_generic_email_plain_only(self):
+        mail.outbox = []
+
+        send_generic_email("jane@example.com", "Body text", "Subject")
+
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        self.assertEqual(message.subject, "Subject")
+        self.assertEqual(message.body, "Body text")
+        self.assertEqual(message.to, ["jane@example.com"])
+        self.assertEqual(len(message.alternatives), 0)
+
+    def test_send_generic_email_attaches_html_alternative(self):
+        mail.outbox = []
+
+        send_generic_email(
+            "jane@example.com",
+            "Body text",
+            "Subject",
+            message_html="<p>Body text</p>",
+        )
+
+        message = mail.outbox[0]
+        self.assertEqual(message.body, "Body text")
+        self.assertEqual(len(message.alternatives), 1)
+        content, mimetype = message.alternatives[0]
+        self.assertEqual(mimetype, "text/html")
+        self.assertEqual(content, "<p>Body text</p>")
+
+    def test_send_generic_email_requires_all_args(self):
+        for email, message_txt, subject in [
+            (None, "Body text", "Subject"),
+            ("", "Body text", "Subject"),
+            ("jane@example.com", None, "Subject"),
+            ("jane@example.com", "", "Subject"),
+            ("jane@example.com", "Body text", None),
+            ("jane@example.com", "Body text", ""),
+        ]:
+            with self.assertRaises(ValueError):
+                send_generic_email(email, message_txt, subject)
+
+    @override_settings(SUPPORT_EMAIL="help@example.com", DEPLOYMENT_NAME="Misfit")
+    def test_get_two_factor_email_data_builds_plain_and_html_parts(self):
+        data = get_two_factor_email_data("janedoe", "enabled")
+
+        self.assertEqual(set(data), {"subject", "message_txt", "message_html"})
+        # The subject is deployment-branded too, not hardcoded "Ona".
+        self.assertIn("Misfit", data["subject"])
+        self.assertNotIn("\n", data["subject"])
+        for part in (data["message_txt"], data["message_html"]):
+            self.assertIn("janedoe", part)
+            self.assertIn("Misfit", part)
+            self.assertIn("help@example.com", part)
+
+    @override_settings(SUPPORT_EMAIL="")
+    def test_get_two_factor_email_data_requires_support_email(self):
+        with self.assertRaises(ImproperlyConfigured):
+            get_two_factor_email_data("janedoe", "enabled")
 
 
 @override_settings(DEFAULT_FROM_EMAIL="no-reply@mail.misfit.com")

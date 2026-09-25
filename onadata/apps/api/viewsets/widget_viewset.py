@@ -3,7 +3,6 @@
 Expose and persist charts and corresponding data.
 """
 
-from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
@@ -40,42 +39,28 @@ class WidgetViewSet(
     lookup_field = "pk"
     filter_backends = (filters.WidgetFilter,)
 
-    def filter_queryset(self, queryset):
-        dataviewid = self.request.query_params.get("dataview")
-
-        if dataviewid:
-            try:
-                int(dataviewid)
-            except ValueError as exc:
-                raise ParseError(f"Invalid value for dataview {dataviewid}.") from exc
-
-            dataview = get_object_or_404(
-                DataView,
-                pk=dataviewid,
-                xform__deleted_at__isnull=True,
-                xform__project__organization__is_active=True,
-                project__deleted_at__isnull=True,
-                project__organization__is_active=True,
-            )
-            dataview_ct = ContentType.objects.get_for_model(dataview)
-            dataview_qs = Widget.objects.filter(
-                object_id=dataview.pk, content_type=dataview_ct
-            )
-            return dataview_qs
-
-        return super().filter_queryset(queryset)
-
     @staticmethod
     def _check_active_widget_target(widget):
         content_object = widget.content_object
         if isinstance(content_object, DataView):
             xform = content_object.xform
+            project = content_object.project
+            if (
+                content_object.deleted_at is not None
+                or project.deleted_at is not None
+                or not project.organization.is_active
+            ):
+                raise Http404
         elif isinstance(content_object, XForm):
             xform = content_object
         else:
-            return
+            raise Http404
 
-        if xform.deleted_at is not None or not xform.project.organization.is_active:
+        if (
+            xform.deleted_at is not None
+            or xform.project.deleted_at is not None
+            or not xform.project.organization.is_active
+        ):
             raise Http404
 
     # pylint: disable=unused-argument

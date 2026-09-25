@@ -46,7 +46,7 @@ from onadata.apps.logger.models import (
     OsmData,
     XForm,
 )
-from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.data_view import DataView, filter_dataview_attachments
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import (
     Export,
@@ -531,6 +531,7 @@ def generate_attachments_zip_export(
                 )
             ],
         )
+        attachment_qs = filter_dataview_attachments(attachment_qs, dataview)
     else:
         instance_ids = query_fields_data(
             xform, fields=["_id"], query=filter_query, sort=sort

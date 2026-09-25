@@ -7,6 +7,8 @@ import codecs
 import os
 import shutil
 from unittest.mock import patch
+from urllib.parse import urlparse
+from xml.dom import minidom
 
 from django.conf import settings
 from django.core.files.storage import storages
@@ -14,6 +16,7 @@ from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -436,6 +439,36 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
                 text = text.replace(*var)
             self.assertContains(response, instanceId, status_code=200)
             self.assertMultiLineEqual(response.content.decode("utf-8"), text)
+
+    def test_briefcase_client_downloads_submission_attachment(self):
+        """A Briefcase client can follow the attachment link of a submission
+        it downloaded from a private form, with the same Digest credentials."""
+        self._publish_xml_form()
+        self._submit_transport_instance_w_attachment()
+        self.assertFalse(self.xform.shared_data)
+        instance_id = "5b2cc313-fc09-437e-8149-fcd32f695d41"
+        form_id = (
+            f"{self.xform.id_string}[@version=null and @uiVersion=null]/"
+            f"{self.xform.id_string}[@key=uuid:{instance_id}]"
+        )
+        client = DigestClient()
+        client.set_authorization(self.login_username, self.login_password, "Digest")
+
+        response = client.get(self._download_submission_url, {"formId": form_id})
+        self.assertEqual(response.status_code, 200)
+        submission = minidom.parseString(response.content)
+        (download_url,) = [
+            node.firstChild.data
+            for node in submission.getElementsByTagName("downloadUrl")
+        ]
+
+        response = client.get(download_url)
+        self.assertEqual(response.status_code, 302)
+
+        response = client.get(urlparse(response["Location"]).path)
+        self.assertEqual(response.status_code, 200)
+        with self.attachment.media_file.open("rb") as media_file:
+            self.assertEqual(b"".join(response.streaming_content), media_file.read())
 
     def test_view_downloadSubmission_w_token_auth(self):
         view = BriefcaseViewset.as_view({"get": "retrieve"})

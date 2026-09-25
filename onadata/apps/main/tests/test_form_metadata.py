@@ -13,6 +13,7 @@ from django.core.files.base import File
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.urls import reverse
 
+from onadata.apps.logger.models import XForm
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import (
@@ -23,6 +24,7 @@ from onadata.apps.main.views import (
     show,
 )
 from onadata.libs.utils.cache_tools import XFORM_METADATA_CACHE
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 # pylint: disable=too-many-public-methods
@@ -80,6 +82,94 @@ class TestFormMetadata(TestBase):
             )
         return name
 
+    def _alice_client_and_form(self):
+        """Alice: a second user with a separate form, used in cross-tenant tests."""
+        alice = self._create_user("alice", "alice", create_profile=True)
+        md = (
+            "| survey |\n"
+            "|        | type | name  | label |\n"
+            "|        | text | field | Field |\n"
+        )
+        self._publish_markdown(
+            md,
+            alice,
+            project=get_user_default_project(alice),
+            id_string="alice_form",
+        )
+        alice_form = XForm.objects.get(user=alice, id_string="alice_form")
+        client = self._login("alice", "alice")
+        return client, alice_form
+
+    def test_download_doc_scoped_to_form(self):
+        """A doc cannot be read by id through a form it does not belong to."""
+        self._add_metadata()
+        bob_doc = self.doc
+        alice_client, alice_form = self._alice_client_and_form()
+        url = reverse(
+            download_metadata,
+            kwargs={
+                "username": "alice",
+                "id_string": alice_form.id_string,
+                "data_id": bob_doc.id,
+            },
+        )
+        response = alice_client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_delete_doc_scoped_to_form(self):
+        """A doc cannot be deleted by id through a form it does not belong to."""
+        self._add_metadata()
+        bob_doc = self.doc
+        alice_client, alice_form = self._alice_client_and_form()
+        url = reverse(
+            delete_metadata,
+            kwargs={
+                "username": "alice",
+                "id_string": alice_form.id_string,
+                "data_id": bob_doc.id,
+            },
+        )
+        response = alice_client.get(url + "?del=true")
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(MetaData.objects.filter(pk=bob_doc.id).exists())
+
+    def test_download_media_denied_for_anon(self):
+        """Media on a private form is not served to anonymous callers."""
+        self._add_metadata(data_type="media")
+        # self.xform.shared defaults to False (private form).
+        response = self.anon.get(self.doc_url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_download_media_scoped_to_form(self):
+        """Media cannot be read by id through a form it does not belong to."""
+        self._add_metadata(data_type="media")
+        bob_media = self.doc
+        alice_client, alice_form = self._alice_client_and_form()
+        url = reverse(
+            download_media_data,
+            kwargs={
+                "username": "alice",
+                "id_string": alice_form.id_string,
+                "data_id": bob_media.id,
+            },
+        )
+        response = alice_client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_download_doc_unknown_id(self):
+        """An unknown metadata id returns 404."""
+        self._add_metadata()
+        url = reverse(
+            download_metadata,
+            kwargs={
+                "username": self.user.username,
+                "id_string": self.xform.id_string,
+                "data_id": self.doc.id + 1000,
+            },
+        )
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
     def test_views_with_unavailable_id_string(self):
         path = os.path.join(
             self.this_directory, "fixtures", "transportation", "transportation.xlsx"
@@ -114,6 +204,18 @@ class TestFormMetadata(TestBase):
         )
 
         response = self.client.get(delete_metadata_url + "?del=true")
+        self.assertEqual(response.status_code, 404)
+
+        download_media_data_url = reverse(
+            download_media_data,
+            kwargs={
+                "username": self.user.username,
+                "id_string": "random_id_string",
+                "data_id": self.doc.id,
+            },
+        )
+
+        response = self.client.get(download_media_data_url)
         self.assertEqual(response.status_code, 404)
 
     def test_adds_supporting_doc_on_submit(self):

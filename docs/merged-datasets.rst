@@ -3,10 +3,10 @@ Merged Datasets
 
 .. warning:: **Disclaimer: Experimental Feature**
 
-    This feature is experimental. As a result, users may encounter bugs, glitches, or unexpected behavior. While we have taken steps to ensure a stable experience, some functionality may not work as intended. 
-    
-    Your feedback is invaluable in helping us improve this feature. Please report any issues or provide suggestions to help us enhance the final version. 
-    
+    This feature is experimental. As a result, users may encounter bugs, glitches, or unexpected behavior. While we have taken steps to ensure a stable experience, some functionality may not work as intended.
+
+    Your feedback is invaluable in helping us improve this feature. Please report any issues or provide suggestions to help us enhance the final version.
+
     Use this feature at your own discretion and be prepared for potential interruptions or performance inconsistencies.
 
 
@@ -35,6 +35,14 @@ Create a new Merged Dataset
 
     <pre class="prettyprint">
     <b>POST</b> /api/v1/merged-datasets</pre>
+
+Permissions
+-----------
+
+The requesting user must be an administrator (a manager or owner) of the
+project of every form being merged and be able to add forms to the
+destination project. Merging returns a permission error if the user does not
+administer the project of any of the source forms.
 
 Example
 -------
@@ -149,7 +157,7 @@ Response
 Retrieving Data from a Merged Dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Returns the data from all linked forms. 
+Returns the data from all linked forms.
 
 .. raw:: html
 

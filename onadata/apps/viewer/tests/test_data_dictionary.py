@@ -2,6 +2,7 @@
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
+from django.core.files.base import ContentFile
 from django.test import override_settings
 from django.utils import timezone
 
@@ -17,6 +18,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
+from onadata.libs.kms.tools import encrypt_xform
 from onadata.libs.permissions import ROLES
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -873,6 +875,48 @@ class DataDictionaryTestCase(TestBase):
             xform.refresh_from_db()
 
             self.assertFalse(xform.encrypted)
+
+    def test_replace_managed_form_keeps_managed_key(self):
+        """Re-reading the XLSForm of a managed form keeps the managed public key."""
+        org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=ContentType.objects.get_for_model(org),
+            object_id=org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        text_xls_form = (
+            "survey\r\n"
+            ",type,name,label\r\n"
+            ",text,fruit,Fruit\r\n"
+            "settings\r\n"
+            ",form_title,id_string\r\n"
+            ",Fruits,fruits\r\n"
+        )
+        data_dict = DataDictionary.objects.create(
+            created_by=self.user,
+            user=org.user,
+            xls=ContentFile(text_xls_form.encode(), name="fruits.csv"),
+            project=get_user_default_project(org.user),
+        )
+        encrypt_xform(XForm.objects.get(pk=data_dict.pk), encrypted_by=self.user)
+        data_dict = DataDictionary.objects.get(pk=data_dict.pk)
+        data_dict.num_of_submissions = 1
+        updated_text_xls_form = text_xls_form.replace(",Fruits,", ",Fruits updated,")
+        data_dict.xls = ContentFile(updated_text_xls_form.encode(), name="fruits.csv")
+
+        data_dict.save()
+
+        xform = XForm.objects.get(pk=data_dict.pk)
+        self.assertEqual(xform.title, "Fruits updated")
+        self.assertTrue(xform.encrypted)
+        self.assertEqual(xform.json["public_key"], kms_key.public_key)
+        self.assertIn(f'base64RsaPublicKey="{kms_key.public_key}"', xform.xml)
+        self.assertEqual(xform.hash, xform.get_hash())
 
     def test_str_includes_deletion_suffix(self):
         """String representation includes the deletion suffix if missing"""

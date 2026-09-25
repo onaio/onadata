@@ -287,6 +287,7 @@ class TestTools(TestBase):
         filters, and asserts the placeholder count equals the parameter count.
         """
         data_view = DataView(
+            xform=self.xform,
             query=[
                 {
                     "column": ") OR 1=1 --",
@@ -300,7 +301,7 @@ class TestTools(TestBase):
                     "value": "b\\c' OR '1'='1",
                     "condition": "and",
                 },
-            ]
+            ],
         )
 
         sql, params = self._executed_group_by_query("_submission_time", data_view)
@@ -323,6 +324,7 @@ class TestTools(TestBase):
         column and value are never rendered into SQL, so ordering is preserved.
         """
         data_view = DataView(
+            xform=self.xform,
             query=[
                 {"column": "age", "filter": "=", "value": "A%s", "condition": "and"},
                 {
@@ -331,7 +333,7 @@ class TestTools(TestBase):
                     "value": "B",
                     "condition": "and",
                 },
-            ]
+            ],
         )
 
         sql, params = self._executed_group_by_query("_submission_time", data_view)
@@ -344,10 +346,11 @@ class TestTools(TestBase):
     def test_group_by_field_or_condition_param_order(self):
         """OR filters keep their column/value parameters in emitted order."""
         data_view = DataView(
+            xform=self.xform,
             query=[
                 {"column": "age", "filter": "=", "value": "1", "condition": "or"},
                 {"column": "name", "filter": "=", "value": "2", "condition": "or"},
-            ]
+            ],
         )
 
         sql, params = self._executed_group_by_query("_submission_time", data_view)
@@ -355,6 +358,34 @@ class TestTools(TestBase):
         self.assertIn(" OR ", sql)
         self.assertEqual(sql.count("%s"), len(params))
         self.assertEqual(params, ["age", "1", "name", "2"])
+
+    def test_group_by_field_preserves_data_view_filter_types(self):
+        """DataView filters retain the form's numeric and date SQL casts."""
+        data_view = DataView(
+            xform=self.xform,
+            query=[
+                {"column": "age", "filter": ">", "value": "20"},
+                {"column": "visit_date", "filter": ">=", "value": "2020-01-01"},
+                {"column": "score", "filter": "<", "value": "20.5"},
+            ],
+        )
+
+        with patch.object(DataView, "get_known_integers", return_value=["age"]):
+            with patch.object(DataView, "get_known_dates", return_value=["visit_date"]):
+                with patch.object(
+                    DataView, "get_known_decimals", return_value=["score"]
+                ):
+                    sql, params = self._executed_group_by_query(
+                        "_submission_time", data_view
+                    )
+
+        self.assertIn("CAST(json->>%s AS INT) > %s", sql)
+        self.assertIn("CAST(json->>%s AS TIMESTAMP) >= %s", sql)
+        self.assertIn("CAST(JSON->>%s AS DECIMAL) < %s", sql)
+        self.assertEqual(
+            params,
+            ["age", "20", "visit_date", "2020-01-01", "score", "20.5"],
+        )
 
     def test_group_by_field_without_data_view_binds_no_params(self):
         """Without a DataView the driver receives the query with no bound params."""

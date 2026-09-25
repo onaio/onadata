@@ -35,7 +35,7 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -116,7 +116,7 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -188,7 +188,7 @@ jobs:
 
       - name: Cache Trivy HTML template
         id: cache-template
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: html.tpl
           key: trivy-html-template-v1
@@ -231,7 +231,25 @@ jobs:
           then
             summary="0 Issues"
           fi
-          echo "SUMMARY=$summary" >> $GITHUB_ENV
+          jq -r --arg summary "$summary" '
+            .runs[0].tool.driver.rules as $rules |
+            [.runs[0].results[] |
+              {
+                tags: $rules[.ruleIndex].properties.tags,
+                fixable: (.message.text // "" |
+                  [scan("Fixed Version:([^\n]*)") | .[0] |
+                    gsub("^\\s+|\\s+$"; "") |
+                    select(length > 0)] | length > 0)
+              }
+            ] |
+            map(select(.fixable)) as $fixable |
+            (["CRITICAL", "HIGH", "LOW", "MEDIUM", "UNKNOWN"] |
+              map(. as $severity |
+                "\($severity): \($fixable | map(select(.tags | index($severity))) | length)") |
+              join(" | ")) as $fixable_by_severity |
+            "SUMMARY=\($summary) | Fixable: \($fixable | length) | No fix available: \(length - ($fixable | length))",
+            "FIXABLE_BY_SEVERITY=\($fixable_by_severity)"
+          ' trivy-results.sarif >> "$GITHUB_ENV"
 
       - name: Extract detailed vulnerabilities
         run: |
@@ -242,10 +260,16 @@ jobs:
               $rules[.ruleIndex] as $rule |
               ($rule.properties.tags[] |
                 select(. == "CRITICAL" or . == "HIGH")) as $severity |
+              ($result.message.text // "" |
+                [scan("Fixed Version:([^\n]*)") | .[0] |
+                  gsub("^\\s+|\\s+$"; "") |
+                  select(length > 0)] | join(", ")) as $fixed |
+              select($fixed != "") |
               {
                 result: $result,
                 rule: $rule,
-                severity: $severity
+                severity: $severity,
+                fixed: $fixed
               }
             ] |
             sort_by(if .severity == "CRITICAL" then 0 else 1 end) |
@@ -254,6 +278,7 @@ jobs:
               .result as $result |
               .rule as $rule |
               .severity as $severity |
+              .fixed as $fixed |
               ($result.locations[0].message.text | split(":")[0] |
                 if contains("site-packages/") then
                   split("site-packages/")[1]
@@ -267,11 +292,6 @@ jobs:
               ($result.message.text |
                 capture("Installed Version: (?<ver>[^\n]+)") |
                 .ver) as $installed |
-              ($result.message.text |
-                capture("Fixed Version: ?(?<fix>[^\n]*)") |
-                .fix) as $rawfixed |
-              (if $rawfixed == "" then "Not available"
-               else $rawfixed end) as $fixed |
               (if $severity == "CRITICAL" then "🔴"
                elif $severity == "HIGH" then "🟠"
                else "⚪" end) as $icon |
@@ -285,7 +305,7 @@ jobs:
 
           if [ -z "$details" ]
           then
-            details="No vulnerabilities found in the scanned severity levels."
+            details="No fixable CRITICAL/HIGH vulnerabilities found."
           fi
 
           # Escape for GitHub Actions environment
@@ -304,7 +324,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "[Ona Data] Trivy scan results for ${{ steps.meta.outputs.version }}: ${{ env.SUMMARY }}"
+                    "text": "[Ona Data] Trivy scan results for ${{ steps.meta.outputs.version }}: ${{ env.SUMMARY }}\nFixable by severity: ${{ env.FIXABLE_BY_SEVERITY }}"
                   }
                 },
                 {
@@ -314,7 +334,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "🔍 *Found Vulnerabilities (Top 10):*"
+                    "text": "🔍 *Fixable Vulnerabilities (CRITICAL/HIGH, Top 10)*"
                   }
                 },
                 {

@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 """Test onadata.libs.utils.viewer_tools."""
 
 import json
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 from django.core.files.base import File
 from django.core.files.temp import NamedTemporaryFile
@@ -12,6 +11,9 @@ from django.test import SimpleTestCase
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import ReadTimeout
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
@@ -24,6 +26,7 @@ from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults,
     get_client_ip,
     get_enketo_attachment_params,
+    get_enketo_urls,
     get_form,
     get_form_url,
     handle_enketo_error,
@@ -70,7 +73,7 @@ class TestViewerTools(TestBase):
         kwargs = {xform_variable_name: xform_variable_value}
         defaults = generate_enketo_form_defaults(self.xform, **kwargs)
 
-        key = "defaults[/data/transport/{}]".format(xform_variable_name)
+        key = f"defaults[/data/transport/{xform_variable_name}]"
         self.assertEqual(defaults, {key: xform_variable_value})
 
     # pylint: disable=C0103
@@ -91,13 +94,11 @@ class TestViewerTools(TestBase):
         }
         defaults = generate_enketo_form_defaults(self.xform, **kwargs)
 
-        transportation_types_key = "defaults[/data/transport/{}]".format(
-            transportation_types
-        )
+        transportation_types_key = f"defaults[/data/transport/{transportation_types}]"
         frequency_key = (
             "defaults[/data/transport/"
             "loop_over_transport_types_frequency/"
-            "{}/{}]".format(transportation_types_value, frequency)
+            f"{transportation_types_value}/{frequency}]"
         )
         self.assertIn(transportation_types_key, defaults)
         self.assertIn(frequency_key, defaults)
@@ -207,9 +208,11 @@ class TestViewerTools(TestBase):
             self.media_file,
         )
         self.instance = Instance.objects.all()[0]
-        self.attachment = Attachment.objects.create(
-            instance=self.instance, media_file=File(open(media_file, "rb"), media_file)
-        )
+        with open(media_file, "rb") as media_file_handle:
+            self.attachment = Attachment.objects.create(
+                instance=self.instance,
+                media_file=File(media_file_handle, media_file),
+            )
         with NamedTemporaryFile() as zip_file:
             create_attachments_zipfile(Attachment.objects.all(), zip_file)
 
@@ -296,7 +299,7 @@ class TestGetEnketoAttachmentParams(TestBase):
 
 
 def _mock_response(status_code, content, text=None):
-    """Build a mock response for handle_enketo_error tests."""
+    """Build a mock HTTP response with the attributes the Enketo helpers read."""
     response = Mock()
     response.status_code = status_code
     response.content = content
@@ -379,6 +382,21 @@ class TestHandleEnketoError(SimpleTestCase):
 
         self.assertIn(ENKETO_GENERIC_ERROR, str(ctx.exception))
 
+    def test_valid_json_non_dict_body(self, mock_report):
+        """A JSON body that is not an object falls back to response.text."""
+        for body in (b'["not", "a", "dict"]', b"null", b"5", b'["message"]'):
+            with self.subTest(body=body):
+                mock_report.reset_mock()
+                mock_report.return_value = "sentry-id"
+                response = _mock_response(400, body, text="raw error text")
+
+                with self.assertRaises(EnketoError) as ctx:
+                    handle_enketo_error(response)
+
+                self.assertIn("raw error text", str(ctx.exception))
+                self.assertIn("sentry-id", str(ctx.exception))
+                mock_report.assert_called_once_with("HTTP Error 400", "raw error text")
+
     def test_error_message_includes_enketo_prefix(self, mock_report):
         """All raised errors include the Enketo error prefix."""
         mock_report.return_value = "sentry-id"
@@ -389,3 +407,73 @@ class TestHandleEnketoError(SimpleTestCase):
             handle_enketo_error(response)
 
         self.assertTrue(str(ctx.exception).startswith(ENKETO_ERROR_PREFIX))
+
+
+@override_settings(
+    ENKETO_URL="https://enketo.example.com/",
+    ENKETO_API_ALL_SURVEY_LINKS_PATH="/api_v2/survey/all",
+    ENKETO_API_INSTANCE_PATH="/api_v2/instance",
+    ENKETO_API_TOKEN="abc123",
+)
+@patch("onadata.libs.utils.viewer_tools.report_exception")
+@patch("onadata.libs.utils.viewer_tools.requests.post")
+class TestGetEnketoUrlsRequests(SimpleTestCase):
+    """How get_enketo_urls() makes and recovers from Enketo requests."""
+
+    def test_request_failure_raises_enketo_error(self, mock_post, mock_report):
+        """A failed request raises EnketoError with the generic message.
+
+        Both subclasses are exercised to pin the except clause at
+        RequestException breadth, not a single subclass.
+        """
+        errors = [
+            ReadTimeout("Read timed out. (read timeout=20)"),
+            RequestsConnectionError("Connection refused"),
+        ]
+        for error in errors:
+            with self.subTest(error=type(error).__name__):
+                mock_post.reset_mock()
+                mock_report.reset_mock()
+                mock_post.side_effect = error
+                mock_report.return_value = "sentry-id"
+
+                with self.assertRaises(EnketoError) as ctx:
+                    get_enketo_urls("https://example.com/enketo/1", "form_id")
+
+                message = str(ctx.exception)
+                self.assertTrue(mock_post.called)
+                self.assertIn(ENKETO_GENERIC_ERROR, message)
+                self.assertIn("sentry-id", message)
+                self.assertNotIn(str(error), message)
+                self.assertIs(ctx.exception.__cause__, error)
+                mock_report.assert_called_once_with(
+                    "Enketo request failed", str(error), ANY
+                )
+                self.assertIs(mock_report.call_args.args[2][1], error)
+
+    def test_non_dict_success_body_raises_enketo_error(self, mock_post, mock_report):
+        """A 2xx response whose JSON body is not an object raises EnketoError.
+
+        Callers immediately call .get() on the return value, so a non-dict
+        body must divert into the handled error path instead.
+        """
+        mock_post.return_value = _mock_response(200, b'["u1", "u2"]')
+        mock_report.return_value = "sentry-id"
+
+        with self.assertRaises(EnketoError) as ctx:
+            get_enketo_urls("https://example.com/enketo/1", "form_id")
+
+        self.assertIn(ENKETO_GENERIC_ERROR, str(ctx.exception))
+        self.assertIn("sentry-id", str(ctx.exception))
+
+    @override_settings(ENKETO_API_REQUEST_TIMEOUT=45)
+    def test_timeout_comes_from_settings(self, mock_post, _mock_report):
+        """The configured ENKETO_API_REQUEST_TIMEOUT is used for the request."""
+        mock_post.return_value = _mock_response(
+            200, b'{"url": "https://enketo.example.com/abc"}'
+        )
+
+        data = get_enketo_urls("https://example.com/enketo/1", "form_id")
+
+        self.assertEqual(data, {"url": "https://enketo.example.com/abc"})
+        self.assertEqual(mock_post.call_args.kwargs["timeout"], 45)

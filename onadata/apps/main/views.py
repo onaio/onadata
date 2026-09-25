@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage, storages
@@ -79,8 +80,10 @@ from onadata.apps.viewer.views import attachment_url
 from onadata.libs.authentication import (
     add_login_attempt,
     assert_not_locked_out,
+    authenticate_media_request,
     get_client_ip,
     get_lockout_username,
+    media_auth_challenge,
 )
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import CAN_VIEW_PROJECT
@@ -1060,7 +1063,12 @@ def download_metadata(request, username, id_string, data_id):
 
     owner = xform.user
     if username == request.user.username or xform.shared:
-        data = get_object_or_404(MetaData, pk=data_id)
+        data = get_object_or_404(
+            MetaData,
+            pk=data_id,
+            object_id=xform.id,
+            content_type=ContentType.objects.get_for_model(xform),
+        )
         file_path = data.data_file.name
         original_filename = sanitized_original_filename(data.data_value)
         filename, extension = os.path.splitext(original_filename)
@@ -1101,7 +1109,12 @@ def delete_metadata(request, username, id_string, data_id):
     )
 
     owner = xform.user
-    data = get_object_or_404(MetaData, pk=data_id)
+    data = get_object_or_404(
+        MetaData,
+        pk=data_id,
+        object_id=xform.id,
+        content_type=ContentType.objects.get_for_model(xform),
+    )
     dfs = storages["default"]
     req_username = request.user.username
     if request.GET.get("del", False) and username == req_username:
@@ -1151,7 +1164,12 @@ def download_media_data(request, username, id_string, data_id):
         id_string__iexact=id_string,
     )
     owner = xform.user
-    data = get_object_or_404(MetaData, id=data_id)
+    data = get_object_or_404(
+        MetaData,
+        id=data_id,
+        object_id=xform.id,
+        content_type=ContentType.objects.get_for_model(xform),
+    )
     dfs = storages["default"]
     if request.GET.get("del", False):
         if username == request.user.username:
@@ -1176,7 +1194,7 @@ def download_media_data(request, username, id_string, data_id):
                 reverse(show, kwargs={"username": username, "id_string": id_string})
             )
     else:
-        if username:  # == request.user.username or xform.shared:
+        if has_permission(xform, owner, request, xform.shared):
             if data.data_file.name == "" and data.data_value is not None:
                 return HttpResponseRedirect(data.data_value)
 
@@ -1328,12 +1346,18 @@ def serve_media(request, path):
     object's permission checks before the file is served.
     """
     helper_auth_helper(request)
+    challenge = authenticate_media_request(request)
+    if challenge is not None:
+        return challenge
+
     authorized = _media_path_authorized(request, path)
 
     if authorized is None:
         return HttpResponseNotFound(_("Media file not found."))
 
     if not authorized:
+        if not request.user.is_authenticated:
+            return media_auth_challenge()
         return HttpResponseForbidden(_("Not shared."))
 
     response = static.serve(request, path, document_root=settings.MEDIA_ROOT)
@@ -1548,6 +1572,19 @@ def update_xform(request, username, id_string):
 
     xform = get_form(xform_kwargs)
     owner = xform.user
+    show_url = reverse(show, kwargs={"username": username, "id_string": id_string})
+
+    # Forms encrypted with a custom key lose the key when the XLSForm is
+    # re-read, since the key is not part of the XLSForm
+    if xform.encrypted and not xform.is_managed:
+        messages.add_message(
+            request,
+            messages.INFO,
+            _("This form is encrypted and cannot be replaced."),
+            extra_tags="alert-error",
+        )
+
+        return HttpResponseRedirect(show_url)
 
     def set_form():
         """Publishes the XLSForm"""
@@ -1580,9 +1617,7 @@ def update_xform(request, username, id_string):
         request, messages.INFO, message["text"], extra_tags=message["type"]
     )
 
-    return HttpResponseRedirect(
-        reverse(show, kwargs={"username": username, "id_string": id_string})
-    )
+    return HttpResponseRedirect(show_url)
 
 
 @is_owner

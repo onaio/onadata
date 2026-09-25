@@ -1202,11 +1202,16 @@ class TestInstance(TestBase):
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
     def test_decrypt_instance_managed_encryption(self, mock_decrypt):
-        """Instance is decrypted if encryption uses managed keys"""
+        """Instance is decrypted if encryption uses managed keys
+
+        The encrypted submission json is stored while decryption is pending.
+        """
         self._publish_managed_form()
         instance = self._submit_encrypted_instance()
+        instance.refresh_from_db()
 
         mock_decrypt.assert_called_once_with(instance.pk)
+        self.assertIn("encryptedXmlFile", instance.json)
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
@@ -1273,6 +1278,45 @@ class TestInstance(TestBase):
             survey_type=survey_type,
         )
         mock_decrypt.assert_not_called()
+
+    @override_settings(
+        KMS_AUTO_DECRYPT_INSTANCE=True, ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True
+    )
+    @patch("onadata.apps.logger.tasks.update_project_date_modified_async.apply_async")
+    @patch("onadata.apps.logger.tasks.update_xform_submission_count_async.apply_async")
+    @patch("onadata.apps.logger.tasks.save_full_json_async.apply_async")
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
+    def test_decrypt_instance_async_processing_skips_json_task(
+        self, mock_decrypt, mock_save_full_json, *_mocks
+    ):
+        """Async processing queues decryption instead of the json task.
+
+        Decryption's own save queues the json task once the XML is decrypted.
+        Queuing both here lets a json task that loaded the encrypted XML
+        overwrite the decrypted json.
+        """
+        self._publish_managed_form()
+        instance = self._submit_encrypted_instance()
+
+        mock_decrypt.assert_called_once_with(instance.pk)
+        mock_save_full_json.assert_not_called()
+
+    @override_settings(
+        KMS_AUTO_DECRYPT_INSTANCE=True, ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True
+    )
+    @patch("onadata.apps.logger.tasks.update_project_date_modified_async.apply_async")
+    @patch("onadata.apps.logger.tasks.update_xform_submission_count_async.apply_async")
+    @patch("onadata.apps.logger.tasks.save_full_json_async.apply_async")
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
+    def test_unencrypted_instance_async_processing_queues_json_task(
+        self, mock_decrypt, mock_save_full_json, *_mocks
+    ):
+        """Async processing queues the json task when there is nothing to decrypt"""
+        self._publish_managed_form()
+        instance = self._submit_decrypted_instance()
+
+        mock_decrypt.assert_not_called()
+        mock_save_full_json.assert_called_once_with(args=[instance.pk])
 
     def test_set_is_encrypted(self):
         """is_encrypted is set to True for encrypted Instance."""

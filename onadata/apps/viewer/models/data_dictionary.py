@@ -199,6 +199,11 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
             else:
                 survey["id_string"] = self.id_string
                 workbook_json["id_string"] = self.id_string
+            if self.is_managed:
+                # Managed encryption is applied after publishing, so the
+                # key lives in the stored form rather than the XLSForm
+                survey.public_key = self.public_key
+                workbook_json["public_key"] = self.public_key
             self.json = workbook_json
             self.xml = survey.to_xml()
             self.version = survey.get("version")

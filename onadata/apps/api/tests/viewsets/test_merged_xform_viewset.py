@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
 """
 Test merged dataset functionality.
 """
-
-from __future__ import unicode_literals
 
 import csv
 import json
@@ -28,6 +25,7 @@ from onadata.apps.logger.models.instance import FormIsMergedDatasetError
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesViewSet
+from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -820,6 +818,165 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"xforms": ["No matching fields in xforms."]})
+
+    def _merge_other_users_forms(self, second_form_md=MD):
+        """Publish two forms as bob, then attempt the merge as alice"""
+        xform1 = self._publish_markdown(MD, self.user, id_string="a")
+        xform2 = self._publish_markdown(second_form_md, self.user, id_string="b")
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice = self._create_user_profile(alice_data).user
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
+        alice_project = get_user_default_project(alice)
+
+        data = {
+            "xforms": [
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
+            ],
+            "name": "Merged Dataset",
+            "project": f"http://testserver/api/v1/projects/{alice_project.pk}",
+        }
+        view = MergedXFormViewSet.as_view({"post": "create"})
+        request = self.factory.post("/", data=data, **extra)
+
+        return view(request)
+
+    def test_md_create_denied_for_xforms_user_cannot_administer(self):
+        """A user holding no role on the source forms' project is rejected"""
+        response = self._merge_other_users_forms()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {
+                "xforms": [
+                    "You do not have permission to merge one or more of these forms."
+                ]
+            },
+        )
+        self.assertFalse(MergedXForm.objects.filter(title="Merged Dataset").exists())
+
+    def test_md_create_denial_does_not_leak_form_structure(self):
+        """The denial does not reveal whether the forms share fields
+
+        The forms merged here have no matching fields, so any error beyond
+        the permission one would disclose their structure.
+        """
+        response = self._merge_other_users_forms(second_form_md=NOT_MATCHING)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {
+                "xforms": [
+                    "You do not have permission to merge one or more of these forms."
+                ]
+            },
+        )
+
+    def test_md_create_allowed_for_source_project_admin(self):
+        """A Manager of the source forms' project can merge them
+
+        Ownership of the source forms is not required.
+        """
+        bob_xform1 = self._publish_markdown(MD, self.user, id_string="a")
+        bob_xform2 = self._publish_markdown(MD, self.user, id_string="b")
+        bob_project = get_user_default_project(self.user)
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice = self._create_user_profile(alice_data).user
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
+        alice_project = get_user_default_project(alice)
+        ManagerRole.add(alice, bob_project)
+        self.assertTrue(ManagerRole.user_has_role(alice, bob_project))
+
+        data = {
+            "xforms": [
+                "http://testserver/api/v1/forms/%s" % bob_xform1.pk,
+                "http://testserver/api/v1/forms/%s" % bob_xform2.pk,
+            ],
+            "name": "Merged Dataset",
+            "project": f"http://testserver/api/v1/projects/{alice_project.pk}",
+        }
+        view = MergedXFormViewSet.as_view({"post": "create"})
+        request = self.factory.post("/", data=data, **extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+    def test_md_create_denied_for_readonly_collaborator(self):
+        """A ReadOnly role on the forms themselves is not enough to merge them"""
+        # Role.add assigns nothing for the DataDictionary proxy returned by
+        # _publish_markdown, so grant the role on the concrete XForm
+        bob_xform1 = XForm.objects.get(
+            pk=self._publish_markdown(MD, self.user, id_string="a").pk
+        )
+        bob_xform2 = XForm.objects.get(
+            pk=self._publish_markdown(MD, self.user, id_string="b").pk
+        )
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice = self._create_user_profile(alice_data).user
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
+        alice_project = get_user_default_project(alice)
+        ReadOnlyRole.add(alice, bob_xform1)
+        ReadOnlyRole.add(alice, bob_xform2)
+        self.assertTrue(ReadOnlyRole.user_has_role(alice, bob_xform1))
+        self.assertTrue(ReadOnlyRole.user_has_role(alice, bob_xform2))
+
+        data = {
+            "xforms": [
+                "http://testserver/api/v1/forms/%s" % bob_xform1.pk,
+                "http://testserver/api/v1/forms/%s" % bob_xform2.pk,
+            ],
+            "name": "Merged Dataset",
+            "project": f"http://testserver/api/v1/projects/{alice_project.pk}",
+        }
+        view = MergedXFormViewSet.as_view({"post": "create"})
+        request = self.factory.post("/", data=data, **extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {
+                "xforms": [
+                    "You do not have permission to merge one or more of these forms."
+                ]
+            },
+        )
+        self.assertFalse(MergedXForm.objects.filter(title="Merged Dataset").exists())
+
+    def test_md_create_denied_for_project_user_cannot_add_to(self):
+        """The user must be able to add forms to the destination project
+
+        The source forms are the requester's own, so only the
+        destination-project check can reject here.
+        """
+        bob_project = get_user_default_project(self.user)
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice = self._create_user_profile(alice_data).user
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
+        alice_project = get_user_default_project(alice)
+        xform1 = self._publish_markdown(MD, alice, project=alice_project, id_string="a")
+        xform2 = self._publish_markdown(MD, alice, project=alice_project, id_string="b")
+
+        data = {
+            "xforms": [
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
+            ],
+            "name": "Merged Dataset",
+            "project": f"http://testserver/api/v1/projects/{bob_project.pk}",
+        }
+        view = MergedXFormViewSet.as_view({"post": "create"})
+        request = self.factory.post("/", data=data, **extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {"project": ["You do not have permission to add a form to this project."]},
+        )
+        self.assertFalse(MergedXForm.objects.filter(title="Merged Dataset").exists())
 
     def test_md_data_viewset_deleted_form(self):
         """Test retrieving data of a merged dataset with one form deleted"""

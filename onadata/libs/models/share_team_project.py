@@ -41,10 +41,6 @@ class ShareTeamProject:
                     if xform.metadata_set.filter(data_type=XFORM_META_PERMS):
                         update_role_by_meta_xform_perms(xform)
 
-                for dataview in self.project.dataview_set.all():
-                    if dataview.matches_parent:
-                        role.add(self.team, dataview.xform)
-
             # clear cache
             clear_project_owner_cache(self.project.pk)
             safe_cache_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")
@@ -61,10 +57,6 @@ class ShareTeamProject:
             for xform in self.project.xform_set.all():
                 # pylint: disable=protected-access
                 role._remove_obj_permissions(self.team, xform)
-
-            for dataview in self.project.dataview_set.all():
-                # pylint: disable=protected-access
-                role._remove_obj_permissions(self.team, dataview.xform)
 
             # clear cache
             clear_project_owner_cache(self.project.pk)

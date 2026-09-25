@@ -2,6 +2,7 @@
 """
 Widget serializer
 """
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.urls import Resolver404, get_script_prefix, resolve
@@ -17,7 +18,7 @@ from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.permissions import OwnerRole, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.libs.utils.chart_tools import get_field_from_field_xpath
+from onadata.libs.utils.chart_tools import FIELD_DATA_MAP, resolve_field_xpath
 from onadata.libs.utils.string import str2bool
 
 
@@ -159,37 +160,64 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
         return data
 
     def validate(self, attrs):
-        """Validates that column exists in the XForm."""
-        column = attrs.get("column")
+        """Validate the effective widget fields for creates and updates."""
+        instance = self.instance
+        content_object = attrs.get(
+            "content_object",
+            instance.content_object if instance is not None else None,
+        )
+        column = attrs.get("column", instance.column if instance is not None else None)
+        group_by = attrs.get(
+            "group_by", instance.group_by if instance is not None else None
+        )
 
-        # Get the form
-        if "content_object" in attrs:
-            content_object = attrs.get("content_object")
-            xform = None
+        xform = None
+        if isinstance(content_object, XForm):
+            xform = content_object
+        elif isinstance(content_object, DataView):
+            xform = content_object.xform
 
-            if isinstance(content_object, XForm):
-                xform = content_object
-            elif isinstance(content_object, DataView):
-                # must be a dataview
-                xform = content_object.xform
-
+        errors = {}
+        canonical_column = None
+        if xform is not None and column:
             try:
-                # Check if column exists in xform
-                get_field_from_field_xpath(column, xform)
-            except Http404 as e:
-                raise serializers.ValidationError(
-                    {"column": f"'{column}' not in the form."}
-                ) from e
+                _column_field, canonical_column = resolve_field_xpath(column, xform)
+            except Http404:
+                errors["column"] = _("'%(column)s' not in the form.") % {
+                    "column": column
+                }
 
-            group_by = attrs.get("group_by")
-            if group_by:
-                try:
-                    # Check if group_by column exists in xform
-                    get_field_from_field_xpath(group_by, xform)
-                except Http404 as e:
-                    raise serializers.ValidationError(
-                        {"group_by": f"'{group_by}' not in the form."}
-                    ) from e
+        canonical_group_by = None
+        if xform is not None and group_by:
+            try:
+                _group_by_field, canonical_group_by = resolve_field_xpath(
+                    group_by, xform
+                )
+            except Http404:
+                errors["group_by"] = _("'%(group_by)s' not in the form.") % {
+                    "group_by": group_by
+                }
+
+        if isinstance(content_object, DataView):
+            selected_columns = set(content_object.columns or [])
+            if (
+                canonical_column is not None
+                and canonical_column not in selected_columns
+                and canonical_column not in FIELD_DATA_MAP
+            ):
+                errors["column"] = _("'%(column)s' not in the DataView.") % {
+                    "column": column
+                }
+            if (
+                canonical_group_by is not None
+                and canonical_group_by not in selected_columns
+            ):
+                errors["group_by"] = _("'%(group_by)s' not in the DataView.") % {
+                    "group_by": group_by
+                }
+
+        if errors:
+            raise serializers.ValidationError(errors)
 
         order = attrs.get("order")
 

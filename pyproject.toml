@@ -4,3 +4,24 @@ requires = [
     "wheel >= 0.46.3",
 ]
 build-backend = 'setuptools.build_meta'
+
+# Mirror .isort.cfg so ruff's import sorting (I001) and the isort pre-commit
+# hook agree; without this the two hooks reorder the same imports back and
+# forth on every run and never both pass.
+[tool.ruff.lint.isort]
+known-first-party = ["onadata"]
+section-order = [
+    "future",
+    "standard-library",
+    "future2",
+    "past",
+    "django",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+django = ["django"]
+future2 = ["future"]
+past = ["past"]

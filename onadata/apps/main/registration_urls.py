@@ -7,15 +7,14 @@ URLConf to include this URLConf for any URL beginning with
 
 """
 
-from django.contrib.auth.views import LoginView, PasswordResetView
+from django.contrib.auth.views import PasswordResetView
 from django.urls import include, path, re_path, reverse_lazy
-from django.views.generic import TemplateView
+from django.views.generic import RedirectView, TemplateView
 
 from registration.backends.default.views import ActivationView
 
 from onadata.apps.main.forms import (
     AccountPasswordResetForm,
-    LoginLockoutAuthenticationForm,
     RegistrationFormUserProfile,
 )
 from onadata.apps.main.registration_views import (
@@ -48,15 +47,13 @@ urlpatterns = [
         TemplateView.as_view(template_name="registration/registration_complete.html"),
         name="registration_complete",
     ),
-    # Override the login view (defined in registration.auth_urls below) to use
-    # a form that enforces the failed-login lockout. Declared first so it takes
-    # precedence over the include's ``login/`` route.
+    # Redirect only, never a session: rendering a login form here would be a
+    # password-only bypass of the second factor. The name is kept so existing
+    # reverse("auth_login") call sites still resolve. Declared first so it
+    # takes precedence over the ``login/`` route in ``registration.auth_urls``.
     path(
         "login/",
-        LoginView.as_view(
-            template_name="registration/login.html",
-            authentication_form=LoginLockoutAuthenticationForm,
-        ),
+        RedirectView.as_view(pattern_name="two_factor:login", query_string=True),
         name="auth_login",
     ),
     # Override the reset-request view (also defined in registration.auth_urls

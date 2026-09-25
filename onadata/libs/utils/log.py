@@ -2,6 +2,7 @@
 """
 Log utility functions and classes.
 """
+
 import logging
 from datetime import datetime
 
@@ -60,6 +61,11 @@ Actions = Enum(  # pylint: disable=invalid-name
     BAMBOO_LINK_DELETED="bamboo-link-deleted",
     SMS_SUPPORT_ACTIVATED="sms-support-activated",
     SMS_SUPPORT_DEACTIVATED="sms-support-deactivated",
+    TWO_FACTOR_ENROLLED="two-factor-enrolled",
+    TWO_FACTOR_DISABLED="two-factor-disabled",
+    TWO_FACTOR_VERIFICATION_FAILED="two-factor-verification-failed",
+    TWO_FACTOR_RECOVERY_CODES_GENERATED="two-factor-recovery-codes-generated",
+    TWO_FACTOR_RECOVERY_CODES_VIEWED="two-factor-recovery-codes-viewed",
 )
 
 

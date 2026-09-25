@@ -44,10 +44,9 @@ def get_or_create_opendata(xform):
     content_type = ContentType.objects.get_for_model(xform)
 
     return OpenData.objects.get_or_create(
+        content_type=content_type,
         object_id=xform.id,
         defaults={
             "name": xform.id_string,
-            "content_type": content_type,
-            "content_object": xform,
         },
     )

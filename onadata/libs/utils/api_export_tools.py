@@ -167,14 +167,15 @@ def custom_response_handler(  # noqa: C0901
     if dataview:
         options.update(get_dataview_export_options(dataview))
 
-    try:
-        query = filter_queryset_xform_meta_perms_sql(xform, request.user, query)
-    except NoRecordsPermission:
-        return Response(
-            data=json.dumps({"details": _("You don't have permission")}),
-            status=status.HTTP_403_FORBIDDEN,
-            content_type="application/json",
-        )
+    if not dataview_pk:
+        try:
+            query = filter_queryset_xform_meta_perms_sql(xform, request.user, query)
+        except NoRecordsPermission:
+            return Response(
+                data=json.dumps({"details": _("You don't have permission")}),
+                status=status.HTTP_403_FORBIDDEN,
+                content_type="application/json",
+            )
 
     if query:
         options["query"] = query
@@ -462,15 +463,16 @@ def process_async_export(request, xform, export_type, options=None):
     query = options.get("query")
     force_xlsx = options.get("force_xlsx")
 
-    try:
-        query = filter_queryset_xform_meta_perms_sql(xform, request.user, query)
-    except NoRecordsPermission:
-        payload = {"details": _("You don't have permission")}
-        return Response(
-            data=json.dumps(payload),
-            status=status.HTTP_403_FORBIDDEN,
-            content_type="application/json",
-        )
+    if not options.get("dataview_pk"):
+        try:
+            query = filter_queryset_xform_meta_perms_sql(xform, request.user, query)
+        except NoRecordsPermission:
+            payload = {"details": _("You don't have permission")}
+            return Response(
+                data=json.dumps(payload),
+                status=status.HTTP_403_FORBIDDEN,
+                content_type="application/json",
+            )
     if query:
         options["query"] = query
 

@@ -45,7 +45,7 @@ class TestFormAPIDelete(TestBase):
         params = {"id": instance.id}
         response = self.anon.post(self.delete_url, params)
         self.assertEqual(response.status_code, 302)
-        self.assertIn("accounts/login/?next=", response["Location"])
+        self.assertIn(f"{reverse('two_factor:login')}?next=", response["Location"])
         self.assertEqual(Instance.objects.filter(deleted_at=None).count(), count)
 
     def test_delete_shared(self):

@@ -657,6 +657,11 @@ class Instance(models.Model, InstanceBaseClass):
         SUCCESS = "success", _("Decryption successful")
         FAILED = "failed", _("Decryption failed")
 
+    class ValidationStatus(models.TextChoices):  # pylint: disable=too-many-ancestors
+        VALID = "valid", _("Content matches its signature")
+        NOT_VALID = "not_valid", _("Content does not match its signature")
+        NOT_VALIDATED = "not_validated", _("No signature to check against")
+
     json = models.JSONField(default=dict, null=False)
     xml = models.TextField()
     user = models.ForeignKey(
@@ -721,6 +726,16 @@ class Instance(models.Model, InstanceBaseClass):
         choices=DecryptionStatus.choices,
         default=DecryptionStatus.UNMANAGED,
     )
+    validation_status = models.CharField(
+        max_length=20,
+        choices=ValidationStatus.choices,
+        null=True,
+        default=None,
+        help_text=_(
+            "Outcome of checking a decrypted submission against the signature "
+            "it was submitted with. Null if the submission was never decrypted."
+        ),
+    )
 
     tags = TaggableManager()
 
@@ -736,6 +751,11 @@ class Instance(models.Model, InstanceBaseClass):
             models.Index(fields=["xform_id", "date_created"]),
             models.Index(fields=["xform_id", "date_modified"]),
             models.Index(fields=["xform_id", "last_edited"]),
+            models.Index(
+                fields=["validation_status"],
+                condition=Q(validation_status__isnull=False),
+                name="logger_inst_validat_6ae220_idx",
+            ),
         ]
 
     @classmethod
@@ -888,6 +908,15 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
     if instance.deleted_at is not None:
         _update_geopoints(instance)
 
+    # Avoid cyclic dependency errors
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+    auto_decrypt = (
+        getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
+        and instance.xform.is_was_managed
+        and instance.is_encrypted
+        and instance.media_all_received
+    )
+
     if (
         hasattr(settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED")
         and settings.ASYNC_POST_SUBMISSION_PROCESSING_ENABLED
@@ -896,7 +925,6 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         # (metadata from non-performance intensive tasks) first since we
         # do not know when the async processing will complete
         save_full_json(instance, False)
-        logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
         if created:
             transaction.on_commit(
@@ -905,14 +933,24 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
                 )
             )
 
-        transaction.on_commit(
-            lambda: logger_tasks.save_full_json_async.apply_async(args=[instance.pk])
-        )
-        transaction.on_commit(
-            lambda: logger_tasks.update_project_date_modified_async.apply_async(
-                args=[instance.pk]
+        if auto_decrypt:
+            # Decryption saves the instance again, which queues the json task
+            # once the XML is decrypted. Queuing it here as well lets a task
+            # that loaded the encrypted XML overwrite the decrypted json.
+            transaction.on_commit(
+                lambda: logger_tasks.decrypt_instance_async.delay(instance.pk)
             )
-        )
+        else:
+            transaction.on_commit(
+                lambda: logger_tasks.save_full_json_async.apply_async(
+                    args=[instance.pk]
+                )
+            )
+            transaction.on_commit(
+                lambda: logger_tasks.update_project_date_modified_async.apply_async(
+                    args=[instance.pk]
+                )
+            )
 
     else:
         if created:
@@ -920,6 +958,11 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
 
         save_full_json(instance)
         update_project_date_modified(instance)
+
+        if auto_decrypt:
+            transaction.on_commit(
+                lambda: logger_tasks.decrypt_instance_async.delay(instance.pk)
+            )
 
     # Bust bbox caches so the next map-fit request reflects this submission's
     # geom, whether it was just created or edited.
@@ -947,23 +990,6 @@ def soft_delete_attachments_on_soft_delete(sender, instance, **kwargs):
     instance.attachments.filter(deleted_at__isnull=True).update(
         deleted_at=instance.deleted_at, deleted_by=instance.deleted_by
     )
-
-
-@use_master
-def decrypt_instance(sender, instance, created=False, **kwargs):
-    """Decrypt Instance if encrypted."""
-    # Avoid cyclic dependency errors
-    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-
-    if (
-        getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
-        and instance.xform.is_was_managed
-        and instance.is_encrypted
-        and instance.media_all_received
-    ):
-        transaction.on_commit(
-            lambda: logger_tasks.decrypt_instance_async.delay(instance.pk)
-        )
 
 
 def _decr_xform_num_of_decrypted_submissions(instance: Instance):
@@ -1032,8 +1058,6 @@ pre_save.connect(
     sender=Instance,
     dispatch_uid="soft_delete_attachments_on_soft_delete",
 )
-
-post_save.connect(decrypt_instance, sender=Instance, dispatch_uid="decrypt_instance")
 
 post_delete.connect(
     decr_xform_num_of_decrypted_submissions_on_hard_delete,
