@@ -23,6 +23,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
 
 from celery.signals import after_setup_logger
+from corsheaders.defaults import default_headers
 
 # setting default encoding to utf-8
 if sys.version[0] == "2":
@@ -157,19 +158,27 @@ TWO_FACTOR_SMS_GATEWAY = None
 # whose client gates more of its own adds them, rather than OnaData naming
 # actions it does not check.
 TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
-    {"enroll-start", "disable", "recovery-generate", "recovery-view"}
+    {
+        "enroll-start",
+        "disable",
+        "recovery-generate",
+        "recovery-view",
+        "regenerate-api-key",
+        "regenerate-odk-token",
+        "change-email",
+        "change-password",
+        "require-auth-toggle",
+        "privacy-consent",
+    }
 )
 
-# Demand the account password before a first authenticator enrolment, where
-# there is no factor yet for ``_require_code`` to challenge.
-#
-# On by default: without it, an SSO credential alone can enrol an authenticator
-# and lock the owner out of their own second factor, so the safe default is to
-# require recent primary-credential proof. A deployment whose users hold no
-# usable local password (identity lives entirely in an IdP) turns it off
-# deliberately, accepting that trade -- or owns the factor federally, per
-# ``STEP_UP``.
-TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = True
+# Step-up authentication. ACTIONS is empty by default so gating is opt-in per
+# deployment; MODE is "local" while OnaData owns the second factor.
+STEP_UP = {
+    "ACTIONS": set(),
+    "MODE": "local",
+    "NO_FACTOR_POLICY": "skip_gate",
+}
 
 # Symmetric keys the authenticator seed and recovery codes are encrypted under
 # at rest (Fernet, url-safe base64). Ordered: the first key encrypts, every key
@@ -426,6 +435,9 @@ SWAGGER_SETTINGS = {
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = ("http://dev.ona.io",)
+# X-Step-Up-Grant carries a step-up grant on requests with no body; a
+# deployment that overrides this list must keep it.
+CORS_ALLOW_HEADERS = (*default_headers, "x-step-up-grant")
 CORS_URLS_ALLOW_ALL_REGEX = (r"^/api/v1/osm/.*$",)
 
 USE_THOUSAND_SEPARATOR = True
