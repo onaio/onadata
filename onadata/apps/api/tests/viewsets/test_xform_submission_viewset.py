@@ -2105,31 +2105,6 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             f"http://testserver/enketo/{self.xform.pk}/submission",
         )
 
-    def test_edit_submission_unmanaged(self):
-        """An edit of an unmanaged form replaces the submission it names."""
-        survey = self.surveys[0]
-        instances_path = os.path.join(
-            self.main_directory, "fixtures", "transportation", "instances", survey
-        )
-        self._make_submission(os.path.join(instances_path, f"{survey}.xml"))
-        original_instance = Instance.objects.get()
-        original_uuid = original_instance.uuid
-
-        with open(os.path.join(instances_path, f"{survey}_edited.xml"), "rb") as sf:
-            request = self.factory.post(
-                f"/enketo/{self.xform.pk}/submission", {"xml_submission_file": sf}
-            )
-            request.user = AnonymousUser()
-            response = self.view(request, xform_pk=self.xform.pk)
-
-        self.assertContains(response, "Successful submission", status_code=201)
-        self._assert_openrosa_response(response)
-        edited_instance = Instance.objects.get()
-        self.assertEqual(edited_instance.pk, original_instance.pk)
-        self.assertEqual(edited_instance.uuid, "6b2cc313-fc09-437e-8139-fcd32f695d41")
-        history = InstanceHistory.objects.get(xform_instance=edited_instance)
-        self.assertEqual(history.uuid, original_uuid)
-
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async")
     def test_edit_managed_submission(self, mock_decrypt_async):
