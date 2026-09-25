@@ -888,28 +888,6 @@ class Instance(models.Model, InstanceBaseClass):
         queryset.update(**kwargs)
 
 
-def _queue_decryption(instance):
-    """Queue decryption of the submission once while it is being saved.
-
-    A submission is saved several times as it is received, and every save would
-    otherwise queue decryption again.
-
-    :param instance: The encrypted submission to decrypt.
-    """
-    if getattr(instance, "_decryption_queued", False):
-        return
-
-    # Avoid cyclic dependency errors
-    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-    instance._decryption_queued = True  # pylint: disable=protected-access
-
-    def queue():
-        instance._decryption_queued = False  # pylint: disable=protected-access
-        logger_tasks.decrypt_instance_async.delay(instance.pk)
-
-    transaction.on_commit(queue)
-
-
 # pylint: disable=unused-argument
 @use_master
 def post_save_submission(sender, instance=None, created=False, **kwargs):
@@ -953,7 +931,9 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
             # Decryption saves the instance again, which queues the json task
             # once the XML is decrypted. Queuing it here as well lets a task
             # that loaded the encrypted XML overwrite the decrypted json.
-            _queue_decryption(instance)
+            transaction.on_commit(
+                lambda: logger_tasks.decrypt_instance_async.delay(instance.pk)
+            )
         else:
             transaction.on_commit(
                 lambda: logger_tasks.save_full_json_async.apply_async(
@@ -974,7 +954,9 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         update_project_date_modified(instance)
 
         if auto_decrypt:
-            _queue_decryption(instance)
+            transaction.on_commit(
+                lambda: logger_tasks.decrypt_instance_async.delay(instance.pk)
+            )
 
     # Bust bbox caches so the next map-fit request reflects this submission's
     # geom, whether it was just created or edited.

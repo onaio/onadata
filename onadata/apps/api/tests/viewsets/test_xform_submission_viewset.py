@@ -2124,6 +2124,28 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async")
+    def test_managed_submission_multi_request_queued_for_decryption_once(
+        self, mock_decrypt_async
+    ):
+        """A managed form's submission sent in parts is queued for decryption once."""
+        self._publish_managed_form()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._post_enc_submission()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mock_decrypt_async.delay.assert_not_called()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._post_enc_submission(
+                media_names=("sunset.png.enc", "forest.mp4.enc")
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        mock_decrypt_async.delay.assert_called_once_with(Instance.objects.get().pk)
+
+    @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async")
     def test_edit_managed_submission(self, mock_decrypt_async):
         """An edit of a managed form's submission replaces the original."""
         self._publish_managed_form()
