@@ -168,6 +168,31 @@ class UploadValidationTestCase(SimpleTestCase):
             "The uploaded file could not be validated.",
         )
 
+    def test_generic_validation_error_message_appends_reason(self):
+        """A provided reason is appended after the generic text."""
+        uploaded_file = _CountingUpload("data.csv", b"x", "text/csv")
+
+        self.assertEqual(
+            generic_upload_validation_error_message(
+                uploaded_file, UploadValidationError("CSV files must be UTF-8 encoded.")
+            ),
+            "The uploaded file 'data.csv' could not be validated. "
+            "CSV files must be UTF-8 encoded.",
+        )
+
+    def test_generic_validation_error_message_sanitizes_reason(self):
+        """A multi-line/oversized reason is collapsed and length-capped."""
+        uploaded_file = _CountingUpload("data.csv", b"x", "text/csv")
+        noisy_reason = "line one\n\tline two   line three" + ("!" * 500)
+
+        message = generic_upload_validation_error_message(uploaded_file, noisy_reason)
+        surfaced = message.split("could not be validated. ", 1)[1]
+
+        self.assertNotIn("\n", surfaced)
+        self.assertNotIn("\t", surfaced)
+        self.assertLessEqual(len(surfaced), 200)
+        self.assertTrue(surfaced.startswith("line one line two line three"))
+
     def test_double_extension_is_rejected(self):
         """Filenames such as putty.exe.png are rejected before persistence."""
         uploaded_file = self._upload("putty.exe.png", b"MZpayload", "image/png")
