@@ -2108,7 +2108,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async")
     def test_edit_managed_submission(self, mock_decrypt_async):
-        """An encrypted edit replaces the original submission."""
+        """An edit of a managed form's submission replaces the original."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
         original_uuid = original_instance.uuid
@@ -2157,7 +2157,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         )
 
     def test_edit_managed_submission_multi_request(self):
-        """Media sent in a later request of the same edit is saved."""
+        """Media sent later for an edit of a managed form's submission is saved."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
         deprecated_id = f"uuid:{original_instance.uuid}"
@@ -2186,7 +2186,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         )
 
     def test_edit_managed_submission_conflict(self):
-        """An edit of a submission that was edited since is rejected."""
+        """A stale edit of a managed form's submission is rejected."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
         deprecated_id = f"uuid:{original_instance.uuid}"
@@ -2208,7 +2208,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
     @override_settings(INSTANCE_EDIT_CONFLICT_RESOLUTION="last_write_wins")
     def test_edit_managed_submission_conflict_last_write_wins(self):
-        """An edit of a submission that was edited since replaces it."""
+        """A stale edit of a managed form's submission wins if last write wins."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
         deprecated_id = f"uuid:{original_instance.uuid}"
@@ -2233,7 +2233,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         )
 
     def test_edit_managed_submission_resent_after_later_edit(self):
-        """An edit sent again after a later edit is a duplicate, not a conflict."""
+        """A managed form's edit resent after a later edit is a duplicate."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
         response = self._post_enc_edit(f"uuid:{original_instance.uuid}")
@@ -2253,7 +2253,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(edited_instance.uuid, "0c4a8d4e-2f8b-4a44-9a57-0f6f3d0b8f11")
 
     def test_edit_managed_submission_permission_denied(self):
-        """A user who can submit but not edit cannot replace the submission."""
+        """A submit-only user cannot edit a managed form's submission."""
         self._publish_managed_form()
         original_instance = self._submit_decrypted_instance()
         self.org.user.profile.require_auth = True
@@ -2275,7 +2275,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(Instance.objects.count(), 1)
 
     def test_edit_managed_submission_of_another_form(self):
-        """A submission of another form is not replaced."""
+        """An edit on a managed form does not replace another form's submission."""
         survey = self.surveys[0]
         self._make_submission(
             os.path.join(
@@ -2307,7 +2307,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
     def test_edit_managed_submission_encryption_key_not_found_accept(self):
-        """An edit is accepted if the key is not found and the setting allows it."""
+        """A managed form's edit is accepted if its key is missing and allowed."""
         self._publish_managed_form()
         instance = self._submit_decrypted_instance()
         self.xform.kms_keys.all().delete()
@@ -2322,7 +2322,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
     def test_edit_managed_submission_encryption_key_disabled_accept(self):
-        """An edit is accepted if the key is disabled and the setting allows it."""
+        """A managed form's edit is accepted if its key is disabled and allowed."""
         self._publish_managed_form()
         instance = self._submit_decrypted_instance()
         xform_key = self.xform.kms_keys.first()
