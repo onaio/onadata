@@ -88,11 +88,7 @@ from onadata.libs.utils.common_tags import (
 )
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.dict_tools import get_values_matching_key
-from onadata.libs.utils.model_tools import (
-    queryset_iterator,
-    set_uuid,
-    update_fields_directly,
-)
+from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
 logger = logging.getLogger(__name__)
@@ -391,7 +387,11 @@ def save_full_json(instance, include_related=True):
     ):
         json[DECRYPTION_ERROR] = instance.json[DECRYPTION_ERROR]
 
-    update_fields_directly(instance, json=json)
+    # Skip the write if the XML changed since the instance was loaded, such as
+    # when it was decrypted meanwhile, so stale json does not overwrite newer json
+    Instance.objects.filter(pk=instance.pk, checksum=instance.checksum).update(
+        json=json
+    )
 
 
 def update_project_date_modified(instance):

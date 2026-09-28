@@ -5,6 +5,7 @@ Test Instance model.
 
 import os
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 from unittest.mock import Mock, patch
 from xml.etree.ElementTree import ParseError
 
@@ -25,6 +26,7 @@ from onadata.apps.logger.models import (
 from onadata.apps.logger.models.instance import (
     get_id_string_from_xml_str,
     numeric_checker,
+    save_full_json,
 )
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
@@ -75,6 +77,25 @@ class TestInstance(TestBase):
                 "_media_all_received": False,
                 "transport/available_transportation_types_to_referral_facility": "none",
             },
+        )
+
+    def test_save_full_json_skips_changed_xml(self):
+        """Json built from XML that has changed since does not overwrite newer json"""
+        self._publish_transportation_form_and_submit_instance()
+        stale_instance = Instance.objects.first()
+        instance = Instance.objects.get(pk=stale_instance.pk)
+        instance.xml = instance.xml.replace(">none<", ">ambulance<")
+        instance.checksum = sha256(instance.xml.encode("utf-8")).hexdigest()
+        instance.save()
+
+        save_full_json(stale_instance)
+
+        instance.refresh_from_db()
+        self.assertEqual(
+            instance.json[
+                "transport/available_transportation_types_to_referral_facility"
+            ],
+            "ambulance",
         )
 
     def test_updates_json_date_modified_on_save(self):
