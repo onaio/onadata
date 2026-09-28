@@ -9,12 +9,14 @@ from hashlib import sha256
 from unittest.mock import Mock, patch
 from xml.etree.ElementTree import ParseError
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http.request import HttpRequest
 from django.test import override_settings
 
 from django_digest.test import DigestAuth
 
 from onadata.apps.logger.models import (
+    Attachment,
     Entity,
     EntityList,
     Instance,
@@ -97,6 +99,36 @@ class TestInstance(TestBase):
             ],
             "ambulance",
         )
+
+    def test_soft_delete_attachments(self):
+        """Unreferenced attachments are deleted; earlier deletions are kept"""
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.first()
+        deleted_at = datetime.now(timezone.utc) - timedelta(days=1)
+
+        def create_attachment(name, **kwargs):
+            return Attachment.objects.create(
+                instance=instance,
+                name=name,
+                mimetype="image/jpeg",
+                media_file=SimpleUploadedFile(
+                    name, b"fake-content", content_type="image/jpeg"
+                ),
+                **kwargs,
+            )
+
+        referenced = create_attachment("1335783522563.jpg")
+        unreferenced = create_attachment("forest.jpg")
+        deleted = create_attachment("sunset.jpg", deleted_at=deleted_at)
+
+        instance.soft_delete_attachments()
+
+        referenced.refresh_from_db()
+        unreferenced.refresh_from_db()
+        deleted.refresh_from_db()
+        self.assertIsNone(referenced.deleted_at)
+        self.assertIsNotNone(unreferenced.deleted_at)
+        self.assertEqual(deleted.deleted_at, deleted_at)
 
     def test_updates_json_date_modified_on_save(self):
         """_date_modified in `json` field is updated on save"""
