@@ -881,7 +881,9 @@ class Instance(models.Model, InstanceBaseClass):
         """
         Soft deletes an attachment by adding a deleted_at timestamp.
         """
-        queryset = self.attachments.filter(~Q(name__in=self.get_expected_media()))
+        queryset = self.attachments.filter(
+            ~Q(name__in=self.get_expected_media()), deleted_at__isnull=True
+        )
         kwargs = {"deleted_at": timezone.now()}
         if user:
             kwargs.update({"deleted_by": user})

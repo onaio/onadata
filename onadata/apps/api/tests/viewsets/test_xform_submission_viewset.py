@@ -2224,6 +2224,27 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             sorted(enc_names),
         )
 
+    def test_edit_managed_submission_keeps_deleted_at(self):
+        """An edit of a managed form's submission keeps earlier deletion times."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        deleted_at = timezone.now() - timedelta(days=1)
+        deleted_attachment = Attachment.objects.create(
+            instance=original_instance,
+            mimetype="image/png",
+            name="old.jpg",
+            deleted_at=deleted_at,
+            media_file=SimpleUploadedFile(
+                "old.jpg", b"fake-content", content_type="image/png"
+            ),
+        )
+
+        response = self._post_enc_submission(f"uuid:{original_instance.uuid}")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        deleted_attachment.refresh_from_db()
+        self.assertEqual(deleted_attachment.deleted_at, deleted_at)
+
     def test_edit_managed_submission_multi_request(self):
         """Media sent later for an edit of a managed form's submission is saved."""
         self._publish_managed_form()
