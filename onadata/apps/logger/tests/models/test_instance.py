@@ -101,7 +101,10 @@ class TestInstance(TestBase):
         )
 
     def test_soft_delete_attachments(self):
-        """Unreferenced attachments are deleted; earlier deletions are kept"""
+        """Unreferenced attachments are deleted.
+
+        Earlier deleted attachments deleted_at unchanged.
+        """
         self._publish_transportation_form_and_submit_instance()
         instance = Instance.objects.first()
         deleted_at = datetime.now(timezone.utc) - timedelta(days=1)
