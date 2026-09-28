@@ -2108,6 +2108,35 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             f"http://testserver/enketo/{self.xform.pk}/submission",
         )
 
+    def test_submission_inactive_organization(self):
+        """A submission to a form of an inactive organization is rejected."""
+        self._publish_managed_form()
+        organization = self.xform.project.organization
+        organization.is_active = False
+        organization.save(update_fields=["is_active"])
+
+        response = self._post_enc_submission()
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(Instance.objects.exists())
+
+    def test_edit_managed_submission_inactive_organization(self):
+        """An edit of a submission of an inactive organization is rejected."""
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        organization = self.xform.project.organization
+        organization.is_active = False
+        organization.save(update_fields=["is_active"])
+
+        response = self._post_enc_submission(f"uuid:{original_instance.uuid}")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        original_instance.refresh_from_db()
+        self.assertEqual(original_instance.uuid, "a10ead67-7415-47da-b823-0947ab8a8ef0")
+        self.assertFalse(
+            InstanceHistory.objects.filter(xform_instance=original_instance).exists()
+        )
+
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async")
     def test_managed_submission_queued_for_decryption_once(self, mock_decrypt_async):
