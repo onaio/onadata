@@ -106,12 +106,11 @@ class TestWebforms(TestBase):
             ],
         )
 
-    def test_edit_url_names_the_submission(self):
-        """The server URL sent to Enketo names the submission being edited.
+    def test_edit_url_names_the_form(self):
+        """The server URL sent to Enketo names the form.
 
-        Enketo derives the form list and submission endpoints from it, so
-        naming the submission is what routes the edit to the endpoint that
-        supersedes it instead of the one that creates a new submission.
+        Enketo caches one form per server URL, and the edit names the
+        submission it replaces in the X-OpenRosa-Deprecated-Id header.
         """
         instance = Instance.objects.order_by("id").reverse()[0]
         edit_url = reverse(
@@ -132,7 +131,7 @@ class TestWebforms(TestBase):
 
         self.assertEqual(
             posted["server_url"],
-            [f"https://testserver.com/enketo/{self.xform.pk}/{instance.pk}"],
+            [f"https://testserver.com/enketo/{self.xform.pk}"],
         )
 
     def test_inject_instanceid(self):
