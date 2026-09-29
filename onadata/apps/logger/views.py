@@ -641,7 +641,6 @@ def edit_data(request, username, id_string, data_id):
         username,
         xform_pk=xform.pk,
         generate_consistent_urls=True,
-        submission_pk=instance.pk,
     )
 
     try:

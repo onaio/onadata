@@ -23,7 +23,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from defusedxml import ElementTree
 from deprecated import deprecated
 from multidb.pinning import use_master
 from taggit.managers import TaggableManager
@@ -35,6 +34,7 @@ from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
     clean_and_parse_xml,
     get_uuid_from_xml,
+    is_encrypted_submission,
 )
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
@@ -88,11 +88,7 @@ from onadata.libs.utils.common_tags import (
 )
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.dict_tools import get_values_matching_key
-from onadata.libs.utils.model_tools import (
-    queryset_iterator,
-    set_uuid,
-    update_fields_directly,
-)
+from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
 logger = logging.getLogger(__name__)
@@ -391,7 +387,11 @@ def save_full_json(instance, include_related=True):
     ):
         json[DECRYPTION_ERROR] = instance.json[DECRYPTION_ERROR]
 
-    update_fields_directly(instance, json=json)
+    # Skip the write if the XML changed since the instance was loaded, such as
+    # when it was decrypted meanwhile, so stale json does not overwrite newer json
+    Instance.objects.filter(pk=instance.pk, checksum=instance.checksum).update(
+        json=json
+    )
 
 
 def update_project_date_modified(instance):
@@ -825,13 +825,7 @@ class Instance(models.Model, InstanceBaseClass):
 
     def check_encrypted(self) -> bool:
         """Checks if submission XML is encrypted."""
-        try:
-            tree = ElementTree.fromstring(self.xml)
-
-        except ElementTree.ParseError:
-            return False
-
-        return tree.attrib.get("encrypted") == "yes"
+        return is_encrypted_submission(self.xml)
 
     @property
     def num_of_media(self):
@@ -887,7 +881,9 @@ class Instance(models.Model, InstanceBaseClass):
         """
         Soft deletes an attachment by adding a deleted_at timestamp.
         """
-        queryset = self.attachments.filter(~Q(name__in=self.get_expected_media()))
+        queryset = self.attachments.filter(
+            ~Q(name__in=self.get_expected_media()), deleted_at__isnull=True
+        )
         kwargs = {"deleted_at": timezone.now()}
         if user:
             kwargs.update({"deleted_by": user})

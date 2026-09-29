@@ -1289,6 +1289,26 @@ class DecryptInstanceTestCase(TestBase):
         # XForm decrypted submission count is NOT incremented for edits
         mock_adjust_decrypted_submission_count.assert_not_called()
 
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_decrypt_keeps_deleted_at_of_deleted_attachments(self, *_mocks):
+        """Decryption does not change when earlier deleted attachments were deleted."""
+        deleted_at = timezone.now() - timedelta(days=1)
+        deleted_attachment = Attachment.objects.create(
+            instance=self.instance,
+            xform=self.xform,
+            name="old.jpg",
+            mimetype="image/jpeg",
+            media_file=File(BytesIO(b"fake-content"), name="old.jpg"),
+            deleted_at=deleted_at,
+        )
+
+        decrypt_instance(self.instance)
+
+        deleted_attachment.refresh_from_db()
+        self.assertEqual(deleted_attachment.deleted_at, deleted_at)
+
     def test_decrypt_excludes_soft_deleted_attachments(self):
         """Decryption only processes active (non-deleted) attachments."""
         # Soft-delete 1 attachment
