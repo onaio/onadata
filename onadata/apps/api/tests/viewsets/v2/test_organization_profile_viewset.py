@@ -10,6 +10,9 @@ from django.utils import timezone
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.viewsets.organization_profile_viewset import (
+    OrganizationProfileViewSet as OrganizationProfileViewSetV1,
+)
 from onadata.apps.api.viewsets.v2.organization_profile_viewset import (
     OrganizationProfileViewSet,
 )
@@ -686,6 +689,29 @@ class UpdateOrganizationTestCase(TestAbstractViewSet):
         self.assertEqual(
             cache.get(f"{ORG_PROFILE_V2_CACHE}denoinc-owner"), expected_cache
         )
+
+    def test_invalidates_v1_cache(self):
+        """PATCH invalidates the organization cached for the v1 API"""
+        # creating it through v1 caches what v1 returns
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"patch": "partial_update"})
+        v1_view = OrganizationProfileViewSetV1.as_view({"get": "retrieve"})
+
+        request = self.factory.patch(
+            "/",
+            data=json.dumps({"city": "Nairobi"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+
+        request = self.factory.get("/", **self.extra)
+        response = v1_view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["city"], "Nairobi")
 
     def test_anonymous_user(self):
         """An anonymous user cannot update an organization"""

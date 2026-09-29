@@ -18,7 +18,11 @@ from reversion.views import RevisionMixin
 
 from onadata.apps.api import permissions
 from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.api.tools import get_baseviewset_class, get_org_profile_cache_key
+from onadata.apps.api.tools import (
+    get_baseviewset_class,
+    get_org_profile_cache_key,
+    invalidate_organization_cache,
+)
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.messaging.constants import KMS_KEY, KMS_KEY_ROTATED
 from onadata.apps.messaging.serializers import send_message
@@ -122,8 +126,10 @@ class OrganizationProfileViewSet(
     def update(self, request, *args, **kwargs):
         """Update org in cache and db"""
         response = super().update(request, *args, **kwargs)
+        organization = self.get_object()
+        invalidate_organization_cache(organization.user.username)
         cache_key = get_org_profile_cache_key(
-            request.user, self.get_object(), self.api_version
+            request.user, organization, self.api_version
         )
         safe_cache_set(cache_key, response.data)
         return response
