@@ -37,7 +37,7 @@ from rest_framework.test import APIRequestFactory
 from six.moves.urllib.error import URLError
 from six.moves.urllib.request import urlopen
 
-from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import (
     Entity,
@@ -53,6 +53,7 @@ from onadata.apps.logger.views import submission
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models import DataDictionary
+from onadata.libs.permissions import ROLES, OwnerRole, Role
 from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
 from onadata.libs.utils.common_tools import (
     filename_from_disposition,
@@ -147,6 +148,34 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             user=user, defaults={"name": name, "creator": created_by}
         )
         return organization
+
+    # pylint: disable=no-self-use
+    def _add_user_to_organization(self, organization, user, role=None):
+        members_team, created = Team.objects.get_or_create(
+            name=f"{organization.user.username}#members",
+            organization=organization.user,
+        )
+
+        if created:
+            # The organization's own user is a member of it
+            organization.user.groups.add(members_team)
+
+        user.groups.add(members_team)
+
+        if role is not None:
+            ROLES[role].add(user, organization)
+
+        if role == OwnerRole.name:
+            owners_team = Team.objects.get(
+                organization=organization.user,
+                name=f"{organization.user.username}#{Team.OWNER_TEAM_NAME}",
+            )
+            user.groups.add(owners_team)
+
+    # pylint: disable=no-self-use
+    def _remove_user_from_organization(self, organization, user):
+        user.groups.remove(*Team.objects.filter(organization=organization.user))
+        Role.remove_obj_permissions(user, organization)
 
     # pylint: disable=no-self-use
     def _login(self, username, password):

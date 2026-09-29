@@ -70,3 +70,79 @@ class EntityDetailTestCase(TestAbstractViewSet):
         url = f"/api/v2/entity-lists/{self.entity_list.pk}/entities"
         response = self.client.delete(url, data={"entity_ids": [self.entity.pk]})
         self.assertEqual(response.status_code, 204)
+
+
+class OrganizationListTestCase(TestAbstractViewSet):
+    """Organization list tests"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._org_create()
+        self.url = "/api/v2/orgs"
+
+    def test_get(self):
+        """GET list of Organizations"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([org["org"] for org in response.data], ["denoinc"])
+
+    def test_search(self):
+        """The list is searched through the `search` query parameter"""
+        response = self.client.get(self.url, {"search": "nothing-by-this-name"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+
+class OrganizationDetailTestCase(TestAbstractViewSet):
+    """Organization retrieve tests"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._org_create()
+        self.url = "/api/v2/orgs/denoinc"
+
+    def test_get(self):
+        """GET Organization"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["org"], "denoinc")
+
+
+class OrganizationMembersTestCase(TestAbstractViewSet):
+    """Organization members tests"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._org_create()
+        self.url = "/api/v2/orgs/denoinc/members"
+
+    def test_get(self):
+        """GET Organization members"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            sorted(member["user"] for member in response.data), ["bob", "denoinc"]
+        )
+
+    def test_patch(self):
+        """PATCH Organization member"""
+        self.profile_data["username"] = "aboy"
+        self._create_user_profile()
+        self.client.post(self.url, data={"username": "aboy"}, format="json")
+
+        response = self.client.patch(
+            self.url, data={"username": "aboy", "role": "editor"}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["user"], "aboy")
+        self.assertEqual(response.data["role"], "editor")
+
+    def test_delete(self):
+        """DELETE is not supported. A member is removed by updating."""
+        response = self.client.delete(
+            self.url, data={"username": "denoinc"}, format="json"
+        )
+        self.assertEqual(response.status_code, 405)
