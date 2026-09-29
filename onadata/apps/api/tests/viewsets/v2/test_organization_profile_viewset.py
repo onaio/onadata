@@ -1076,6 +1076,50 @@ class UpdateOrganizationMemberTestCase(TestAbstractViewSet):
             [("aboy", "member"), ("bob", "owner"), ("denoinc", "owner")],
         )
 
+    def test_remove_string(self):
+        """PUT removes the member for any true `remove`, even with a role"""
+        self._org_create()
+        self.profile_data["username"] = "aboy"
+        aboy = self._create_user_profile().user
+        self._add_user_to_organization(self.organization, aboy)
+        view = OrganizationProfileViewSet.as_view({"get": "members", "put": "members"})
+
+        request = self.factory.put(
+            "/",
+            data=json.dumps({"username": "aboy", "remove": "TRUE", "role": "editor"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 204)
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="denoinc")
+
+        self.assertEqual(
+            [member["user"] for member in response.data], ["bob", "denoinc"]
+        )
+
+    def test_remove_invalid(self):
+        """PUT with an invalid `remove` is a bad request"""
+        self._org_create()
+        self.profile_data["username"] = "aboy"
+        aboy = self._create_user_profile().user
+        self._add_user_to_organization(self.organization, aboy)
+        view = OrganizationProfileViewSet.as_view({"put": "members"})
+
+        request = self.factory.put(
+            "/",
+            data=json.dumps({"username": "aboy", "remove": []}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"remove": ["Must be a valid boolean."]})
+
     def test_remove(self):
         """PUT with `remove` removes a member from the organization"""
         self._org_create()

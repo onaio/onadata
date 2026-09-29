@@ -2,8 +2,6 @@
 Organization serializer for v2 API
 """
 
-from collections.abc import Mapping
-
 from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
@@ -127,32 +125,23 @@ class OrganizationMemberSerializer(OrganizationMemberSerializerV1):
     # Not part of the input: the organization is the one being accessed
     organization = None
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # The role is what changes when a member is updated, unless the
-        # member is being removed
-        self.fields["role"].required = self._is_update() and not self._is_remove()
-
     def _is_update(self):
         request = self.context.get("request")
 
         return request is not None and request.method in ("PUT", "PATCH")
 
-    def _is_remove(self):
-        # There is no input when the serializer is not given data, and the
-        # input may not be an object
-        initial_data = getattr(self, "initial_data", None)
-        remove = (
-            initial_data.get("remove") if isinstance(initial_data, Mapping) else None
-        )
-
-        return self._is_update() and remove in serializers.BooleanField.TRUE_VALUES
-
     def validate(self, attrs):
         attrs["organization"] = self.context["organization"]
         # A member is only removed when updating
-        attrs["remove"] = self._is_remove()
+        attrs["remove"] = self._is_update() and attrs["remove"]
+
+        # The role is what changes when a member is updated, unless the
+        # member is being removed
+        if self._is_update() and not attrs["remove"] and attrs.get("role") is None:
+            raise serializers.ValidationError(
+                {"role": self.fields["role"].error_messages["required"]},
+                code="required",
+            )
 
         return super().validate(attrs)
 
