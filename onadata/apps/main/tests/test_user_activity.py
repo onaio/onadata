@@ -60,12 +60,35 @@ class TestUserActivity(TestCase):
         )
 
     def test_user_activity_created_for_new_user(self):
-        before = timezone.now()
-        user = User.objects.create_user(username="alice")
+        """Seeding must not read submissions: for a new user they cannot exist."""
+        with CaptureQueriesContext(connection) as queries:
+            user = User.objects.create_user(username="alice")
 
-        self.assertEqual(user.activity.user, user)
-        self.assertGreaterEqual(user.activity.last_activity, before)
-        self.assertLessEqual(user.activity.last_activity, timezone.now())
+        # Read back rather than user.activity, which get_or_create leaves cached.
+        activity = UserActivity.objects.get(user=user)
+
+        self.assertEqual(activity.user, user)
+        self.assertEqual(activity.last_activity, user.date_joined)
+        self.assertEqual(
+            [
+                q["sql"]
+                for q in queries.captured_queries
+                if "logger_instance" in q["sql"]
+            ],
+            [],
+        )
+
+    def test_user_created_with_last_login_seeds_from_last_login(self):
+        """An imported account arrives with both set; date_joined alone backdates it."""
+        logged_in = timezone.now()
+
+        user = User.objects.create(
+            username="imported",
+            date_joined=timezone.now() - timedelta(days=100),
+            last_login=logged_in,
+        )
+
+        self.assertEqual(UserActivity.objects.get(user=user).last_activity, logged_in)
 
     def test_initial_last_activity_uses_instance_submitter_and_editor(self):
         old_activity = timezone.now() - timedelta(days=400)
