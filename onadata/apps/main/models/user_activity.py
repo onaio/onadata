@@ -52,11 +52,9 @@ class UserActivity(models.Model):
         return f"{self.user.username}: {self.last_activity}"
 
 
-def latest_activity(*values):
+def _latest(*values):
     """
-    Return the most recent of the timestamps given, ignoring those unset.
-
-    Falls back to now when a user has left no signal at all.
+    Return the most recent non-None value, or now when there is none.
     """
     return max((value for value in values if value is not None), default=timezone.now())
 
@@ -76,7 +74,7 @@ def get_initial_last_activity(user):
     else:
         latest_edit_time = None
 
-    return latest_activity(
+    return _latest(
         user.last_login,
         latest_submission_time,
         latest_edit_time,
@@ -173,9 +171,7 @@ def create_user_activity(sender, instance=None, created=False, **kwargs):
         UserActivity.objects.get_or_create(
             user=instance,
             defaults={
-                "last_activity": latest_activity(
-                    instance.last_login, instance.date_joined
-                )
+                "last_activity": _latest(instance.last_login, instance.date_joined)
             },
         )
 
