@@ -3,7 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v5.31.0(2026-09-29)
+v5.31.1(2026-09-30)*
+--------------------
+- perf: stop user creation scanning logger_instance
+  [@FrankApiyo]
+  `PR #3272 https://github.com/onaio/onadata/pull/3272`
+
+v5.31.0(2026-09-30)
 --------------------
 - fix: show fixable vulnerabilities in Slack details
   [@ukanga]
