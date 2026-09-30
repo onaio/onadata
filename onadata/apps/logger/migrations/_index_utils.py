@@ -41,7 +41,7 @@ def relkind(cursor, table):
     return row[0] if row else None
 
 
-def compatible_index(cursor, table, columns, preferred=None):
+def compatible_index(cursor, table, columns, preferred):
     """Return the name of a valid index on table usable for columns.
 
     ``preferred`` is returned when it is among the matches. Without that, a

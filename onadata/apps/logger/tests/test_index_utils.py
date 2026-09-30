@@ -15,7 +15,11 @@ COLUMNS = ["user_id", "date_created"]
 
 
 class EnsureIndexTestCase(TransactionTestCase):
-    """Build indexes on a throwaway plain table."""
+    """Build indexes on a throwaway plain table.
+
+    TransactionTestCase, not TestCase: CREATE INDEX CONCURRENTLY cannot run
+    inside a transaction.
+    """
 
     def setUp(self):
         super().setUp()
@@ -62,6 +66,17 @@ class EnsureIndexTestCase(TransactionTestCase):
             ensure_index(cursor, TABLE, TARGET, COLUMNS)
 
             self.assertEqual(self._index_names(cursor), ["probe_aaa", TARGET])
+
+    def test_refuses_a_name_held_by_an_unrelated_relation(self):
+        """Failing loudly beats CREATE INDEX IF NOT EXISTS silently skipping."""
+        with connection.cursor() as cursor:
+            cursor.execute(f"CREATE TABLE {TARGET} (id integer)")
+
+            with self.assertRaises(RuntimeError):
+                ensure_index(cursor, TABLE, TARGET, COLUMNS)
+
+        with connection.cursor() as cursor:
+            cursor.execute(f"DROP TABLE IF EXISTS {TARGET}")
 
     def test_does_not_adopt_an_index_on_other_columns(self):
         """A prefix of the wanted columns is not an equivalent either."""

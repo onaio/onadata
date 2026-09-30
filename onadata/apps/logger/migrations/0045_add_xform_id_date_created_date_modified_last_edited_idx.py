@@ -1,7 +1,6 @@
 # Generated manually to create instance date indexes without blocking writes.
 #
-# The partition-aware index helpers live in _index_utils so the migrations that
-# build indexes this way share one implementation.
+# The partition-aware index helpers live in _index_utils, shared with 0047.
 
 from django.conf import settings
 from django.db import migrations, models

@@ -1,8 +1,8 @@
 # Built without blocking writes; see _index_utils.
 #
-# get_or_create_user_activity aggregates MAX(date_created) filtered by user_id.
-# With only the date_created index, Postgres walks it newest-first and never
-# stops for a user with no submissions, reading the whole table.
+# MAX(date_created) per user_id, as backfill_user_activity groups it. With no
+# index covering both columns Postgres walks the date_created one newest-first
+# and never stops for a user with no submissions, reading the whole table.
 
 from django.conf import settings
 from django.db import migrations, models
@@ -22,8 +22,10 @@ def create_instance_user_date_created_index(apps, schema_editor):
 
 # pylint: disable=unused-argument
 def drop_instance_user_date_created_index(apps, schema_editor):
-    """Drop it, including one adopted. Not CONCURRENTLY: rejected on a
-    partitioned index."""
+    """Drop the index, including one this migration adopted.
+
+    Not CONCURRENTLY: that form is rejected on a partitioned index.
+    """
     with schema_editor.connection.cursor() as cursor:
         cursor.execute(f'DROP INDEX IF EXISTS "{INDEX_NAME}"')
 
