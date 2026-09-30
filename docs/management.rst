@@ -15,9 +15,31 @@ The configured anonymous system account is excluded.
     python manage.py report_account_usage --year 2026 --csv account_usage.csv
 
 ``--year`` selects the activity calendar year and defaults to ``2026``. Supported
-years are 1 through 9998. Omit ``--csv`` or use ``--csv -`` to write CSV to stdout.
+years are 1 through 9998. Omit both output options or use ``--csv -`` to write CSV
+to stdout.
 Files are written as UTF-8 and cell values use the standard export sanitization
 to prevent spreadsheet formulas from being evaluated.
+
+To upload the report to the deployment's configured default storage and print
+its download link:
+
+.. code-block:: bash
+
+    python manage.py report_account_usage --year 2026 --storage reports/account_usage_2026.csv
+
+``--storage`` takes a path relative to the default storage root, bucket, or
+container. It cannot be combined with ``--csv``. The same command uses Amazon S3
+or Azure Blob Storage according to the environment's Django storage settings.
+The report is staged in a temporary file, uploaded, and the URL is printed to
+stdout. The temporary file is removed automatically.
+
+S3 and Azure use the existing download-link helper, requesting a one-hour URL
+with a CSV attachment filename. Access and signing follow the storage backend's
+configuration. Other backends use their standard storage URL, which can be a
+relative media URL for local filesystem storage. Existing-file overwrite or
+rename behavior also follows the backend configuration; the link always uses
+the actual saved filename. Use a different path for each report to retain
+previous exports.
 
 The columns are:
 

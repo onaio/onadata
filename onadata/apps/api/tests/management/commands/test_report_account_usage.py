@@ -11,6 +11,8 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
+from django.core.files.storage import storages
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import connection
@@ -326,6 +328,126 @@ class ReportAccountUsageTest(TestCase):
         ):
             with self.assertRaisesMessage(CommandError, "Unable to write report"):
                 self._report()
+
+    @override_settings(
+        STORAGES={
+            "default": {
+                "BACKEND": "django.core.files.storage.InMemoryStorage",
+                "OPTIONS": {"base_url": "https://storage.example.test/media/"},
+            }
+        }
+    )
+    def test_storage_upload_matches_csv_and_links_to_actual_saved_name(self):
+        """Stored CSV retains encoding/sanitization and uses the backend's filename."""
+        User.objects.bulk_create([User(username="=formula"), User(username="élise")])
+        self._submit(self.collector)
+        expected = self._report()
+        storage = storages["default"]
+        requested_path = "reports/account_usage.csv"
+        storage.save(requested_path, ContentFile(b"previous report"))
+        output = StringIO()
+        with patch.object(
+            report_account_usage.timezone, "now", return_value=REPORT_TIME
+        ), patch.object(storage, "url", wraps=storage.url) as storage_url:
+            call_command("report_account_usage", storage=requested_path, stdout=output)
+        saved_path = storage_url.call_args.args[0]
+        self.assertNotEqual(saved_path, requested_path)
+        self.assertEqual(output.getvalue(), storage.url(saved_path) + "\n")
+        with storage.open(saved_path, "rb") as report:
+            reader = csv.DictReader(StringIO(report.read().decode("utf-8")))
+            self.assertEqual({int(row["account_id"]): row for row in reader}, expected)
+        with storage.open(requested_path, "rb") as previous:
+            self.assertEqual(previous.read(), b"previous report")
+
+    def test_s3_and_azure_upload_bytes_and_request_download_links(self):
+        """Cloud backends receive a binary CSV and a one-hour attachment URL request."""
+        requested_path = "reports/account_usage.csv"
+        saved_path = "reports/renamed.csv"
+        download_url = (
+            "https://storage.example.test/reports/renamed.csv?signature=example"
+        )
+
+        def save_report(name, content):
+            self.assertEqual(name, requested_path)
+            self.assertEqual(content.name, requested_path)
+            data = content.read()
+            self.assertIsInstance(data, bytes)
+            self.assertTrue(data.startswith(b"account_id,username,account_type,"))
+            return saved_path
+
+        for backend, options, parameters in (
+            (
+                "storages.backends.s3.S3Storage",
+                {"bucket_name": "reports"},
+                {
+                    "ResponseContentDisposition": 'attachment; filename="renamed.csv"',
+                    "ResponseContentType": "text/csv",
+                },
+            ),
+            (
+                "storages.backends.azure_storage.AzureStorage",
+                {"account_name": "reports", "azure_container": "reports"},
+                {
+                    "content_disposition": 'attachment; filename="renamed.csv"',
+                    "content_type": "text/csv",
+                },
+            ),
+        ):
+            with self.subTest(backend=backend), override_settings(
+                STORAGES={"default": {"BACKEND": backend, "OPTIONS": options}}
+            ):
+                storage = storages["default"]
+                output = StringIO()
+                with patch.object(storage, "save", side_effect=save_report) as save:
+                    with patch.object(storage, "url", return_value=download_url) as url:
+                        call_command(
+                            "report_account_usage",
+                            storage=requested_path,
+                            stdout=output,
+                        )
+                save.assert_called_once()
+                url.assert_called_once_with(
+                    saved_path, parameters=parameters, expire=3600
+                )
+                self.assertEqual(output.getvalue(), download_url + "\n")
+
+    @override_settings(
+        STORAGES={"default": {"BACKEND": "django.core.files.storage.InMemoryStorage"}}
+    )
+    def test_storage_failures_raise_command_errors(self):
+        """Cloud-style errors are reported; URL errors preserve the saved path."""
+        storage = storages["default"]
+        output = StringIO()
+        with patch.object(storage, "save", side_effect=RuntimeError("upload failed")):
+            with self.assertRaisesMessage(
+                CommandError, "Unable to save report to storage"
+            ):
+                call_command(
+                    "report_account_usage", storage="report.csv", stdout=output
+                )
+        self.assertEqual(output.getvalue(), "")
+        with patch.object(storage, "url", side_effect=NotImplementedError("no URL")):
+            with self.assertRaisesMessage(CommandError, "Report saved to 'report.csv'"):
+                call_command(
+                    "report_account_usage", storage="report.csv", stdout=output
+                )
+        self.assertTrue(storage.exists("report.csv"))
+        self.assertEqual(output.getvalue(), "")
+
+    def test_storage_and_local_output_are_mutually_exclusive(self):
+        """Invalid output combinations fail before file writes or account queries."""
+        with self.assertNumQueries(0), patch.object(
+            report_account_usage, "default_storage"
+        ) as storage:
+            with self.assertRaises(CommandError):
+                call_command(
+                    "report_account_usage", "--csv", "-", "--storage", "report.csv"
+                )
+            with self.assertRaises(CommandError):
+                call_command(
+                    "report_account_usage", csv="local.csv", storage="report.csv"
+                )
+            storage.save.assert_not_called()
 
     def test_query_growth_is_per_batch_and_report_is_read_only(self):
         """Adding accounts within a batch adds no queries; crossing adds one batch."""
