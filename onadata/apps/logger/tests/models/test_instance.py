@@ -27,7 +27,6 @@ from onadata.apps.logger.models import (
     XForm,
 )
 from onadata.apps.logger.models.instance import (
-    INSTANCE_USER_DATE_CREATED_INDEX,
     get_id_string_from_xml_str,
     numeric_checker,
     save_full_json,
@@ -1596,9 +1595,9 @@ class InstanceIndexTestCase(TestCase):
                   AND t.relname = 'logger_instance'
                   AND c.relname = %s
                 """,
-                [INSTANCE_USER_DATE_CREATED_INDEX],
+                ["logger_inst_user_id_d0dd89_idx"],
             )
             row = cursor.fetchone()
 
-        self.assertIsNotNone(row, f"{INSTANCE_USER_DATE_CREATED_INDEX} is missing")
+        self.assertIsNotNone(row, "logger_inst_user_id_d0dd89_idx is missing")
         self.assertRegex(row[0], r"USING btree \(user_id, date_created\)$")

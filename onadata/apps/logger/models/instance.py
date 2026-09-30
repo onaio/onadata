@@ -93,9 +93,6 @@ from onadata.libs.utils.timing import calculate_duration
 
 logger = logging.getLogger(__name__)
 
-# Migration 0047 repeats this literal; a migration must not import models.
-INSTANCE_USER_DATE_CREATED_INDEX = "logger_inst_user_id_dc_idx"
-
 # pylint: disable=invalid-name
 User = get_user_model()
 storage = storages["default"]
@@ -757,10 +754,7 @@ class Instance(models.Model, InstanceBaseClass):
             models.Index(fields=["xform_id", "date_created"]),
             models.Index(fields=["xform_id", "date_modified"]),
             models.Index(fields=["xform_id", "last_edited"]),
-            models.Index(
-                fields=["user", "date_created"],
-                name=INSTANCE_USER_DATE_CREATED_INDEX,
-            ),
+            models.Index(fields=["user", "date_created"]),
             models.Index(
                 fields=["validation_status"],
                 condition=Q(validation_status__isnull=False),
