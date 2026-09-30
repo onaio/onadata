@@ -53,6 +53,10 @@ The columns are:
      - The account's user ID and username.
    * - ``account_type``
      - ``personal`` or ``organization``. A user without a profile is personal.
+   * - ``is_active``
+     - Current status of the account's user record: ``True`` for active and
+       ``False`` for inactive, for both personal accounts and organizations.
+       This is independent of submission activity during the requested year.
    * - ``total_admin_users``
      - Current organization Owners-team members, excluding the organization
        account itself; one account holder for personal accounts. Includes

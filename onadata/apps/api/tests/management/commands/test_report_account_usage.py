@@ -119,6 +119,10 @@ class ReportAccountUsageTest(TestCase):
             self.assertEqual(rows[account.pk]["account_type"], "personal")
         self.assertEqual(rows[self.org.pk]["account_type"], "organization")
         self._assert_metrics(rows[self.org.pk])
+        self.assertEqual(rows[self.owner.pk]["is_active"], "True")
+        self.assertEqual(rows[self.collector.pk]["is_active"], "True")
+        self.assertEqual(rows[self.inactive.pk]["is_active"], "False")
+        self.assertEqual(rows[self.org.pk]["is_active"], "False")
         for row in rows.values():
             self.assertEqual(row["activity_year"], "2026")
             self.assertEqual(row["report_timestamp"], REPORT_TIME.isoformat())
@@ -293,6 +297,7 @@ class ReportAccountUsageTest(TestCase):
                         "account_id",
                         "username",
                         "account_type",
+                        "is_active",
                         "total_admin_users",
                         "total_data_collectors",
                         "active_data_collectors",

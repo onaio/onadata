@@ -29,6 +29,7 @@ REPORT_FIELDS = (
     "account_id",
     "username",
     "account_type",
+    "is_active",
     "total_admin_users",
     "total_data_collectors",
     "active_data_collectors",
@@ -134,7 +135,7 @@ class Command(BaseCommand):
             get_user_model()
             .objects.exclude(username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME)
             .order_by("pk")
-            .values("pk", "username", "profile__organizationprofile__pk")
+            .values("pk", "username", "is_active", "profile__organizationprofile__pk")
         )
         identified = Q(user__isnull=False) & ~Q(
             user__username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
@@ -193,6 +194,7 @@ class Command(BaseCommand):
                     account_id,
                     account["username"],
                     "organization" if is_organization else "personal",
+                    account["is_active"],
                     owner_counts.get(account_id, 0) if is_organization else 1,
                     counts.get("collectors", 0),
                     counts.get("active", 0),
