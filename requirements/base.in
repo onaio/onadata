@@ -2,7 +2,7 @@
 -e .
 
 # Security minimums for transitive runtime dependencies.
-idna>=3.15
+idna>=3.18
 urllib3>=2.7.0
 
 # Two-factor authentication. Bounded below 2 because this is the login path:
