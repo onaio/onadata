@@ -3,6 +3,76 @@ Management Commands
 
 The following custom Django management commands are available:
 
+Report account usage
+--------------------
+
+Export one CSV row per existing personal account or organization, including
+inactive accounts, accounts without profiles, and accounts with no submissions.
+The configured anonymous system account is excluded.
+
+.. code-block:: bash
+
+    python manage.py report_account_usage --year 2026 --csv account_usage.csv
+
+``--year`` selects the activity calendar year and defaults to ``2026``. Supported
+years are 1 through 9998. Omit ``--csv`` or use ``--csv -`` to write CSV to stdout.
+Files are written as UTF-8 and cell values use the standard export sanitization
+to prevent spreadsheet formulas from being evaluated.
+
+The columns are:
+
+.. list-table:: Account usage CSV
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Column
+     - Definition
+   * - ``account_id``, ``username``
+     - The account's user ID and username.
+   * - ``account_type``
+     - ``personal`` or ``organization``. A user without a profile is personal.
+   * - ``total_admin_users``
+     - Current organization Owners-team members, excluding the organization
+       account itself; one account holder for personal accounts. Includes
+       inactive owners, with no join-date or activity filter. An organization
+       without an Owners team has zero admins.
+   * - ``total_data_collectors``
+     - Distinct identified submitting accounts across all retained submissions
+       received before report generation.
+   * - ``active_data_collectors``
+     - Distinct identified submitting accounts during ``activity_year``, up to
+       report generation.
+   * - ``submissions_last_12_months``
+     - Submission records received in the rolling 12 calendar months ending at
+       report generation, independent of ``--year``.
+   * - ``activity_year``
+     - The requested activity year.
+   * - ``report_timestamp``
+     - Report generation time, captured once and written in ISO 8601 format.
+   * - ``rolling_window_start``
+     - ISO 8601 timestamp 12 calendar months before ``report_timestamp``.
+
+Calendar boundaries use the deployment's configured ``TIME_ZONE``. Starts are
+inclusive and ends exclusive. The activity window ends at the earlier of the
+next January 1 and report generation. The rolling window preserves local wall
+time; February 29 becomes February 28 in the preceding non-leap year.
+
+Submissions are attributed through their form's project to its current owning
+account. Collectors are deduplicated across all of that account's forms and
+projects, and an admin who submits data also counts as a collector. Retained
+soft-deleted submissions, forms, and projects are included. Receipt time
+(``Instance.date_created``) determines activity; edits and submission history
+records do not add submissions or change that date.
+
+Anonymous submissions contribute to submission totals but not distinct collector
+counts. Counts identify submitting accounts, not individual people using shared
+credentials. Transferred projects contribute their retained history to their
+current owner. Permanently deleted records and identities cannot be reconstructed;
+all-time collector counts cover retained data only.
+
+The command reads accounts in batches and does not create missing profiles or
+teams. It does not change database records.
+
 Regenerate submission JSON
 --------------------------
 
