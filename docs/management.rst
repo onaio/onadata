@@ -20,6 +20,16 @@ to stdout.
 Files are written as UTF-8 and cell values use the standard export sanitization
 to prevent spreadsheet formulas from being evaluated.
 
+All report queries explicitly use the ``default`` database alias, bypassing
+read-replica routing. Use ``--database <alias>`` to select another configured
+database, such as a dedicated reporting database. The selected alias must point
+to the intended database; ``default`` normally points to the primary.
+
+Long aggregations on a PostgreSQL standby can fail with ``canceling statement
+due to conflict with recovery`` when replication needs to remove older row
+versions. Run this report against a primary to avoid that standby conflict.
+The report still performs a potentially expensive read over retained submissions.
+
 To upload the report to the deployment's configured default storage and print
 its download link:
 

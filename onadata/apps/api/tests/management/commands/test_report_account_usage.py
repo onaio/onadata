@@ -486,6 +486,29 @@ class ReportAccountUsageTest(TestCase):
             for query in third:
                 self.assertTrue(query["sql"].lstrip().upper().startswith("SELECT"))
 
+    @override_settings(DATABASE_ROUTERS=["multidb.MasterSlaveRouter"])
+    def test_report_queries_bypass_replica_routing(self):
+        """All account, owner and submission queries stay on the selected database."""
+        self._submit(self.collector)
+        for options in ({}, {"database": "default"}):
+            with self.subTest(options=options), patch(
+                "multidb.get_slave", return_value="unavailable-replica"
+            ) as get_replica, patch.object(report_account_usage, "BATCH_SIZE", 2):
+                rows = self._report(**options)
+            get_replica.assert_not_called()
+            self._assert_metrics(
+                rows[self.org.pk], collectors=1, active=1, submissions=1
+            )
+
+    def test_unknown_database_fails_before_opening_output(self):
+        """Reject an invalid database alias without truncating an output file."""
+        with self.assertNumQueries(0), patch("builtins.open") as open_file:
+            with self.assertRaisesMessage(CommandError, "Unknown database alias"):
+                call_command(
+                    "report_account_usage", database="missing", csv="report.csv"
+                )
+            open_file.assert_not_called()
+
     @override_settings(USE_TZ=False)
     def test_timezone_support_can_be_disabled(self):
         """Naive deployments still report local calendar boundaries."""

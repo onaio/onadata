@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.core.files import File
 from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand, CommandError
+from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.models import Count, F, Q, Value
 from django.db.models.functions import Concat
 from django.utils import timezone
@@ -52,6 +53,15 @@ class Command(BaseCommand):
             default=2026,
             help="Activity calendar year (default: 2026).",
         )
+        parser.add_argument(
+            "--database",
+            default=DEFAULT_DB_ALIAS,
+            choices=tuple(connections),
+            help=(
+                "Database alias for all report queries (default: default). "
+                "Bypasses routers."
+            ),
+        )
         output = parser.add_mutually_exclusive_group()
         output.add_argument(
             "--csv", help="Output file; omit or use '-' to write CSV to stdout."
@@ -68,6 +78,8 @@ class Command(BaseCommand):
             raise CommandError("--year must be between 1 and 9998.")
         if options["storage"] is not None and options["csv"] is not None:
             raise CommandError("--storage and --csv cannot be used together.")
+        if options["database"] not in connections:
+            raise CommandError(f"Unknown database alias: {options['database']}")
 
         report_timestamp = timezone.now()
         year_start = datetime(year, 1, 1)
@@ -78,7 +90,9 @@ class Command(BaseCommand):
             year_start = timezone.make_aware(year_start, deployment_timezone)
             year_end = timezone.make_aware(year_end, deployment_timezone)
         rolling_start = report_timestamp - relativedelta(months=12)
-        rows = self._rows(year_start, year_end, report_timestamp, rolling_start)
+        rows = self._rows(
+            year_start, year_end, report_timestamp, rolling_start, options["database"]
+        )
 
         output_path = options["csv"]
         try:
@@ -130,10 +144,12 @@ class Command(BaseCommand):
             ) from error
         self.stdout.write(url)
 
-    def _rows(self, year_start, year_end, report_timestamp, rolling_start):
+    # pylint: disable=too-many-locals
+    def _rows(self, year_start, year_end, report_timestamp, rolling_start, database):
         accounts = (
             get_user_model()
-            .objects.exclude(username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME)
+            .objects.using(database)
+            .exclude(username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME)
             .order_by("pk")
             .values("pk", "username", "is_active", "profile__organizationprofile__pk")
         )
@@ -146,7 +162,8 @@ class Command(BaseCommand):
             # Keep these aggregations separate: joining teams to submissions would
             # multiply submission totals by the number of team members.
             owner_counts = dict(
-                Team.objects.filter(
+                Team.objects.using(database)
+                .filter(
                     organization_id__in=account_ids,
                     name=Concat(
                         F("organization__username"), Value(f"#{Team.OWNER_TEAM_NAME}")
@@ -167,7 +184,8 @@ class Command(BaseCommand):
             # Project ownership, rather than form ownership, attributes history.
             usage = {
                 row["xform__project__organization_id"]: row
-                for row in Instance.objects.filter(
+                for row in Instance.objects.using(database)
+                .filter(
                     xform__project__organization_id__in=account_ids,
                     date_created__lt=report_timestamp,
                 )
