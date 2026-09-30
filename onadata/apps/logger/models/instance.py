@@ -93,6 +93,9 @@ from onadata.libs.utils.timing import calculate_duration
 
 logger = logging.getLogger(__name__)
 
+# Migration 0047 repeats this literal; a migration must not import models.
+INSTANCE_USER_DATE_CREATED_INDEX = "logger_inst_user_id_dc_idx"
+
 # pylint: disable=invalid-name
 User = get_user_model()
 storage = storages["default"]
@@ -742,6 +745,9 @@ class Instance(models.Model, InstanceBaseClass):
     class Meta:
         app_label = "logger"
         unique_together = ("xform", "uuid")
+        # Adding a standalone last_edited index reintroduces the scan this
+        # (user, date_created) one fixes. Pair it with (last_edited_by,
+        # last_edited).
         indexes = [
             models.Index(fields=["date_created"]),
             models.Index(fields=["date_modified"]),
@@ -751,6 +757,10 @@ class Instance(models.Model, InstanceBaseClass):
             models.Index(fields=["xform_id", "date_created"]),
             models.Index(fields=["xform_id", "date_modified"]),
             models.Index(fields=["xform_id", "last_edited"]),
+            models.Index(
+                fields=["user", "date_created"],
+                name=INSTANCE_USER_DATE_CREATED_INDEX,
+            ),
             models.Index(
                 fields=["validation_status"],
                 condition=Q(validation_status__isnull=False),
