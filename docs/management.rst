@@ -30,6 +30,16 @@ due to conflict with recovery`` when replication needs to remove older row
 versions. Run this report against a primary to avoid that standby conflict.
 The report still performs a potentially expensive read over retained submissions.
 
+Progress is written to stderr by default, leaving stdout available for CSV or
+the download URL. Messages identify the current account batch, owner counts,
+submission aggregation, completed account count, and upload/link stages. Each
+database query or storage operation that takes more than 30 seconds emits a
+``still waiting`` message with elapsed time, continuing every 30 seconds until
+it returns. These messages show that the command is alive; they do not measure
+database work completed or distinguish a slow query from one waiting on a lock.
+Use ``--verbosity 0`` to suppress progress. No extra count or monitoring queries
+are issued. Progress is not a percentage or an estimate of time remaining.
+
 To upload the report to the deployment's configured default storage and print
 its download link:
 

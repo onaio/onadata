@@ -1,11 +1,13 @@
 """Export deployment-wide account usage from retained submissions."""
 
 import csv
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from datetime import datetime
 from io import TextIOWrapper
 from pathlib import PurePosixPath
 from tempfile import TemporaryFile
+from threading import Event, Thread
+from time import monotonic
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -26,6 +28,7 @@ from onadata.libs.utils.common_tools import sanitize_for_export
 from onadata.libs.utils.logger_tools import get_storages_media_download_url
 
 BATCH_SIZE = 1000
+PROGRESS_INTERVAL = 30
 REPORT_FIELDS = (
     "account_id",
     "username",
@@ -45,6 +48,7 @@ class Command(BaseCommand):
     """Write one CSV row per existing personal or organization account."""
 
     help = "Export account administrators, data collectors and submission usage as CSV."
+    verbosity = 1
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -80,6 +84,7 @@ class Command(BaseCommand):
             raise CommandError("--storage and --csv cannot be used together.")
         if options["database"] not in connections:
             raise CommandError(f"Unknown database alias: {options['database']}")
+        self.verbosity = options["verbosity"]
 
         report_timestamp = timezone.now()
         year_start = datetime(year, 1, 1)
@@ -95,18 +100,51 @@ class Command(BaseCommand):
         )
 
         output_path = options["csv"]
+        self._message(f"Generating account usage report using '{options['database']}'.")
         try:
             if options["storage"] is not None:
                 self._save_to_storage(options["storage"], rows)
-                return
-            with (
-                open(output_path, "w", encoding="utf-8", newline="")
-                if output_path and output_path != "-"
-                else nullcontext(self.stdout)
-            ) as output:
-                self._write_csv(output, rows)
+            else:
+                with (
+                    open(output_path, "w", encoding="utf-8", newline="")
+                    if output_path and output_path != "-"
+                    else nullcontext(self.stdout)
+                ) as output:
+                    self._write_csv(output, rows)
         except OSError as error:
             raise CommandError(f"Unable to write report: {error}") from error
+        self._message("Report complete.")
+
+    def _message(self, message):
+        if self.verbosity > 0:
+            self.stderr.write(message)
+            self.stderr.flush()
+
+    @contextmanager
+    def _progress(self, stage):
+        """Report a waiting stage without querying the database from another thread."""
+        if self.verbosity == 0:
+            yield
+            return
+
+        started = monotonic()
+        stopped = Event()
+
+        def heartbeat():
+            while not stopped.wait(PROGRESS_INTERVAL):
+                self._message(
+                    f"{stage}: still waiting ({monotonic() - started:.0f}s elapsed)."
+                )
+
+        self._message(f"{stage}...")
+        worker = Thread(target=heartbeat, name="account-usage-progress", daemon=True)
+        worker.start()
+        try:
+            yield
+        finally:
+            stopped.set()
+            worker.join()
+        self._message(f"{stage}: done ({monotonic() - started:.1f}s).")
 
     @staticmethod
     def _write_csv(output, rows):
@@ -125,18 +163,20 @@ class Command(BaseCommand):
             output.flush()
             report.seek(0)
             try:
-                saved_path = default_storage.save(path, File(report, name=path))
+                with self._progress(f"Uploading report to '{path}'"):
+                    saved_path = default_storage.save(path, File(report, name=path))
             except Exception as error:  # pylint: disable=broad-exception-caught
                 raise CommandError(
                     f"Unable to save report to storage: {error}"
                 ) from error
 
         try:
-            url = get_storages_media_download_url(
-                saved_path,
-                content_disposition_header(True, PurePosixPath(saved_path).name),
-                "text/csv",
-            ) or default_storage.url(saved_path)
+            with self._progress("Generating download URL"):
+                url = get_storages_media_download_url(
+                    saved_path,
+                    content_disposition_header(True, PurePosixPath(saved_path).name),
+                    "text/csv",
+                ) or default_storage.url(saved_path)
         except Exception as error:  # pylint: disable=broad-exception-caught
             raise CommandError(
                 f"Report saved to '{saved_path}', "
@@ -156,52 +196,62 @@ class Command(BaseCommand):
         identified = Q(user__isnull=False) & ~Q(
             user__username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
         )
-        batch = list(accounts[:BATCH_SIZE])
+        processed = 0
+        with self._progress("Reading account batch"):
+            batch = list(accounts[:BATCH_SIZE])
         while batch:
             account_ids = [account["pk"] for account in batch]
+            batch_label = f"accounts {processed + 1}-{processed + len(batch)}"
             # Keep these aggregations separate: joining teams to submissions would
             # multiply submission totals by the number of team members.
-            owner_counts = dict(
-                Team.objects.using(database)
-                .filter(
-                    organization_id__in=account_ids,
-                    name=Concat(
-                        F("organization__username"), Value(f"#{Team.OWNER_TEAM_NAME}")
-                    ),
-                )
-                .order_by()
-                .values("organization_id")
-                .annotate(
-                    total=Count(
-                        "user",
-                        filter=~Q(user__pk=F("organization_id")),
-                        distinct=True,
+            with self._progress(f"Counting owners for {batch_label}"):
+                owner_counts = dict(
+                    Team.objects.using(database)
+                    .filter(
+                        organization_id__in=account_ids,
+                        name=Concat(
+                            F("organization__username"),
+                            Value(f"#{Team.OWNER_TEAM_NAME}"),
+                        ),
                     )
+                    .order_by()
+                    .values("organization_id")
+                    .annotate(
+                        total=Count(
+                            "user",
+                            filter=~Q(user__pk=F("organization_id")),
+                            distinct=True,
+                        )
+                    )
+                    .values_list("organization_id", "total")
                 )
-                .values_list("organization_id", "total")
-            )
             # Unfiltered managers include soft-deleted submissions/forms/projects.
             # Project ownership, rather than form ownership, attributes history.
-            usage = {
-                row["xform__project__organization_id"]: row
-                for row in Instance.objects.using(database)
-                .filter(
-                    xform__project__organization_id__in=account_ids,
-                    date_created__lt=report_timestamp,
-                )
-                .order_by()
-                .values("xform__project__organization_id")
-                .annotate(
-                    collectors=Count("user_id", filter=identified, distinct=True),
-                    active=Count(
-                        "user_id",
-                        filter=identified
-                        & Q(date_created__gte=year_start, date_created__lt=year_end),
-                        distinct=True,
-                    ),
-                    submissions=Count("pk", filter=Q(date_created__gte=rolling_start)),
-                )
-            }
+            with self._progress(f"Aggregating submissions for {batch_label}"):
+                usage = {
+                    row["xform__project__organization_id"]: row
+                    for row in Instance.objects.using(database)
+                    .filter(
+                        xform__project__organization_id__in=account_ids,
+                        date_created__lt=report_timestamp,
+                    )
+                    .order_by()
+                    .values("xform__project__organization_id")
+                    .annotate(
+                        collectors=Count("user_id", filter=identified, distinct=True),
+                        active=Count(
+                            "user_id",
+                            filter=identified
+                            & Q(
+                                date_created__gte=year_start, date_created__lt=year_end
+                            ),
+                            distinct=True,
+                        ),
+                        submissions=Count(
+                            "pk", filter=Q(date_created__gte=rolling_start)
+                        ),
+                    )
+                }
             for account in batch:
                 account_id = account["pk"]
                 is_organization = (
@@ -221,4 +271,8 @@ class Command(BaseCommand):
                     report_timestamp.isoformat(),
                     rolling_start.isoformat(),
                 )
-            batch = list(accounts.filter(pk__gt=batch[-1]["pk"])[:BATCH_SIZE])
+            processed += len(batch)
+            self._message(f"Processed {processed} accounts.")
+            with self._progress("Reading account batch"):
+                batch = list(accounts.filter(pk__gt=batch[-1]["pk"])[:BATCH_SIZE])
+        self._message(f"CSV generation complete: {processed} accounts.")

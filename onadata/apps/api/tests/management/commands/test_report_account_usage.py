@@ -1,11 +1,13 @@
 """Behavioral tests for the deployment-wide account usage CSV."""
 
 import csv
+from contextlib import nullcontext
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from threading import Event, Thread
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -86,6 +88,7 @@ class ReportAccountUsageTest(TestCase):
 
     def _report(self, now=REPORT_TIME, **options):
         output = StringIO()
+        options.setdefault("stderr", StringIO())
         with patch.object(
             report_account_usage.timezone, "now", return_value=now
         ) as clock:
@@ -351,13 +354,22 @@ class ReportAccountUsageTest(TestCase):
         requested_path = "reports/account_usage.csv"
         storage.save(requested_path, ContentFile(b"previous report"))
         output = StringIO()
+        progress = StringIO()
         with patch.object(
             report_account_usage.timezone, "now", return_value=REPORT_TIME
         ), patch.object(storage, "url", wraps=storage.url) as storage_url:
-            call_command("report_account_usage", storage=requested_path, stdout=output)
+            call_command(
+                "report_account_usage",
+                storage=requested_path,
+                stdout=output,
+                stderr=progress,
+            )
         saved_path = storage_url.call_args.args[0]
         self.assertNotEqual(saved_path, requested_path)
         self.assertEqual(output.getvalue(), storage.url(saved_path) + "\n")
+        self.assertIn(f"Uploading report to '{requested_path}'...", progress.getvalue())
+        self.assertIn("Generating download URL...", progress.getvalue())
+        self.assertTrue(progress.getvalue().endswith("Report complete.\n"))
         with storage.open(saved_path, "rb") as report:
             reader = csv.DictReader(StringIO(report.read().decode("utf-8")))
             self.assertEqual({int(row["account_id"]): row for row in reader}, expected)
@@ -409,6 +421,7 @@ class ReportAccountUsageTest(TestCase):
                             "report_account_usage",
                             storage=requested_path,
                             stdout=output,
+                            stderr=StringIO(),
                         )
                 save.assert_called_once()
                 url.assert_called_once_with(
@@ -423,21 +436,29 @@ class ReportAccountUsageTest(TestCase):
         """Cloud-style errors are reported; URL errors preserve the saved path."""
         storage = storages["default"]
         output = StringIO()
+        progress = StringIO()
         with patch.object(storage, "save", side_effect=RuntimeError("upload failed")):
             with self.assertRaisesMessage(
                 CommandError, "Unable to save report to storage"
             ):
                 call_command(
-                    "report_account_usage", storage="report.csv", stdout=output
+                    "report_account_usage",
+                    storage="report.csv",
+                    stdout=output,
+                    stderr=progress,
                 )
         self.assertEqual(output.getvalue(), "")
         with patch.object(storage, "url", side_effect=NotImplementedError("no URL")):
             with self.assertRaisesMessage(CommandError, "Report saved to 'report.csv'"):
                 call_command(
-                    "report_account_usage", storage="report.csv", stdout=output
+                    "report_account_usage",
+                    storage="report.csv",
+                    stdout=output,
+                    stderr=progress,
                 )
         self.assertTrue(storage.exists("report.csv"))
         self.assertEqual(output.getvalue(), "")
+        self.assertNotIn("Report complete.", progress.getvalue())
 
     def test_storage_and_local_output_are_mutually_exclusive(self):
         """Invalid output combinations fail before file writes or account queries."""
@@ -508,6 +529,72 @@ class ReportAccountUsageTest(TestCase):
                     "report_account_usage", database="missing", csv="report.csv"
                 )
             open_file.assert_not_called()
+
+    def test_progress_reports_stages_and_completed_accounts_on_stderr(self):
+        """Progress leaves stdout as valid CSV and needs no extra database queries."""
+        progress = StringIO()
+        with patch.object(report_account_usage, "BATCH_SIZE", 2):
+            rows = self._report(stderr=progress)
+        messages = progress.getvalue()
+        self.assertIn("Generating account usage report using 'default'.", messages)
+        self.assertIn("Counting owners for accounts 1-2...", messages)
+        self.assertIn("Aggregating submissions for accounts 1-2...", messages)
+        self.assertIn("Processed 2 accounts.", messages)
+        self.assertIn(f"CSV generation complete: {len(rows)} accounts.", messages)
+        self.assertTrue(messages.endswith("Report complete.\n"))
+
+    def test_quiet_verbosity_disables_progress_and_heartbeat_threads(self):
+        """Quiet mode retains the report without starting progress workers."""
+        progress = StringIO()
+        with patch.object(report_account_usage, "Thread") as worker:
+            rows = self._report(verbosity=0, stderr=progress)
+        self.assertIn(self.org.pk, rows)
+        self.assertEqual(progress.getvalue(), "")
+        worker.assert_not_called()
+
+    def test_heartbeat_during_wait_stops_on_success_and_error(self):
+        """A waiting operation emits elapsed time and always joins its worker."""
+        workers = []
+
+        def new_worker(**kwargs):
+            worker = Thread(**kwargs)
+            workers.append(worker)
+            return worker
+
+        for fails in (False, True):
+            with self.subTest(fails=fails):
+                progress = StringIO()
+                heartbeat_seen = Event()
+                original_write = progress.write
+
+                def write(message):
+                    result = original_write(message)
+                    if "still waiting" in message:
+                        heartbeat_seen.set()
+                    return result
+
+                command = report_account_usage.Command(stderr=progress)
+                command.verbosity = 1
+                with patch.object(
+                    report_account_usage, "PROGRESS_INTERVAL", 0.01
+                ), patch.object(
+                    report_account_usage, "Thread", side_effect=new_worker
+                ), patch.object(
+                    progress, "write", side_effect=write
+                ):
+                    with (
+                        self.assertRaisesMessage(RuntimeError, "query failed")
+                        if fails
+                        else nullcontext()
+                    ):
+                        with command._progress("Aggregating submissions"):
+                            self.assertTrue(heartbeat_seen.wait(timeout=2))
+                            if fails:
+                                raise RuntimeError("query failed")
+                self.assertIn("still waiting", progress.getvalue())
+                self.assertIn("elapsed", progress.getvalue())
+                self.assertEqual("done" in progress.getvalue(), not fails)
+                self.assertFalse(workers[-1].is_alive())
 
     @override_settings(USE_TZ=False)
     def test_timezone_support_can_be_disabled(self):
