@@ -9,7 +9,7 @@ from django.db import migrations, models
 
 from onadata.apps.logger.migrations._index_utils import ensure_index
 
-INDEX_NAME = "logger_inst_user_id_dc_idx"
+INDEX_NAME = "logger_inst_user_id_d0dd89_idx"
 INDEX_COLUMNS = ["user_id", "date_created"]
 
 
