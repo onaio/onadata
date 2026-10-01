@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Instance model class
 """
@@ -1210,4 +1209,4 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
         """Mutes the set_deleted_at method for the history record."""
-        return None
+        return
