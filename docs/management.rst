@@ -14,7 +14,8 @@ The configured anonymous system account is excluded.
 
     python manage.py report_account_usage --year 2026 --csv account_usage.csv
 
-``--year`` selects the activity calendar year and defaults to ``2026``. Supported
+``--year`` selects the activity calendar year and defaults to the year of
+``report_timestamp``, so an unattended run reports the year it ran in. Supported
 years are 1 through 9998. Omit both output options or use ``--csv -`` to write CSV
 to stdout.
 Files are written as UTF-8 and cell values use the standard export sanitization
@@ -28,17 +29,48 @@ to the intended database; ``default`` normally points to the primary.
 Long aggregations on a PostgreSQL standby can fail with ``canceling statement
 due to conflict with recovery`` when replication needs to remove older row
 versions. Run this report against a primary to avoid that standby conflict.
-The report still performs a potentially expensive read over retained submissions.
+The report still performs a potentially expensive read over retained submissions:
+the all-time collector count has to reach every retained submission of every
+account in the batch.
 
 Progress is written to stderr by default, leaving stdout available for CSV or
-the download URL. Messages identify the current account batch, owner counts,
-submission aggregation, completed account count, and upload/link stages. Each
-database query or storage operation that takes more than 30 seconds emits a
-``still waiting`` message with elapsed time, continuing every 30 seconds until
-it returns. These messages show that the command is alive; they do not measure
-database work completed or distinguish a slow query from one waiting on a lock.
-Use ``--verbosity 0`` to suppress progress. No extra count or monitoring queries
-are issued. Progress is not a percentage or an estimate of time remaining.
+the download URL. The run counts the accounts it has to report, then announces
+completed accounts as a share of that total with a rough estimate of the time
+left. The estimate assumes accounts cost the same to aggregate, which a single
+account holding most of the submissions breaks; read it as an order of magnitude
+rather than a deadline. Each database query or storage operation that takes more
+than 30 seconds emits a ``still waiting`` message with elapsed time, continuing
+every 30 seconds until it returns. These messages show that the command is
+alive; they do not measure database work completed or distinguish a slow query
+from one waiting on a lock.
+
+``--verbosity 2`` also names each per-batch stage as it starts and finishes, and
+reports completed accounts after every batch instead of once per 30 seconds.
+``--verbosity 0`` suppresses progress entirely, skips the account count, and
+starts no heartbeat threads.
+
+``--batch-size`` sets how many accounts each aggregate query covers (default
+1000). Lower it when one batch holds an account large enough to change the
+query plan.
+
+``--statement-timeout`` sets ``statement_timeout`` for this run's queries in
+milliseconds, where ``0`` disables it. Without it the server default applies,
+which can be shorter than the all-time collector count takes. ``--work-mem``
+sets ``work_mem`` in megabytes, keeping the per-account grouping in memory
+instead of spilling to temporary files. Both apply to this command's own
+connection and nothing else inherits them.
+
+When a query fails, the error names the last account reported. Re-run with
+``--resume-from <account_id>`` to continue after it, and ``--no-header`` so the
+output can be concatenated onto the earlier run's file. A resumed run counts and
+reports progress against the accounts still to do, not the whole table.
+
+Recovery is local to the machine running the command. The resume point is only
+written to stderr, and ``--csv`` leaves partial output in ``<path>.part`` beside
+the target, renaming it onto the target only once a whole report is written.
+``--storage`` uploads a complete report in a single call at the end, so an
+interrupted run leaves nothing in the bucket and ``--resume-from`` has nothing
+to append to. Use ``--csv`` for a run long enough to need resuming.
 
 To upload the report to the deployment's configured default storage and print
 its download link:
@@ -51,7 +83,10 @@ its download link:
 container. It cannot be combined with ``--csv``. The same command uses Amazon S3
 or Azure Blob Storage according to the environment's Django storage settings.
 The report is staged in a temporary file, uploaded, and the URL is printed to
-stdout. The temporary file is removed automatically.
+stdout. The temporary file is removed automatically. ``--tmp-dir`` chooses where
+it is staged, defaulting to ``FILE_UPLOAD_TEMP_DIR``. Point it at real disk
+where the system temporary directory is memory backed, or the staged CSV counts
+against the process's memory rather than its disk.
 
 S3 and Azure use the existing download-link helper, requesting a one-hour URL
 with a CSV attachment filename. Access and signing follow the storage backend's
@@ -92,7 +127,9 @@ The columns are:
      - Submission records received in the rolling 12 calendar months ending at
        report generation, independent of ``--year``.
    * - ``activity_year``
-     - The requested activity year.
+     - The activity calendar year that ``active_data_collectors`` covers. This
+       describes the report rather than the account, so every row carries the
+       same value.
    * - ``report_timestamp``
      - Report generation time, captured once and written in ISO 8601 format.
    * - ``rolling_window_start``
@@ -116,8 +153,8 @@ credentials. Transferred projects contribute their retained history to their
 current owner. Permanently deleted records and identities cannot be reconstructed;
 all-time collector counts cover retained data only.
 
-The command reads accounts in batches and does not create missing profiles or
-teams. It does not change database records.
+The command reads accounts in batches of ``--batch-size`` and does not create
+missing profiles or teams. It does not change database records.
 
 Regenerate submission JSON
 --------------------------

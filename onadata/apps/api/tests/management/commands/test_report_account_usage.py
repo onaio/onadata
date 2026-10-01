@@ -17,7 +17,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import storages
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.db import connection
+from django.db import DatabaseError, connection
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -202,7 +202,7 @@ class ReportAccountUsageTest(TestCase):
         ):
             self._submit(user, received)
         with timezone.override("Pacific/Honolulu"):
-            rows = self._report(now=datetime(2027, 3, 1, tzinfo=UTC))
+            rows = self._report(now=datetime(2027, 3, 1, tzinfo=UTC), year=2026)
         self._assert_metrics(rows[self.org.pk], collectors=4, active=2, submissions=2)
         self.assertEqual(
             rows[self.org.pk]["report_timestamp"], "2027-03-01T03:00:00+03:00"
@@ -326,16 +326,21 @@ class ReportAccountUsageTest(TestCase):
                     )
                 open_file.assert_not_called()
         with TemporaryDirectory() as directory:
+            # Nested so the staged .part file is removed with the directory.
+            nested = Path(directory) / "nested"
+            nested.mkdir()
             with self.assertRaisesMessage(CommandError, "Unable to write report"):
-                self._report(csv=directory)
+                self._report(csv=str(nested))
             with patch("builtins.open", side_effect=PermissionError("denied")):
                 with self.assertRaisesMessage(CommandError, "Unable to write report"):
                     self._report(csv=str(Path(directory) / "report.csv"))
-        with patch.object(
-            report_account_usage.csv, "writer", side_effect=OSError("disk full")
+        with (
+            patch.object(
+                report_account_usage.csv, "writer", side_effect=OSError("disk full")
+            ),
+            self.assertRaisesMessage(CommandError, "Unable to write report"),
         ):
-            with self.assertRaisesMessage(CommandError, "Unable to write report"):
-                self._report()
+            self._report()
 
     @override_settings(
         STORAGES={
@@ -355,9 +360,12 @@ class ReportAccountUsageTest(TestCase):
         storage.save(requested_path, ContentFile(b"previous report"))
         output = StringIO()
         progress = StringIO()
-        with patch.object(
-            report_account_usage.timezone, "now", return_value=REPORT_TIME
-        ), patch.object(storage, "url", wraps=storage.url) as storage_url:
+        with (
+            patch.object(
+                report_account_usage.timezone, "now", return_value=REPORT_TIME
+            ),
+            patch.object(storage, "url", wraps=storage.url) as storage_url,
+        ):
             call_command(
                 "report_account_usage",
                 storage=requested_path,
@@ -410,8 +418,11 @@ class ReportAccountUsageTest(TestCase):
                 },
             ),
         ):
-            with self.subTest(backend=backend), override_settings(
-                STORAGES={"default": {"BACKEND": backend, "OPTIONS": options}}
+            with (
+                self.subTest(backend=backend),
+                override_settings(
+                    STORAGES={"default": {"BACKEND": backend, "OPTIONS": options}}
+                ),
             ):
                 storage = storages["default"]
                 output = StringIO()
@@ -462,9 +473,10 @@ class ReportAccountUsageTest(TestCase):
 
     def test_storage_and_local_output_are_mutually_exclusive(self):
         """Invalid output combinations fail before file writes or account queries."""
-        with self.assertNumQueries(0), patch.object(
-            report_account_usage, "default_storage"
-        ) as storage:
+        with (
+            self.assertNumQueries(0),
+            patch.object(report_account_usage, "default_storage") as storage,
+        ):
             with self.assertRaises(CommandError):
                 call_command(
                     "report_account_usage", "--csv", "-", "--storage", "report.csv"
@@ -480,42 +492,53 @@ class ReportAccountUsageTest(TestCase):
         account_count = User.objects.exclude(
             username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
         ).count()
-        with patch.object(report_account_usage, "BATCH_SIZE", account_count + 6):
-            with CaptureQueriesContext(connection) as first:
-                expected_rows = self._report()
-            User.objects.bulk_create(
-                [User(username=f"extra-{index}") for index in range(5)]
+        # Per batch: owners, submitters, active submitters, submissions and the
+        # next batch of accounts. Once overall: the remaining-account count,
+        # the anonymous account lookup and the first batch of accounts.
+        per_batch = 5
+        overhead = 3
+        batch_size = account_count + 6
+        with CaptureQueriesContext(connection) as first:
+            expected_rows = self._report(batch_size=batch_size)
+        self.assertEqual(len(first), overhead + per_batch)
+        User.objects.bulk_create(
+            [User(username=f"extra-{index}") for index in range(5)]
+        )
+        with CaptureQueriesContext(connection) as second:
+            rows = self._report(batch_size=batch_size)
+        self.assertEqual(len(rows), len(expected_rows) + 5)
+        self.assertEqual(len(first), len(second))
+        _, last_account = User.objects.bulk_create(
+            [User(username="next-batch-1"), User(username="next-batch-2")]
+        )
+        # Move existing data into the final batch to verify its aggregates.
+        Project.objects.filter(pk=self.project.pk).update(organization=last_account)
+        self._submit(self.collector)
+        with CaptureQueriesContext(connection) as third:
+            rows = self._report(batch_size=batch_size)
+        self.assertEqual(len(rows), len(expected_rows) + 7)
+        self._assert_metrics(
+            rows[last_account.pk], collectors=1, active=1, submissions=1
+        )
+        self.assertEqual(len(third) - len(second), per_batch)
+        self.assertEqual(len(third), overhead + 2 * per_batch)
+        for query in third:
+            self.assertNotRegex(
+                query["sql"], r"(?i)\b(INSERT|UPDATE|DELETE|TRUNCATE)\b"
             )
-            with CaptureQueriesContext(connection) as second:
-                rows = self._report()
-            self.assertEqual(len(rows), len(expected_rows) + 5)
-            self.assertEqual(len(first), len(second))
-            _, last_account = User.objects.bulk_create(
-                [User(username="next-batch-1"), User(username="next-batch-2")]
-            )
-            # Move existing data into the final batch to verify its aggregates.
-            Project.objects.filter(pk=self.project.pk).update(organization=last_account)
-            self._submit(self.collector)
-            with CaptureQueriesContext(connection) as third:
-                rows = self._report()
-            self.assertEqual(len(rows), len(expected_rows) + 7)
-            self._assert_metrics(
-                rows[last_account.pk], collectors=1, active=1, submissions=1
-            )
-            self.assertEqual(len(third) - len(second), 3)
-            self.assertLessEqual(len(third), 7)
-            for query in third:
-                self.assertTrue(query["sql"].lstrip().upper().startswith("SELECT"))
 
     @override_settings(DATABASE_ROUTERS=["multidb.MasterSlaveRouter"])
     def test_report_queries_bypass_replica_routing(self):
         """All account, owner and submission queries stay on the selected database."""
         self._submit(self.collector)
         for options in ({}, {"database": "default"}):
-            with self.subTest(options=options), patch(
-                "multidb.get_slave", return_value="unavailable-replica"
-            ) as get_replica, patch.object(report_account_usage, "BATCH_SIZE", 2):
-                rows = self._report(**options)
+            with (
+                self.subTest(options=options),
+                patch(
+                    "multidb.get_slave", return_value="unavailable-replica"
+                ) as get_replica,
+            ):
+                rows = self._report(batch_size=2, **options)
             get_replica.assert_not_called()
             self._assert_metrics(
                 rows[self.org.pk], collectors=1, active=1, submissions=1
@@ -530,18 +553,30 @@ class ReportAccountUsageTest(TestCase):
                 )
             open_file.assert_not_called()
 
-    def test_progress_reports_stages_and_completed_accounts_on_stderr(self):
-        """Progress leaves stdout as valid CSV and needs no extra database queries."""
-        progress = StringIO()
-        with patch.object(report_account_usage, "BATCH_SIZE", 2):
-            rows = self._report(stderr=progress)
-        messages = progress.getvalue()
+    def test_stage_detail_needs_higher_verbosity_than_run_boundaries(self):
+        """Per-batch stages are -v2 detail; the default keeps the run's outline."""
+        detailed = StringIO()
+        rows = self._report(stderr=detailed, batch_size=2, verbosity=2)
+        messages = detailed.getvalue()
         self.assertIn("Generating account usage report using 'default'.", messages)
         self.assertIn("Counting owners for accounts 1-2...", messages)
-        self.assertIn("Aggregating submissions for accounts 1-2...", messages)
-        self.assertIn("Processed 2 accounts.", messages)
+        self.assertIn("Counting submitters for accounts 1-2...", messages)
+        self.assertIn("Counting active submitters for accounts 1-2...", messages)
+        self.assertIn("Counting submissions for accounts 1-2...", messages)
+        self.assertIn(f"{len(rows)} accounts to report.", messages)
+        self.assertIn(f"Processed 2 of {len(rows)} accounts (50.0%)", messages)
         self.assertIn(f"CSV generation complete: {len(rows)} accounts.", messages)
         self.assertTrue(messages.endswith("Report complete.\n"))
+
+        default = StringIO()
+        self.assertEqual(self._report(stderr=default, batch_size=2), rows)
+        outline = default.getvalue()
+        self.assertNotIn("Counting owners", outline)
+        self.assertNotIn("Processed 2 of", outline)
+        self.assertIn(f"{len(rows)} accounts to report.", outline)
+        self.assertIn("Generating account usage report using 'default'.", outline)
+        self.assertIn(f"CSV generation complete: {len(rows)} accounts.", outline)
+        self.assertTrue(outline.endswith("Report complete.\n"))
 
     def test_quiet_verbosity_disables_progress_and_heartbeat_threads(self):
         """Quiet mode retains the report without starting progress workers."""
@@ -575,22 +610,22 @@ class ReportAccountUsageTest(TestCase):
 
                 command = report_account_usage.Command(stderr=progress)
                 command.verbosity = 1
-                with patch.object(
-                    report_account_usage, "PROGRESS_INTERVAL", 0.01
-                ), patch.object(
-                    report_account_usage, "Thread", side_effect=new_worker
-                ), patch.object(
-                    progress, "write", side_effect=write
-                ):
-                    with (
+                with (
+                    patch.object(report_account_usage, "PROGRESS_INTERVAL", 0.01),
+                    patch.object(
+                        report_account_usage, "Thread", side_effect=new_worker
+                    ),
+                    patch.object(progress, "write", side_effect=write),
+                    (
                         self.assertRaisesMessage(RuntimeError, "query failed")
                         if fails
                         else nullcontext()
-                    ):
-                        with command._progress("Aggregating submissions"):
-                            self.assertTrue(heartbeat_seen.wait(timeout=2))
-                            if fails:
-                                raise RuntimeError("query failed")
+                    ),
+                    command._progress("Aggregating submissions"),
+                ):
+                    self.assertTrue(heartbeat_seen.wait(timeout=2))
+                    if fails:
+                        raise RuntimeError("query failed")
                 self.assertIn("still waiting", progress.getvalue())
                 self.assertIn("elapsed", progress.getvalue())
                 self.assertEqual("done" in progress.getvalue(), not fails)
@@ -602,3 +637,180 @@ class ReportAccountUsageTest(TestCase):
         row = self._report(now=REPORT_TIME.replace(tzinfo=None))[self.owner.pk]
         self.assertEqual(row["report_timestamp"], "2026-09-30T12:00:00")
         self.assertEqual(row["rolling_window_start"], "2025-09-30T12:00:00")
+
+    def test_activity_year_defaults_to_the_report_timestamp_year(self):
+        """Without --year the report describes the year it was generated in."""
+        rows = self._report(now=datetime(2031, 5, 4, tzinfo=UTC))
+        self.assertEqual({row["activity_year"] for row in rows.values()}, {"2031"})
+
+    def test_tuning_options_are_validated_before_any_query(self):
+        """Out-of-range paging and session limits fail without touching the data."""
+        for option, value in (
+            ("batch_size", 0),
+            ("resume_from", -1),
+            ("statement_timeout", -1),
+            ("work_mem", 0),
+        ):
+            with self.subTest(option=option), self.assertNumQueries(0):
+                with self.assertRaisesMessage(CommandError, "must be at least"):
+                    call_command(
+                        "report_account_usage", stdout=StringIO(), **{option: value}
+                    )
+
+    def test_resume_from_continues_after_the_last_reported_account(self):
+        """Resuming skips reported accounts and can leave the header off."""
+        complete = sorted(self._report())
+        output = StringIO()
+        with patch.object(
+            report_account_usage.timezone, "now", return_value=REPORT_TIME
+        ):
+            call_command(
+                "report_account_usage",
+                resume_from=complete[0],
+                no_header=True,
+                stdout=output,
+                stderr=StringIO(),
+            )
+        lines = output.getvalue().splitlines()
+        self.assertNotIn("account_id", lines[0])
+        self.assertEqual([int(line.split(",")[0]) for line in lines], complete[1:])
+
+    def test_interrupted_aggregates_name_the_account_to_resume_from(self):
+        """A database failure says where to restart, or that nothing finished."""
+        accounts = sorted(
+            User.objects.exclude(
+                username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+            ).values_list("pk", flat=True)
+        )
+        original = report_account_usage.Command._submission_counts
+        batches = []
+
+        def fail_after(limit):
+            def aggregate(report, account_ids):
+                batches.append(account_ids)
+                if len(batches) > limit:
+                    raise DatabaseError("canceling statement due to statement timeout")
+                return original(report, account_ids)
+
+            return aggregate
+
+        for limit, expected in (
+            (0, "No accounts completed"),
+            (1, f"Resume with --resume-from {accounts[0]}"),
+        ):
+            with self.subTest(limit=limit):
+                batches.clear()
+                with (
+                    patch.object(
+                        report_account_usage.Command,
+                        "_submission_counts",
+                        staticmethod(fail_after(limit)),
+                    ),
+                    self.assertRaisesMessage(CommandError, expected),
+                ):
+                    call_command(
+                        "report_account_usage",
+                        batch_size=1,
+                        stdout=StringIO(),
+                        stderr=StringIO(),
+                    )
+
+    def test_a_failed_run_leaves_a_partial_file_not_a_short_report(self):
+        """The requested name appears only once a whole report is written."""
+
+        def fail(report, account_ids):
+            raise DatabaseError("canceling statement due to statement timeout")
+
+        with TemporaryDirectory() as directory:
+            output_path = Path(directory) / "report.csv"
+            partial = Path(f"{output_path}.part")
+            with (
+                patch.object(
+                    report_account_usage.timezone, "now", return_value=REPORT_TIME
+                ),
+                patch.object(
+                    report_account_usage.Command,
+                    "_submission_counts",
+                    staticmethod(fail),
+                ),
+                self.assertRaises(CommandError),
+            ):
+                call_command(
+                    "report_account_usage",
+                    csv=str(output_path),
+                    stdout=StringIO(),
+                    stderr=StringIO(),
+                )
+            self.assertFalse(output_path.exists())
+            self.assertEqual(
+                partial.read_text(encoding="utf-8").splitlines(),
+                [",".join(report_account_usage.REPORT_FIELDS)],
+            )
+            self.assertEqual(self._report(csv=str(output_path)), {})
+            self.assertTrue(output_path.exists())
+            self.assertFalse(partial.exists())
+
+    def test_progress_counts_only_the_accounts_still_to_report(self):
+        """Resuming measures progress against what is left, not the whole table."""
+        accounts = sorted(self._report())
+        progress = StringIO()
+        with patch.object(
+            report_account_usage.timezone, "now", return_value=REPORT_TIME
+        ):
+            call_command(
+                "report_account_usage",
+                resume_from=accounts[0],
+                batch_size=1,
+                verbosity=2,
+                stdout=StringIO(),
+                stderr=progress,
+            )
+        messages = progress.getvalue()
+        left = len(accounts) - 1
+        self.assertIn(f"{left} accounts to report.", messages)
+        self.assertIn(f"Processed 1 of {left} accounts", messages)
+        self.assertIn(f"CSV generation complete: {left} accounts.", messages)
+
+    def test_session_limits_are_applied_as_bound_values(self):
+        """Both limits reach the connection the report queries run on."""
+        with CaptureQueriesContext(connection) as queries:
+            self._report(statement_timeout=0, work_mem=64)
+        applied = [query["sql"] for query in queries if "set_config" in query["sql"]]
+        self.assertEqual(len(applied), 2)
+        self.assertIn("statement_timeout", applied[0])
+        self.assertIn("0ms", applied[0])
+        self.assertIn("work_mem", applied[1])
+        self.assertIn("64MB", applied[1])
+
+    def test_submitter_counts_do_not_join_the_user_table(self):
+        """Anonymous submitters are matched by id, not by username per row."""
+        self._submit(self.collector)
+        self._submit(None)
+        with CaptureQueriesContext(connection) as queries:
+            rows = self._report()
+        self._assert_metrics(rows[self.org.pk], collectors=1, active=1, submissions=2)
+        aggregates = [
+            query["sql"] for query in queries if "logger_instance" in query["sql"]
+        ]
+        self.assertEqual(len(aggregates), 3)
+        for sql in aggregates:
+            self.assertNotIn("auth_user", sql)
+            self.assertNotIn("username", sql)
+
+    @override_settings(
+        STORAGES={"default": {"BACKEND": "django.core.files.storage.InMemoryStorage"}}
+    )
+    def test_storage_staging_honours_the_requested_temporary_directory(self):
+        """The staged CSV lands where the operator points it, not only in /tmp."""
+        with TemporaryDirectory() as directory:
+            for tmp_dir, expected in ((directory, directory), (None, None)):
+                with (
+                    self.subTest(tmp_dir=tmp_dir),
+                    patch.object(
+                        report_account_usage,
+                        "TemporaryFile",
+                        wraps=report_account_usage.TemporaryFile,
+                    ) as staging,
+                ):
+                    self._report(storage="report.csv", tmp_dir=tmp_dir)
+                staging.assert_called_once_with(dir=expected)
