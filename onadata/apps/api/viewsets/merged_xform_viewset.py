@@ -5,7 +5,7 @@ MergedXFormViewSet: API endpoint for /api/merged-datasets
 
 import json
 
-from django.db.models import Sum
+from django.db.models import Prefetch, Sum
 from django.http import HttpResponseBadRequest
 
 from rest_framework import mixins, viewsets
@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.logger.models import Instance, MergedXForm
+from onadata.apps.logger.models import Instance, MergedXForm, XForm
 from onadata.libs import filters
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.renderers import renderers
@@ -27,6 +27,10 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_get,
     safe_cache_set,
 )
+
+# Whole form definitions: megabytes per form, and json is deserialised on every
+# row loaded. No field on MergedXFormSerializer renders them.
+XFORM_DEFINITION_FIELDS = ("json", "xml", "xls")
 
 
 # pylint: disable=too-many-ancestors
@@ -50,6 +54,15 @@ class MergedXFormViewSet(
     queryset = (
         MergedXForm.objects.filter(
             deleted_at__isnull=True, project__organization__is_active=True
+        )
+        .defer(*XFORM_DEFINITION_FIELDS)
+        .prefetch_related(
+            Prefetch(
+                "xforms",
+                queryset=XForm.objects.defer(
+                    *XFORM_DEFINITION_FIELDS
+                ).select_related("user", "project"),
+            )
         )
         .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
         .all()

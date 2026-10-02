@@ -260,9 +260,11 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_last_submission_time(self, obj):
         """Return datetime of last submission from all forms"""
+        # obj.xforms is prefetched with the columns this needs; .only() here
+        # would re-query and clash with that prefetch's select_related.
         values = [
             x.last_submission_time.isoformat()
-            for x in obj.xforms.only("last_submission_time")
+            for x in obj.xforms.all()
             if x.last_submission_time
         ]
         if values:

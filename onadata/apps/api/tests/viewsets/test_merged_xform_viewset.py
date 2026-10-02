@@ -5,10 +5,13 @@ Test merged dataset functionality.
 import csv
 import json
 import os
+import re
 from io import StringIO
 
 from django.conf import settings
 from django.core.files.base import File
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -291,6 +294,30 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(
             response.data["last_submission_time"],
             form_b.last_submission_time.isoformat(),
+        )
+
+    def test_retrieve_does_not_load_form_definitions(self):
+        """No form definition is rendered, so none should be fetched.
+
+        Depends on the viewset deferring json/xml/xls and prefetching xforms.
+        Without that the detail request loads the whole definition of the
+        merged dataset and of every form in it.
+        """
+        merged_dataset = self._create_merged_dataset()
+
+        view = MergedXFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        with CaptureQueriesContext(connection) as context:
+            response = view(request, pk=merged_dataset["id"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [
+                query["sql"]
+                for query in context.captured_queries
+                if re.search(r'"logger_xform"\."(json|xml|xls)"', query["sql"])
+            ],
+            [],
         )
 
     def test_merged_datasets_form_json(self):
