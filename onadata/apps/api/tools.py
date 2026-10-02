@@ -146,7 +146,11 @@ def create_organization(name, creator):
     - Team(name='Owners', organization=organization).save()
 
     """
-    organization, _created = User.objects.get_or_create(username__iexact=name)
+    # Without defaults the username is dropped: get_or_create builds the row
+    # from non-lookup kwargs only.
+    organization, _created = User.objects.get_or_create(
+        username__iexact=name, defaults={"username": name}
+    )
     organization_profile, _ = OrganizationProfile.objects.get_or_create(
         user=organization, creator=creator
     )

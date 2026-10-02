@@ -1,7 +1,6 @@
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
-from django.db import IntegrityError
 from django.test import override_settings
 
 import reversion
@@ -43,14 +42,15 @@ class TestOrganizationProfile(TestBase):
         # Assert that the user has the OwnerRole for the Organization
         self.assertTrue(OwnerRole.user_has_role(self.user, organization_profile))
 
-    def test_disallow_same_username_with_different_cases(self):
-        tools.create_organization("modilabs", self.user)
-        with self.assertRaises(IntegrityError):
-            tools.create_organization("ModiLabs", self.user)
+    def test_organization_is_created_once_under_the_name_given(self):
+        """Idempotent across case, since the lookup is iexact. Rejecting a
+        duplicate outright is create_organization_object's job."""
+        first = tools.create_organization("modilabs", self.user)
+        second = tools.create_organization("ModiLabs", self.user)
 
-        # test disallow org create with same username same cases
-        with self.assertRaises(IntegrityError):
-            tools.create_organization("modiLabs", self.user)
+        self.assertEqual(first.user.username, "modilabs")
+        self.assertEqual(second.pk, first.pk)
+        self.assertEqual(User.objects.filter(username__iexact="modilabs").count(), 1)
 
     def test_delete_organization(self):
         profile = tools.create_organization_object("modilabs", self.user)
