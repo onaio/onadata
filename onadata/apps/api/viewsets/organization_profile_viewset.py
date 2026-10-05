@@ -18,7 +18,11 @@ from reversion.views import RevisionMixin
 
 from onadata.apps.api import permissions
 from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.api.tools import get_baseviewset_class, get_org_profile_cache_key
+from onadata.apps.api.tools import (
+    get_baseviewset_class,
+    get_org_profile_cache_key,
+    invalidate_organization_cache,
+)
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.messaging.constants import KMS_KEY, KMS_KEY_ROTATED
 from onadata.apps.messaging.serializers import send_message
@@ -75,6 +79,7 @@ class OrganizationProfileViewSet(
     lookup_field = "user"
     permission_classes = [permissions.OrganizationProfilePermissions]
     filter_backends = (OrganizationPermissionFilter, OrganizationsSharedWithUserFilter)
+    api_version = "v1"
 
     def get_serializer_class(self):
         """Override `get_serializer_class` method"""
@@ -86,7 +91,9 @@ class OrganizationProfileViewSet(
     def retrieve(self, request, *args, **kwargs):
         """Get organization from cache or db"""
         organization = self.get_object()
-        cache_key = get_org_profile_cache_key(request.user, organization)
+        cache_key = get_org_profile_cache_key(
+            request.user, organization, self.api_version
+        )
         cached_org = safe_cache_get(cache_key)
 
         if cached_org:
@@ -102,20 +109,28 @@ class OrganizationProfileViewSet(
         organization = response.data
         username = organization.get("org")
         organization_profile = OrganizationProfile.objects.get(user__username=username)
-        cache_key = get_org_profile_cache_key(request.user, organization_profile)
+        cache_key = get_org_profile_cache_key(
+            request.user, organization_profile, self.api_version
+        )
         safe_cache_set(cache_key, organization)
         return response
 
     def destroy(self, request, *args, **kwargs):
         """Clear cache and destroy organization"""
-        cache_key = get_org_profile_cache_key(request.user, self.get_object())
+        cache_key = get_org_profile_cache_key(
+            request.user, self.get_object(), self.api_version
+        )
         safe_cache_delete(cache_key)
         return super().destroy(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
         """Update org in cache and db"""
         response = super().update(request, *args, **kwargs)
-        cache_key = get_org_profile_cache_key(request.user, self.get_object())
+        organization = self.get_object()
+        invalidate_organization_cache(organization.user.username)
+        cache_key = get_org_profile_cache_key(
+            request.user, organization, self.api_version
+        )
         safe_cache_set(cache_key, response.data)
         return response
 

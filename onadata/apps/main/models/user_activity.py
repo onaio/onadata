@@ -52,6 +52,15 @@ class UserActivity(models.Model):
         return f"{self.user.username}: {self.last_activity}"
 
 
+def latest_activity(*values):
+    """
+    Return the most recent of the timestamps given, ignoring those unset.
+
+    Falls back to now when a user has left no signal at all.
+    """
+    return max((value for value in values if value is not None), default=timezone.now())
+
+
 def get_initial_last_activity(user):
     """
     Return the best available historical activity signal for a user.
@@ -67,17 +76,12 @@ def get_initial_last_activity(user):
     else:
         latest_edit_time = None
 
-    candidates = [
-        value
-        for value in (
-            user.last_login,
-            latest_submission_time,
-            latest_edit_time,
-            user.date_joined,
-        )
-        if value is not None
-    ]
-    return max(candidates) if candidates else timezone.now()
+    return latest_activity(
+        user.last_login,
+        latest_submission_time,
+        latest_edit_time,
+        user.date_joined,
+    )
 
 
 def add_user_activity_cache_key(cache_key, timeout):
@@ -163,9 +167,16 @@ def create_user_activity(sender, instance=None, created=False, **kwargs):
     Seed an activity row for newly created users.
     """
     if created and instance is not None:
+        # Skips get_initial_last_activity: its Instance lookups can only return
+        # NULL for a user created moments ago, at the cost of scanning
+        # logger_instance. The candidates that can be set are already in memory.
         UserActivity.objects.get_or_create(
             user=instance,
-            defaults={"last_activity": get_initial_last_activity(instance)},
+            defaults={
+                "last_activity": latest_activity(
+                    instance.last_login, instance.date_joined
+                )
+            },
         )
 
 

@@ -10,8 +10,9 @@ from unittest.mock import Mock, patch
 from xml.etree.ElementTree import ParseError
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.http.request import HttpRequest
-from django.test import override_settings
+from django.test import TestCase, override_settings
 
 from django_digest.test import DigestAuth
 
@@ -1575,3 +1576,28 @@ class GetExpectedMediaTestCase(TestBase):
         self.assertCountEqual(
             instance.get_expected_media(), ["submission.xml.enc", "sunset.png.enc"]
         )
+
+
+class InstanceIndexTestCase(TestCase):
+    """Test the indexes Instance declares are present in the database."""
+
+    def test_user_date_created_index_exists(self):
+        """0047 uses SeparateDatabaseAndState, so state can drift from schema."""
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT pg_get_indexdef(i.indexrelid)
+                FROM pg_index i
+                JOIN pg_class c ON c.oid = i.indexrelid
+                JOIN pg_class t ON t.oid = i.indrelid
+                JOIN pg_namespace n ON n.oid = t.relnamespace
+                WHERE n.nspname = 'public'
+                  AND t.relname = 'logger_instance'
+                  AND c.relname = %s
+                """,
+                ["logger_inst_user_id_d0dd89_idx"],
+            )
+            row = cursor.fetchone()
+
+        self.assertIsNotNone(row, "logger_inst_user_id_d0dd89_idx is missing")
+        self.assertRegex(row[0], r"USING btree \(user_id, date_created\)$")

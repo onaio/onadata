@@ -742,6 +742,9 @@ class Instance(models.Model, InstanceBaseClass):
     class Meta:
         app_label = "logger"
         unique_together = ("xform", "uuid")
+        # Adding a standalone last_edited index reintroduces the scan this
+        # (user, date_created) one fixes. Pair it with (last_edited_by,
+        # last_edited).
         indexes = [
             models.Index(fields=["date_created"]),
             models.Index(fields=["date_modified"]),
@@ -751,6 +754,7 @@ class Instance(models.Model, InstanceBaseClass):
             models.Index(fields=["xform_id", "date_created"]),
             models.Index(fields=["xform_id", "date_modified"]),
             models.Index(fields=["xform_id", "last_edited"]),
+            models.Index(fields=["user", "date_created"]),
             models.Index(
                 fields=["validation_status"],
                 condition=Q(validation_status__isnull=False),

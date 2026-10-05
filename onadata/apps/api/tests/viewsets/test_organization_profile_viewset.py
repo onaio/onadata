@@ -33,6 +33,9 @@ from onadata.apps.api.tools import (
 from onadata.apps.api.viewsets.organization_profile_viewset import (
     OrganizationProfileViewSet,
 )
+from onadata.apps.api.viewsets.v2.organization_profile_viewset import (
+    OrganizationProfileViewSet as OrganizationProfileViewSetV2,
+)
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.kms import KMSKey
@@ -87,6 +90,29 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         versions = Version.objects.get_for_object(self.organization)
         self.assertEqual(versions.count(), version_count + 1)
         self.assertEqual(versions[0].revision.user, self.user)
+
+    def test_partial_update_invalidates_v2_cache(self):
+        """PATCH invalidates the organization cached for the v2 API"""
+        self._org_create()
+        v2_view = OrganizationProfileViewSetV2.as_view({"get": "retrieve"})
+
+        request = self.factory.get("/", **self.extra)
+        response = v2_view(request, user="denoinc")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["city"], "Denoville")
+
+        request = self.factory.patch(
+            "/",
+            data=json.dumps({"city": "Nairobi"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, user="denoinc")
+        self.assertEqual(response.status_code, 200)
+
+        request = self.factory.get("/", **self.extra)
+        response = v2_view(request, user="denoinc")
+        self.assertEqual(response.data["city"], "Nairobi")
 
     def test_partial_updates_invalid(self):
         self._org_create()
