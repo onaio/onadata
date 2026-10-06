@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.31.2(2026-10-06)
+--------------------
+- ci: bump postgres service image to 17
+  [@FrankApiyo]
+  `PR #3278 https://github.com/onaio/onadata/pull/3278`
+- Security fixes: September 2026 batch
+  [@kelvin-muchiri]
+  `PR #3280 https://github.com/onaio/onadata/pull/3280`
+
 v5.31.1(2026-09-30)*
 --------------------
 - perf: stop user creation scanning logger_instance
