@@ -1,4 +1,4 @@
 boto3
-Django>=5.2.14,<6
+Django>=6.0.7,<7
 django-storages
 urllib3>=2.7.0
