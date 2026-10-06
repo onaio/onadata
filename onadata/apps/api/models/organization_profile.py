@@ -91,6 +91,16 @@ def get_or_create_organization_owners_team(org):
     return team
 
 
+def is_organization_owners_team(team):
+    """Return True if ``team`` is the Owners team of its organization.
+
+    Team names are stored as ``<organization username>#<team name>``. Only an
+    exact match on the canonical Owners team name qualifies; a team whose name
+    merely contains "Owners" is an ordinary team.
+    """
+    return team.name == f"{team.organization.username}#{Team.OWNER_TEAM_NAME}"
+
+
 def add_user_to_team(team, user):
     """
     Adds a user to a team and assigns them team permissions.
@@ -100,8 +110,8 @@ def add_user_to_team(team, user):
     # give the user perms to view the team
     assign_perm("view_team", user, team)
 
-    # if team is owners team assign more perms
-    if team.name.find(Team.OWNER_TEAM_NAME) > 0:
+    # if team is the organization's Owners team assign more perms
+    if is_organization_owners_team(team):
         _assign_organization_team_perms(team.organization, user)
 
 

@@ -36,6 +36,7 @@ from onadata.apps.api.models.organization_profile import (
     add_user_to_team,
     get_or_create_organization_owners_team,
     get_organization_members_team,
+    is_organization_owners_team,
 )
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import DataView, EntityList, Instance, Project, XForm
@@ -234,8 +235,8 @@ def remove_user_from_team(team, user):
     # remove the permission
     remove_perm("view_team", user, team)
 
-    # if team is owners team remove more perms
-    if team.name.find(Team.OWNER_TEAM_NAME) > 0:
+    # if team is the organization's Owners team remove more perms
+    if is_organization_owners_team(team):
         owners_team = get_or_create_organization_owners_team(team.organization.profile)
         members_team = get_organization_members_team(team.organization.profile)
         for perm in get_perms_for_model(Team):
