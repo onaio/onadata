@@ -190,7 +190,7 @@ def send_message(
     :return:
     """
     message_id_limit = getattr(settings, "NOTIFICATION_ID_LIMIT", 100)
-    if user:
+    if user and user.is_authenticated:
         if isinstance(instance_id, int):
             instance_id = [instance_id]
         request = HttpRequest()
