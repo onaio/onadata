@@ -1455,6 +1455,21 @@ class TestInstance(TestBase):
             instance.decryption_status, Instance.DecryptionStatus.IN_PROGRESS
         )
 
+    def test_save_keeps_decryption_error_of_in_progress(self):
+        """Saving a submission being decrypted keeps its last decryption error."""
+        self._publish_managed_form()
+        instance = self._submit_encrypted_instance()
+        Instance.objects.filter(pk=instance.pk).update(
+            decryption_status=Instance.DecryptionStatus.IN_PROGRESS,
+            json={**instance.json, "_decryption_error": "MAX_RETRIES_EXCEEDED"},
+        )
+        instance.refresh_from_db()
+
+        instance.save()
+
+        instance.refresh_from_db()
+        self.assertEqual(instance.json.get("_decryption_error"), "MAX_RETRIES_EXCEEDED")
+
     def test_save_keeps_decryption_error_of_pending(self):
         """Saving a submission pending decryption keeps its last decryption error."""
         self._publish_managed_form()

@@ -383,7 +383,11 @@ def save_full_json(instance, include_related=True):
     # Preserve dynamic metadata fields if present
     if (
         instance.decryption_status
-        in (Instance.DecryptionStatus.PENDING, Instance.DecryptionStatus.FAILED)
+        in (
+            Instance.DecryptionStatus.PENDING,
+            Instance.DecryptionStatus.IN_PROGRESS,
+            Instance.DecryptionStatus.FAILED,
+        )
         and instance.json.get(DECRYPTION_ERROR) is not None
     ):
         json[DECRYPTION_ERROR] = instance.json[DECRYPTION_ERROR]
