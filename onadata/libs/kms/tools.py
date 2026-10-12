@@ -57,7 +57,6 @@ from onadata.libs.utils.cache_tools import (
 from onadata.libs.utils.common_tags import (
     DECRYPTION_ERROR,
     DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED,
-    DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED,
     DECRYPTION_FAILURE_INVALID_SUBMISSION,
     DECRYPTION_FAILURE_KEY_DISABLED,
     DECRYPTION_FAILURE_KEY_NOT_FOUND,
@@ -454,28 +453,48 @@ def encrypt_xform(xform, encrypted_by=None, override_encryption=False) -> None:
     _encrypt_xform(xform=xform, kms_key=kms_key, encrypted_by=encrypted_by)
 
 
-def save_decryption_error(instance: Instance, error_name: str):
+def save_decryption_error(
+    instance: Instance,
+    error_name: str,
+    status: str = Instance.DecryptionStatus.FAILED,
+):
     """Add decryption error metadata to Instance json.
 
     :param instance: Instance
     :param error_name: Error code
+    :param status: Decryption status to set
     """
     # Create a copy that we'll mutate
     json = dict(instance.json or {})
     json[DECRYPTION_ERROR] = error_name
-    update_fields_directly(
-        instance,
-        json=json,
-        decryption_status=Instance.DecryptionStatus.FAILED,
-    )
+    update_fields_directly(instance, json=json, decryption_status=status)
 
 
-# pylint: disable=too-many-locals,too-many-statements
 def decrypt_instance(instance: Instance) -> None:
-    """Decrypt encrypted Instance
+    """Decrypt encrypted Instance if it is pending decryption
 
     :param instance: Instance to be decrypted
     """
+    claimed = Instance.objects.filter(
+        pk=instance.pk, decryption_status=Instance.DecryptionStatus.PENDING
+    ).update(decryption_status=Instance.DecryptionStatus.IN_PROGRESS)
+
+    if not claimed:
+        logger.info("Instance %s is not pending decryption", instance.pk)
+        return
+
+    try:
+        _decrypt_instance(instance)
+
+    except Exception:
+        Instance.objects.filter(
+            pk=instance.pk, decryption_status=Instance.DecryptionStatus.IN_PROGRESS
+        ).update(decryption_status=Instance.DecryptionStatus.PENDING)
+        raise
+
+
+# pylint: disable=too-many-locals,too-many-statements
+def _decrypt_instance(instance: Instance) -> None:
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
     incr_task = logger_tasks.adjust_xform_num_of_decrypted_submissions_async
@@ -492,12 +511,8 @@ def decrypt_instance(instance: Instance) -> None:
 
         return enc_files
 
-    if not instance.check_encrypted():
-        raise DecryptionError(
-            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED]
-        )
-
     if not instance.xform.is_was_managed:
+        save_decryption_error(instance, DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED)
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED]
         )
@@ -519,7 +534,11 @@ def decrypt_instance(instance: Instance) -> None:
         )
 
     if not instance.media_all_received:
-        save_decryption_error(instance, DECRYPTION_FAILURE_NOT_ALL_MEDIA_RECEIVED)
+        save_decryption_error(
+            instance,
+            DECRYPTION_FAILURE_NOT_ALL_MEDIA_RECEIVED,
+            Instance.DecryptionStatus.PENDING,
+        )
         raise NotAllMediaReceivedError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_NOT_ALL_MEDIA_RECEIVED]
         )

@@ -382,7 +382,8 @@ def save_full_json(instance, include_related=True):
 
     # Preserve dynamic metadata fields if present
     if (
-        instance.decryption_status == Instance.DecryptionStatus.FAILED
+        instance.decryption_status
+        in (Instance.DecryptionStatus.PENDING, Instance.DecryptionStatus.FAILED)
         and instance.json.get(DECRYPTION_ERROR) is not None
     ):
         json[DECRYPTION_ERROR] = instance.json[DECRYPTION_ERROR]
@@ -654,6 +655,7 @@ class Instance(models.Model, InstanceBaseClass):
     class DecryptionStatus(models.TextChoices):  # pylint: disable=too-many-ancestors
         UNMANAGED = "unmanaged", _("Does not use managed keys")
         PENDING = "pending", _("Pending decryption")
+        IN_PROGRESS = "in_progress", _("Decryption in progress")
         SUCCESS = "success", _("Decryption successful")
         FAILED = "failed", _("Decryption failed")
 
@@ -763,6 +765,14 @@ class Instance(models.Model, InstanceBaseClass):
         ]
 
     @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        # pylint: disable=protected-access
+        instance._loaded_xml = instance.__dict__.get("xml")
+
+        return instance
+
+    @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now(), user=None):
         """Set's the timestamp when a submission was deleted."""
         try:
@@ -790,12 +800,22 @@ class Instance(models.Model, InstanceBaseClass):
         if self.xform and self.xform.is_merged_dataset:
             raise FormIsMergedDatasetError()
 
-    def _set_encryption_status(self):
+    def _is_xml_changed(self):
+        """Checks if the XML differs from the XML it was loaded with."""
+        if self._state.adding:
+            return True
+
+        if "xml" not in self.__dict__:
+            return False
+
+        return self.xml != getattr(self, "_loaded_xml", None)
+
+    def _set_encryption_status(self, xml_changed):
         """Sets the encryption status"""
         if self.check_encrypted():
             self.is_encrypted = True
 
-            if self.xform.is_was_managed:
+            if xml_changed and self.xform.is_was_managed:
                 self.decryption_status = Instance.DecryptionStatus.PENDING
         else:
             self.is_encrypted = False
@@ -861,14 +881,29 @@ class Instance(models.Model, InstanceBaseClass):
         if force:
             del kwargs["force"]
 
+        xml_changed = self._is_xml_changed()
+
+        if not xml_changed and not kwargs.get("update_fields"):
+            # Leave the decryption status to decryption, which may have
+            # changed it since this copy was loaded
+            deferred_fields = self.get_deferred_fields()
+            kwargs["update_fields"] = [
+                field.name
+                for field in self._meta.concrete_fields
+                if not field.primary_key
+                and field.attname not in deferred_fields
+                and field.name != "decryption_status"
+            ]
+
         self._check_is_merged_dataset()
         self._check_active(force)
         self._set_geom()
         self._set_survey_type()
         self._set_uuid()
-        self._set_encryption_status()
+        self._set_encryption_status(xml_changed)
 
         super().save(*args, **kwargs)
+        self._loaded_xml = self.__dict__.get("xml")
 
     # pylint: disable=no-member
     def set_deleted(self, deleted_at=timezone.now(), user=None):

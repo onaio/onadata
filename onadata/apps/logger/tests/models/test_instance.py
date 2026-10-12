@@ -1440,6 +1440,36 @@ class TestInstance(TestBase):
         self.assertTrue(instance.is_encrypted)
         self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
 
+    def test_save_keeps_decryption_in_progress(self):
+        """Saving a copy loaded before decryption started keeps it in progress."""
+        self._publish_managed_form()
+        instance = self._submit_encrypted_instance()
+        Instance.objects.filter(pk=instance.pk).update(
+            decryption_status=Instance.DecryptionStatus.IN_PROGRESS
+        )
+
+        instance.save()
+
+        instance.refresh_from_db()
+        self.assertEqual(
+            instance.decryption_status, Instance.DecryptionStatus.IN_PROGRESS
+        )
+
+    def test_save_keeps_decryption_error_of_pending(self):
+        """Saving a submission pending decryption keeps its last decryption error."""
+        self._publish_managed_form()
+        instance = self._submit_encrypted_instance()
+        Instance.objects.filter(pk=instance.pk).update(
+            json={**instance.json, "_decryption_error": "MAX_RETRIES_EXCEEDED"}
+        )
+        instance.refresh_from_db()
+
+        instance.save()
+
+        instance.refresh_from_db()
+        self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
+        self.assertEqual(instance.json.get("_decryption_error"), "MAX_RETRIES_EXCEEDED")
+
     @patch(
         "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
     )

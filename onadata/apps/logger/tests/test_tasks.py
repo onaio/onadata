@@ -15,7 +15,7 @@ from actstream.models import Action
 from celery.exceptions import MaxRetriesExceededError
 from valigetta.exceptions import ConnectionException as ValigettaConnectionException
 
-from onadata.apps.logger.models import EntityList
+from onadata.apps.logger.models import EntityList, Instance
 from onadata.apps.logger.tasks import (
     adjust_xform_num_of_decrypted_submissions_async,
     apply_project_date_modified_async,
@@ -425,10 +425,13 @@ class DecryptInstanceAsyncTestCase(TestBase):
         mock_decrypt.assert_not_called()
         mock_logger.assert_called_once()
 
-    @patch("onadata.apps.logger.tasks.save_decryption_error")
     # pylint: disable=unused-argument
-    def test_max_retries_exceeded(self, mock_save_decryption_error, mock_decrypt):
-        """Instance is tagged as failed decryption if max retries exceeded"""
+    def test_max_retries_exceeded(self, mock_decrypt):
+        """Instance waits for decryption with an error if max retries exceeded"""
+        Instance.objects.filter(pk=self.instance.pk).update(
+            decryption_status=Instance.DecryptionStatus.PENDING
+        )
+
         decrypt_instance_async.on_failure(
             MaxRetriesExceededError(),
             "task_id",
@@ -437,8 +440,12 @@ class DecryptInstanceAsyncTestCase(TestBase):
             None,
         )
 
-        mock_save_decryption_error.assert_called_once_with(
-            self.instance, "MAX_RETRIES_EXCEEDED"
+        self.instance.refresh_from_db()
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.PENDING
+        )
+        self.assertEqual(
+            self.instance.json.get("_decryption_error"), "MAX_RETRIES_EXCEEDED"
         )
 
 

@@ -23,6 +23,7 @@ from valigetta.exceptions import (
     CreateAliasException,
     GetPublicKeyException,
 )
+from valigetta.exceptions import ConnectionException as ValigettaConnectionException
 from valigetta.kms import APIKMSClient as BaseAPIClient
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
@@ -1188,6 +1189,38 @@ class DecryptInstanceTestCase(TestBase):
             self.xform.pk, delta=1
         )
 
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_overlapping_decryptions_decrypt_once(
+        self, mock_adjust_decrypted_submission_count
+    ):
+        """Submission loaded by two decryptions at once is decrypted once."""
+        first = Instance.objects.get(pk=self.instance.pk)
+        second = Instance.objects.get(pk=self.instance.pk)
+
+        decrypt_instance(first)
+        decrypt_instance(second)
+
+        self.instance.refresh_from_db()
+        self.assertEqual(self.instance.xml, self.dec_submission_xml)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.SUCCESS
+        )
+        self.assertEqual(
+            sorted(
+                self.instance.attachments.filter(deleted_at__isnull=True).values_list(
+                    "name", flat=True
+                )
+            ),
+            ["forest.mp4", "sunset.png"],
+        )
+        self.assertEqual(self.instance.attachments.count(), 5)
+        self.assertEqual(self.instance.submission_history.count(), 1)
+        mock_adjust_decrypted_submission_count.assert_called_once_with(
+            self.xform.pk, delta=1
+        )
+
     def test_validation_status_not_valid(self):
         """Submission not matching its signature is recorded as not valid."""
         mismatched_signature = self._create_encrypted_signature(
@@ -1325,22 +1358,42 @@ class DecryptInstanceTestCase(TestBase):
         )
 
     def test_unencrypted_submission(self):
-        """Unencrypted Instance is rejected."""
+        """Unencrypted Instance is left unchanged."""
         self._publish_transportation_form_and_submit_instance()
         instance = Instance.objects.order_by("-date_created").first()
         old_xml = instance.xml
         old_date_modified = instance.date_modified
 
-        with self.assertRaises(DecryptionError) as exc_info:
-            decrypt_instance(instance)
-
-        self.assertEqual(str(exc_info.exception), "Instance is not encrypted.")
+        decrypt_instance(instance)
 
         instance.refresh_from_db()
 
-        # No update was made to Instance
         self.assertEqual(instance.xml, old_xml)
         self.assertEqual(instance.date_modified, old_date_modified)
+        self.assertEqual(
+            instance.decryption_status, Instance.DecryptionStatus.UNMANAGED
+        )
+
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_submission_being_decrypted(self, mock_adjust_decrypted_submission_count):
+        """Submission another decryption has claimed is left unchanged."""
+        Instance.objects.filter(pk=self.instance.pk).update(
+            decryption_status=Instance.DecryptionStatus.IN_PROGRESS
+        )
+
+        decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+        self.assertEqual(self.instance.xml, self.metadata_xml)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.IN_PROGRESS
+        )
+        self.assertEqual(
+            self.instance.attachments.filter(deleted_at__isnull=True).count(), 3
+        )
+        mock_adjust_decrypted_submission_count.assert_not_called()
 
     def test_key_disabled(self):
         """Decryption fails if encryption key is disabled."""
@@ -1442,6 +1495,12 @@ class DecryptInstanceTestCase(TestBase):
         # No update was made to Instance
         self.assertEqual(self.instance.xml, old_xml)
         self.assertEqual(self.instance.date_modified, old_date_modified)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.FAILED
+        )
+        self.assertEqual(
+            self.instance.json.get("_decryption_error"), "ENCRYPTION_UNMANAGED"
+        )
 
     @patch(
         "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
@@ -1465,8 +1524,22 @@ class DecryptInstanceTestCase(TestBase):
             self.xform.pk, delta=1
         )
 
+    @patch("onadata.libs.kms.tools.decrypt_submission")
+    def test_kms_connection_error(self, mock_decrypt_submission):
+        """Submission waits for decryption if KMS cannot be reached."""
+        mock_decrypt_submission.side_effect = ValigettaConnectionException
+
+        with self.assertRaises(ValigettaConnectionException):
+            decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+        self.assertEqual(self.instance.xml, self.metadata_xml)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.PENDING
+        )
+
     def test_media_not_all_received(self):
-        """Decryption fails if not all media files have been received."""
+        """Submission waits for decryption if not all media files were received."""
         self.instance.media_all_received = False
         self.instance.save()
 
@@ -1478,7 +1551,7 @@ class DecryptInstanceTestCase(TestBase):
         )
         self.instance.refresh_from_db()
         self.assertEqual(
-            self.instance.decryption_status, Instance.DecryptionStatus.FAILED
+            self.instance.decryption_status, Instance.DecryptionStatus.PENDING
         )
         self.assertEqual(
             self.instance.json.get("_decryption_error"), "NOT_ALL_MEDIA_RECEIVED"
