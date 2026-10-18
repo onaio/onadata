@@ -3,12 +3,17 @@
 The TeamSerializer class - access and update Team model objects.
 """
 from django.contrib.auth import get_user_model
+from django.utils.translation import gettext as _
 
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import Project
-from onadata.libs.permissions import get_team_project_default_permissions
+from onadata.libs.permissions import (
+    get_team_project_default_permissions,
+    is_organization_admin,
+)
 from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import (
     HyperlinkedMultiIdentityField,
 )
@@ -31,6 +36,33 @@ class TeamSerializer(serializers.Serializer):
     )
     projects = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
+
+    def validate_organization(self, value):
+        """Only owners and managers of an organization may manage its teams."""
+        user = self.context["request"].user
+        organization = OrganizationProfile.objects.get(user=value)
+
+        if not is_organization_admin(user, organization):
+            raise PermissionDenied(
+                _("You must be an owner or manager of the organization.")
+            )
+
+        return value
+
+    def validate(self, attrs):
+        """Updating a team requires an owner or manager of its current organization."""
+        if self.instance is not None:
+            user = self.context["request"].user
+            organization = OrganizationProfile.objects.get(
+                user=self.instance.organization
+            )
+
+            if not is_organization_admin(user, organization):
+                raise PermissionDenied(
+                    _("You must be an owner or manager of the organization.")
+                )
+
+        return attrs
 
     def get_users(self, obj):
         """Returns a users in a team."""
