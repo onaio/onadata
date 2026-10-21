@@ -12,30 +12,14 @@ from rest_framework import exceptions, permissions
 from rest_framework.generics import get_object_or_404
 
 from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.logger.models import KMSKey
-from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
+from onadata.apps.messaging.utils import (
+    TargetDoesNotExist,
+    get_available_targets,
+    get_target,
+)
 from onadata.libs.permissions import is_organization_admin
 
 User = get_user_model()
-
-
-def _get_readable_targets(model):
-    """Exclude deleted resources and inactive accounts from public reads."""
-    filters = {
-        "xform": {
-            "deleted_at__isnull": True,
-            "project__deleted_at__isnull": True,
-            "project__organization__is_active": True,
-        },
-        "project": {"deleted_at__isnull": True, "organization__is_active": True},
-        "entitylist": {
-            "deleted_at__isnull": True,
-            "project__deleted_at__isnull": True,
-            "project__organization__is_active": True,
-        },
-        "user": {"is_active": True},
-    }
-    return model.objects.filter(**filters.get(model._meta.model_name, {}))
 
 
 class TargetObjectPermissions(permissions.BasePermission):
@@ -84,7 +68,7 @@ class TargetObjectPermissions(permissions.BasePermission):
                     f"Unknown target_type {target_type}"
                 ) from exc
             target = get_object_or_404(
-                _get_readable_targets(content_type.model_class()), pk=target_id
+                get_available_targets(content_type.model_class()), pk=target_id
             )
             view.check_object_permissions(request, target)
         return True
@@ -97,18 +81,11 @@ class TargetObjectPermissions(permissions.BasePermission):
 
         target = obj.target if isinstance(obj, Action) else obj
         if target is None:
-            return False
-        if request.method in permissions.SAFE_METHODS:
-            if isinstance(obj, Action):
-                target = get_object_or_404(
-                    _get_readable_targets(type(target)), pk=target.pk
-                )
-            if isinstance(target, KMSKey):
-                owner = target.content_object
-                if isinstance(owner, OrganizationProfile):
-                    owner = owner.user
-                if isinstance(owner, User) and not owner.is_active:
-                    raise exceptions.NotFound()
+            raise exceptions.NotFound()
+        if isinstance(obj, Action):
+            target = get_object_or_404(
+                get_available_targets(type(target)), pk=target.pk
+            )
         if isinstance(target, User):
             if request.user == target:
                 return True

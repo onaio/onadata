@@ -56,8 +56,15 @@ List requests return ``400`` for missing target parameters or unknown target
 types, ``404`` for malformed or nonexistent target IDs, and ``403`` for existing
 targets the caller cannot access.
 
-Reads return ``404`` for deleted targets, targets in deleted projects, inactive
-user accounts, and targets belonging to inactive organizations.
+Reads and deletes return ``404`` for missing or deleted targets, targets in
+deleted projects, inactive user accounts, and targets belonging to inactive
+organizations. Creating a message for any of these targets returns ``400``
+with ``{"target_id": "target_id not found"}``.
+
+A KMS key is available only when its owner is an active user or an organization
+profile linked to an active user. Missing owners, null owner IDs, and other
+owner types make the key unavailable. Key expiry, rotation, disabling, and the
+key's own ``is_active`` value do not affect messaging availability.
 
 Messaging and messaging statistics responses use ``Cache-Control`` directives
 ``private``, ``no-store``, ``no-cache``, ``max-age=0``, and ``must-revalidate``.
@@ -72,6 +79,8 @@ and an optional ``verb``. The only accepted POST verb is ``message``, which is
 also the default. All system-event verbs return ``400``, including when the
 caller can edit the target. System-event verbs can appear in GET responses but
 cannot be submitted via POST.
+
+Internal system events can still record activity on soft-deleted targets.
 
 You must have permission to edit the target to create a message. Otherwise,
 the API returns ``403``. Deleting an event for a resource requires permission

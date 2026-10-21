@@ -1152,6 +1152,50 @@ class TestMessagingAuthorization(TestBase):
                     response.status_code, status, getattr(response, "data", None)
                 )
 
+    def _assert_writes(self, target, user, available):
+        """An authorized caller can mutate only available targets."""
+        assign_perm(
+            f"{target._meta.app_label}.change_{target._meta.model_name}", user, target
+        )
+        assign_perm(
+            f"{target._meta.app_label}.delete_{target._meta.model_name}", user, target
+        )
+        self.assertTrue(
+            user.has_perm(
+                f"{target._meta.app_label}.change_{target._meta.model_name}", target
+            )
+        )
+        self.assertTrue(
+            user.has_perm(
+                f"{target._meta.app_label}.delete_{target._meta.model_name}", target
+            )
+        )
+        action.send(self.user, verb=MESSAGE, target=target)
+        event = Action.objects.latest("pk")
+        count = Action.objects.count()
+        request = self.factory.post(
+            "/messaging",
+            {
+                "target_type": target._meta.model_name,
+                "target_id": target.pk,
+                "message": "Public message",
+            },
+        )
+        force_authenticate(request, user=user)
+        response = MessagingViewSet.as_view({"post": "create"})(request)
+        self.assertEqual(response.status_code, 201 if available else 400, response.data)
+        if available:
+            self.assertEqual(Action.objects.count(), count + 1)
+        else:
+            self.assertEqual(response.data, {"target_id": "target_id not found"})
+            self.assertEqual(Action.objects.count(), count)
+        request = self.factory.delete("/messaging")
+        force_authenticate(request, user=user)
+        response = MessagingViewSet.as_view({"delete": "destroy"})(request, pk=event.pk)
+        self.assertEqual(response.status_code, 204 if available else 404)
+        self.assertEqual(Action.objects.filter(pk=event.pk).exists(), not available)
+        self.assertEqual(Action.objects.count(), count)
+
     def test_cached_lists_skip_activity_queries(self):
         """Both list formats reuse data after checking current target access."""
         target = self.targets[1]
@@ -1168,13 +1212,15 @@ class TestMessagingAuthorization(TestBase):
                 self.assertEqual(cached.content, first.content)
                 self.assertIn("no-store", cached["Cache-Control"])
 
-    def test_deleted_targets_are_unavailable_for_reads(self):
+    def test_deleted_targets_are_unavailable(self):
         """Retained permissions cannot expose deleted resources or empty feeds."""
         for target in (self.xform, self.targets[1], self.targets[3]):
             assign_perm(f"logger.view_{target._meta.model_name}", self.other, target)
             self._assert_read_status(target, self.other, 200)
+            self._assert_writes(target, self.other, available=True)
             queryset = type(target).objects.filter(pk=target.pk)
             queryset.update(deleted_at=timezone.now())
+            self._assert_writes(target, self.other, available=False)
             self._assert_read_status(target, self.other, 404)
             action.send(self.user, verb=SUBMISSION_CREATED, target=target)
             self._assert_read_status(target, self.other, 404, populated=True)
@@ -1187,11 +1233,13 @@ class TestMessagingAuthorization(TestBase):
             assign_perm(f"logger.view_{target._meta.model_name}", self.other, target)
             action.send(self.user, verb=SUBMISSION_CREATED, target=target)
             self._assert_read_status(target, self.other, 200, populated=True)
+            self._assert_writes(target, self.other, available=True)
             project = target.project
             type(project).objects.filter(pk=project.pk).update(
                 deleted_at=timezone.now()
             )
             self._assert_read_status(target, self.other, 404, populated=True)
+            self._assert_writes(target, self.other, available=False)
             type(project).objects.filter(pk=project.pk).update(deleted_at=None)
 
     def test_inactive_organization_hides_feeds_and_resources(self):
@@ -1208,9 +1256,13 @@ class TestMessagingAuthorization(TestBase):
                     f"logger.view_{target._meta.model_name}", self.other, target
                 )
             self._assert_read_status(target, self.other, 200)
+            writer = organization.user if isinstance(target, User) else self.other
+            self._assert_writes(target, writer, available=True)
 
         User.objects.filter(pk=organization.user_id).update(is_active=False)
         for target in targets:
+            writer = organization.user if isinstance(target, User) else self.other
+            self._assert_writes(target, writer, available=False)
             self._assert_read_status(target, self.other, 404)
             action.send(self.user, verb=SUBMISSION_CREATED, target=target)
             self._assert_read_status(target, self.other, 404, populated=True)
@@ -1220,9 +1272,11 @@ class TestMessagingAuthorization(TestBase):
         for target in targets:
             self._assert_read_status(target, self.other, 200, populated=True)
 
-    def test_kms_owner_activity_controls_reads(self):
+    def test_kms_owner_activity_controls_access(self):
         """Both owner types must be active, regardless of the key's state."""
+        User.objects.create(username="key-owner-id-offset")
         organization = self._create_organization("key-org", "Keys", self.user)
+        self.assertNotEqual(organization.pk, organization.user_id)
         key = self.targets[2]
         assign_perm("logger.view_kmskey", self.other, key)
         for owner in (organization, organization.user):
@@ -1233,9 +1287,11 @@ class TestMessagingAuthorization(TestBase):
             key.rotated_at = timezone.now()
             key.expiry_date = timezone.now() - timedelta(days=1)
             key.save()
-            self._assert_read_status(key, self.other, 200)
+            self._assert_writes(key, self.other, available=True)
+            self._assert_read_status(key, self.other, 200, populated=True)
             User.objects.filter(pk=organization.user_id).update(is_active=False)
             self._assert_read_status(key, self.other, 404)
+            self._assert_writes(key, self.other, available=False)
             action.send(self.user, verb=SUBMISSION_CREATED, target=key)
             self._assert_read_status(key, self.other, 404, populated=True)
             User.objects.filter(pk=organization.user_id).update(is_active=True)
@@ -1245,37 +1301,38 @@ class TestMessagingAuthorization(TestBase):
         """The self-only exception does not bypass target account activity."""
         action.send(self.user, verb=SUBMISSION_CREATED, target=self.user)
         self._assert_read_status(self.user, self.user, 200, populated=True)
+        self._assert_writes(self.user, self.user, available=True)
         User.objects.filter(pk=self.user.pk).update(is_active=False)
+        self._assert_writes(self.user, self.user, available=False)
         self._assert_read_status(self.user, self.user, 404, populated=True)
 
-    def test_unavailable_targets_keep_existing_write_behavior(self):
-        """Read filtering does not change public message creation or deletion."""
-        project = self.targets[1]
-        for target in (project, self.targets[2]):
-            assign_perm(f"logger.change_{target._meta.model_name}", self.other, target)
-            assign_perm(f"logger.delete_{target._meta.model_name}", self.other, target)
-        type(project).objects.filter(pk=project.pk).update(deleted_at=timezone.now())
-        User.objects.filter(pk=self.user.pk).update(is_active=False)
-        for target in (project, self.targets[2]):
-            request = self.factory.post(
-                "/messaging",
-                {
-                    "target_type": target._meta.model_name,
-                    "target_id": target.pk,
-                    "message": "Still permitted",
-                },
-            )
-            force_authenticate(request, user=self.other)
-            response = MessagingViewSet.as_view({"post": "create"})(request)
-            self.assertEqual(response.status_code, 201, response.data)
-            event_id = response.data["id"]
-            request = self.factory.delete("/messaging")
-            force_authenticate(request, user=self.other)
-            response = MessagingViewSet.as_view({"delete": "destroy"})(
-                request, pk=event_id
-            )
-            self.assertEqual(response.status_code, 204)
-            self.assertFalse(Action.objects.filter(pk=event_id).exists())
+    def test_kms_invalid_owners_cannot_use_cached_activity(self):
+        """Cached feeds do not expose keys with missing or unsupported owners."""
+        User.objects.create(username="missing-key-owner-id-offset")
+        organization = self._create_organization("missing-key-org", "Keys", self.user)
+        self.assertNotEqual(organization.pk, organization.user_id)
+        key = self.targets[2]
+        assign_perm("logger.view_kmskey", self.other, key)
+        action.send(self.user, verb=SUBMISSION_CREATED, target=key)
+        owners = (
+            (self.user, None),
+            (organization, None),
+            (self.user, 99999999),
+            (organization, 99999999),
+            (self.targets[1], self.targets[1].pk),
+        )
+        for owner, object_id in owners:
+            with self.subTest(owner=owner._meta.model_name, object_id=object_id):
+                key.content_type = ContentType.objects.get_for_model(self.user)
+                key.object_id = self.user.pk
+                key.save()
+                self._assert_read_status(key, self.other, 200, populated=True)
+                key.content_type = ContentType.objects.get_for_model(owner)
+                key.object_id = object_id
+                key.save()
+                for _ in range(2):
+                    self._assert_read_status(key, self.other, 404, populated=True)
+                self._assert_writes(key, self.other, available=False)
 
     def test_target_permissions_and_revocation(self):
         """Each resource requires its view permission, even for an empty feed."""
@@ -1364,13 +1421,16 @@ class TestMessagingAuthorization(TestBase):
         action.send(self.user, verb=SUBMISSION_CREATED, target=self.user)
         event = Action.objects.latest("pk")
         Action.objects.filter(pk=event.pk).update(target_object_id="99999999")
+        count = Action.objects.count()
         for method, operation in (("get", "retrieve"), ("delete", "destroy")):
             request = getattr(self.factory, method)("/messaging")
             force_authenticate(request, user=self.user)
             response = MessagingViewSet.as_view({method: operation})(
                 request, pk=event.pk
             )
-            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.status_code, 404)
+            self.assertTrue(Action.objects.filter(pk=event.pk).exists())
+            self.assertEqual(Action.objects.count(), count)
 
     @override_settings(
         CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
