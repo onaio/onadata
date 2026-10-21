@@ -141,6 +141,12 @@ class MessageSerializer(serializers.ModelSerializer):
         return instance
 
 
+class MessageCreateSerializer(MessageSerializer):
+    """Accept only user messages from the public create endpoint."""
+
+    verb = serializers.ChoiceField([MESSAGE], default=MESSAGE)
+
+
 # pylint: disable=abstract-method
 class GroupedActivitySerializer(serializers.Serializer):
     """Serializer for grouped activity counts.

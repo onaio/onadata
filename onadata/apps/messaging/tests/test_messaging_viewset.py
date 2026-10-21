@@ -6,11 +6,14 @@ Tests Messaging app viewsets.
 from __future__ import unicode_literals
 
 from builtins import str as text
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
+from django.middleware.cache import FetchFromCacheMiddleware, UpdateCacheMiddleware
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -18,13 +21,21 @@ from django.utils.dateparse import parse_datetime
 
 from actstream.models import Action
 from actstream.signals import action
-from guardian.shortcuts import assign_perm
+from guardian.shortcuts import assign_perm, remove_perm
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from onadata.apps.api.viewsets.messaging_stats_viewset import MessagingStatsViewSet
 from onadata.apps.logger.models import EntityList, KMSKey
-from onadata.apps.messaging.constants import EXPORT_CREATED, SUBMISSION_CREATED
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.messaging.constants import (
+    EXPORT_CREATED,
+    MESSAGE,
+    MESSAGE_VERBS,
+    SUBMISSION_CREATED,
+)
 from onadata.apps.messaging.tests.test_base import _create_user
 from onadata.apps.messaging.viewsets import MessagingViewSet
+from onadata.libs.permissions import ManagerRole, MemberRole
 from onadata.libs.utils.user_auth import get_user_default_project
 
 User = get_user_model()
@@ -37,7 +48,7 @@ class TestMessagingViewSet(TestCase):
 
     def setUp(self):
         self.factory = APIRequestFactory()
-        # the list endpoint caches responses; start each test with a clean cache
+        # Isolate tests that exercise site-cache middleware.
         cache.clear()
 
     @override_settings(FULL_MESSAGE_PAYLOAD=True)
@@ -179,7 +190,8 @@ class TestMessagingViewSet(TestCase):
 
         # returns empty list when a target type does not have any records
         request = self.factory.get(
-            "/messaging", {"target_type": "xform", "target_id": target_id}
+            "/messaging",
+            {"target_type": "project", "target_id": get_user_default_project(user).pk},
         )
         force_authenticate(request, user=user)
         response = view(request=request)
@@ -217,24 +229,27 @@ class TestMessagingViewSet(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"detail": "Unknown target_type xyz"})
 
+    @override_settings(
+        CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    )
     def test_list_response_is_cached(self):
-        """A repeated identical list request is served from cache."""
+        """Authorized reads reuse activity until the server cache expires."""
         user = _create_user()
         self._create_message(user)
         view = MessagingViewSet.as_view({"get": "list"})
         params = {"target_type": "user", "target_id": user.pk}
 
-        # first request populates the cache
+        # Read the initial activity.
         request = self.factory.get("/messaging", params)
         force_authenticate(request, user=user)
         first = view(request=request)
         first.render()
         self.assertEqual(first.status_code, 200)
 
-        # the underlying data changes after the response has been cached
+        # Add activity after the first response.
         self._create_message(user)
 
-        # a repeated identical request is served the cached response body
+        # The same URL reuses the cached activity.
         request = self.factory.get("/messaging", params)
         force_authenticate(request, user=user)
         second = view(request=request)
@@ -242,15 +257,21 @@ class TestMessagingViewSet(TestCase):
             second.render()
         self.assertEqual(second.status_code, 200)
         self.assertEqual(second.content, first.content)
+        self.assertIn("no-store", second["Cache-Control"])
+        cache.clear()
+        request = self.factory.get("/messaging", params)
+        force_authenticate(request, user=user)
+        fresh = view(request=request)
+        self.assertEqual(len(fresh.data), 2)
 
-    def test_list_cache_varies_by_query_params(self):
-        """Cached list responses are keyed by query params, not shared across targets."""
+    def test_list_respects_target_query_params(self):
+        """Each user receives activity for their requested target."""
         user = _create_user()
         other = _create_user("otheruser")
         self._create_message(user)  # a single message targeted at `user`
         view = MessagingViewSet.as_view({"get": "list"})
 
-        # cache the response for target=user
+        # Read the first target.
         request = self.factory.get(
             "/messaging", {"target_type": "user", "target_id": user.pk}
         )
@@ -264,7 +285,7 @@ class TestMessagingViewSet(TestCase):
         request = self.factory.get(
             "/messaging", {"target_type": "user", "target_id": other.pk}
         )
-        force_authenticate(request, user=user)
+        force_authenticate(request, user=other)
         second = view(request=request)
         second.render()
         self.assertEqual(second.status_code, 200)
@@ -499,8 +520,7 @@ class TestMessagingViewSet(TestCase):
         day = Action.objects.get(id=message_one["id"]).timestamp.day
 
         request = self.factory.get(
-            f"/messaging?timestamp__day={day}&"
-            f"target_type=user&target_id={target_id}"
+            f"/messaging?timestamp__day={day}&target_type=user&target_id={target_id}"
         )
         force_authenticate(request, user=user)
         response = view(request=request)
@@ -595,8 +615,7 @@ class TestMessagingViewSet(TestCase):
         year = Action.objects.get(id=message_one["id"]).timestamp.year
 
         request = self.factory.get(
-            f"/messaging?timestamp__year={year}&"
-            f"target_type=user&target_id={target_id}"
+            f"/messaging?timestamp__year={year}&target_type=user&target_id={target_id}"
         )
         force_authenticate(request, user=user)
         response = view(request=request)
@@ -644,8 +663,7 @@ class TestMessagingViewSet(TestCase):
         minute = Action.objects.get(id=message_one["id"]).timestamp.minute
 
         request = self.factory.get(
-            f"/messaging?timestamp__hour={hour}&target_type=user&"
-            f"target_id={target_id}"
+            f"/messaging?timestamp__hour={hour}&target_type=user&target_id={target_id}"
         )
         force_authenticate(request, user=user)
         response = view(request=request)
@@ -969,15 +987,11 @@ class TestMessagingViewSet(TestCase):
 
         newest_day = response.data[0]
         self.assertEqual(newest_day["count"], 1)
-        self.assertEqual(
-            parse_datetime(newest_day["latest_timestamp"]), day_two
-        )
+        self.assertEqual(parse_datetime(newest_day["latest_timestamp"]), day_two)
 
         oldest_day = response.data[1]
         self.assertEqual(oldest_day["count"], 2)
-        self.assertEqual(
-            parse_datetime(oldest_day["earliest_timestamp"]), day_one
-        )
+        self.assertEqual(parse_datetime(oldest_day["earliest_timestamp"]), day_one)
         self.assertEqual(
             parse_datetime(oldest_day["latest_timestamp"]),
             day_one + timedelta(hours=3),
@@ -1081,3 +1095,367 @@ class TestMessagingViewSet(TestCase):
         monday_bucket = datetime(2026, 3, 16, tzinfo=dt_timezone.utc)
         self.assertEqual(counts[(sunday_bucket, "bob", SUBMISSION_CREATED)], 2)
         self.assertEqual(counts[(monday_bucket, "bob", SUBMISSION_CREATED)], 1)
+
+
+@override_settings(
+    CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+)
+class TestMessagingAuthorization(TestBase):
+    """Activity authorization applies to empty feeds, detail and aggregates."""
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+        self.factory = APIRequestFactory()
+        self.other = _create_user("activity-reader")
+        self._publish_transportation_form()
+        project = get_user_default_project(self.user)
+        key = KMSKey.objects.create(
+            key_id="activity-key",
+            public_key="public-key",
+            content_type=ContentType.objects.get_for_model(User),
+            object_id=self.user.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        entity_list = EntityList.objects.create(name="activity-trees", project=project)
+        self.targets = [self.xform, project, key, entity_list]
+
+    def _read(self, target, user, mode="list"):
+        viewset = MessagingStatsViewSet if mode == "stats" else MessagingViewSet
+        params = {"target_type": target._meta.model_name, "target_id": target.pk}
+        if mode in ("grouped", "stats"):
+            params["group_by"] = "day"
+        request = self.factory.get("/messaging", params)
+        force_authenticate(request, user=user)
+        if mode == "retrieve":
+            event = Action.objects.filter(
+                target_content_type=ContentType.objects.get_for_model(target),
+                target_object_id=target.pk,
+            ).latest("pk")
+            response = viewset.as_view({"get": "retrieve"})(request, pk=event.pk)
+        else:
+            response = viewset.as_view({"get": "list"})(request)
+        if response.status_code == 200 and getattr(response, "streaming", False):
+            list(response.streaming_content)
+        if hasattr(response, "render"):
+            response.render()
+        return response
+
+    def _assert_read_status(self, target, user, status, populated=False):
+        modes = ["list", "grouped", "stats"]
+        if populated:
+            modes.append("retrieve")
+        for mode in modes:
+            with self.subTest(target=target._meta.model_name, mode=mode):
+                response = self._read(target, user, mode)
+                self.assertEqual(
+                    response.status_code, status, getattr(response, "data", None)
+                )
+
+    def test_cached_lists_skip_activity_queries(self):
+        """Both list formats reuse data after checking current target access."""
+        target = self.targets[1]
+        assign_perm("logger.view_project", self.other, target)
+        for mode in ("list", "grouped"):
+            with self.subTest(mode=mode):
+                first = self._read(target, self.other, mode)
+                self.assertEqual(first.status_code, 200)
+                with patch.object(
+                    MessagingViewSet, "get_queryset", side_effect=AssertionError
+                ):
+                    cached = self._read(target, self.other, mode)
+                self.assertEqual(cached.status_code, 200)
+                self.assertEqual(cached.content, first.content)
+                self.assertIn("no-store", cached["Cache-Control"])
+
+    def test_deleted_targets_are_unavailable_for_reads(self):
+        """Retained permissions cannot expose deleted resources or empty feeds."""
+        for target in (self.xform, self.targets[1], self.targets[3]):
+            assign_perm(f"logger.view_{target._meta.model_name}", self.other, target)
+            self._assert_read_status(target, self.other, 200)
+            queryset = type(target).objects.filter(pk=target.pk)
+            queryset.update(deleted_at=timezone.now())
+            self._assert_read_status(target, self.other, 404)
+            action.send(self.user, verb=SUBMISSION_CREATED, target=target)
+            self._assert_read_status(target, self.other, 404, populated=True)
+            queryset.update(deleted_at=None)
+            self._assert_read_status(target, self.other, 200, populated=True)
+
+    def test_deleted_projects_hide_child_activity(self):
+        """An undeleted form or entity list in a deleted project is unavailable."""
+        for target in (self.xform, self.targets[3]):
+            assign_perm(f"logger.view_{target._meta.model_name}", self.other, target)
+            action.send(self.user, verb=SUBMISSION_CREATED, target=target)
+            self._assert_read_status(target, self.other, 200, populated=True)
+            project = target.project
+            type(project).objects.filter(pk=project.pk).update(
+                deleted_at=timezone.now()
+            )
+            self._assert_read_status(target, self.other, 404, populated=True)
+            type(project).objects.filter(pk=project.pk).update(deleted_at=None)
+
+    def test_inactive_organization_hides_feeds_and_resources(self):
+        """Organization deactivation blocks reads despite retained roles."""
+        organization = self._create_organization("inactive-org", "Activity", self.user)
+        ManagerRole.add(self.other, organization)
+        project = self.targets[1]
+        project.organization = organization.user
+        project.save()
+        targets = (self.xform, project, self.targets[3], organization.user)
+        for target in targets:
+            if not isinstance(target, User):
+                assign_perm(
+                    f"logger.view_{target._meta.model_name}", self.other, target
+                )
+            self._assert_read_status(target, self.other, 200)
+
+        User.objects.filter(pk=organization.user_id).update(is_active=False)
+        for target in targets:
+            self._assert_read_status(target, self.other, 404)
+            action.send(self.user, verb=SUBMISSION_CREATED, target=target)
+            self._assert_read_status(target, self.other, 404, populated=True)
+        self._assert_read_status(organization.user, self.user, 404, populated=True)
+
+        User.objects.filter(pk=organization.user_id).update(is_active=True)
+        for target in targets:
+            self._assert_read_status(target, self.other, 200, populated=True)
+
+    def test_kms_owner_activity_controls_reads(self):
+        """Both owner types must be active, regardless of the key's state."""
+        organization = self._create_organization("key-org", "Keys", self.user)
+        key = self.targets[2]
+        assign_perm("logger.view_kmskey", self.other, key)
+        for owner in (organization, organization.user):
+            key.content_type = ContentType.objects.get_for_model(owner)
+            key.object_id = owner.pk
+            key.is_active = False
+            key.disabled_at = timezone.now()
+            key.rotated_at = timezone.now()
+            key.expiry_date = timezone.now() - timedelta(days=1)
+            key.save()
+            self._assert_read_status(key, self.other, 200)
+            User.objects.filter(pk=organization.user_id).update(is_active=False)
+            self._assert_read_status(key, self.other, 404)
+            action.send(self.user, verb=SUBMISSION_CREATED, target=key)
+            self._assert_read_status(key, self.other, 404, populated=True)
+            User.objects.filter(pk=organization.user_id).update(is_active=True)
+            self._assert_read_status(key, self.other, 200, populated=True)
+
+    def test_inactive_personal_feed_is_unavailable(self):
+        """The self-only exception does not bypass target account activity."""
+        action.send(self.user, verb=SUBMISSION_CREATED, target=self.user)
+        self._assert_read_status(self.user, self.user, 200, populated=True)
+        User.objects.filter(pk=self.user.pk).update(is_active=False)
+        self._assert_read_status(self.user, self.user, 404, populated=True)
+
+    def test_unavailable_targets_keep_existing_write_behavior(self):
+        """Read filtering does not change public message creation or deletion."""
+        project = self.targets[1]
+        for target in (project, self.targets[2]):
+            assign_perm(f"logger.change_{target._meta.model_name}", self.other, target)
+            assign_perm(f"logger.delete_{target._meta.model_name}", self.other, target)
+        type(project).objects.filter(pk=project.pk).update(deleted_at=timezone.now())
+        User.objects.filter(pk=self.user.pk).update(is_active=False)
+        for target in (project, self.targets[2]):
+            request = self.factory.post(
+                "/messaging",
+                {
+                    "target_type": target._meta.model_name,
+                    "target_id": target.pk,
+                    "message": "Still permitted",
+                },
+            )
+            force_authenticate(request, user=self.other)
+            response = MessagingViewSet.as_view({"post": "create"})(request)
+            self.assertEqual(response.status_code, 201, response.data)
+            event_id = response.data["id"]
+            request = self.factory.delete("/messaging")
+            force_authenticate(request, user=self.other)
+            response = MessagingViewSet.as_view({"delete": "destroy"})(
+                request, pk=event_id
+            )
+            self.assertEqual(response.status_code, 204)
+            self.assertFalse(Action.objects.filter(pk=event_id).exists())
+
+    def test_target_permissions_and_revocation(self):
+        """Each resource requires its view permission, even for an empty feed."""
+        for target in self.targets:
+            permission = f"{target._meta.app_label}.view_{target._meta.model_name}"
+            for mode in ("list", "grouped", "stats"):
+                with self.subTest(target=target._meta.model_name, mode=mode):
+                    self.assertEqual(
+                        self._read(target, self.other, mode).status_code, 403
+                    )
+                    assign_perm(permission, self.other, target)
+                    self.assertEqual(
+                        self._read(target, self.other, mode).status_code, 200
+                    )
+                    action.send(self.user, verb=SUBMISSION_CREATED, target=target)
+                    self.assertEqual(
+                        self._read(target, self.other, mode).status_code, 200
+                    )
+                    remove_perm(permission, self.other, target)
+                    self.assertEqual(
+                        self._read(target, self.other, mode).status_code, 403
+                    )
+
+    def test_personal_and_organization_feeds(self):
+        """Only self or organization administrators can read user feeds."""
+        organization = self._create_organization("activity-org", "Activity", self.user)
+        manager = _create_user("activity-manager")
+        ManagerRole.add(manager, organization)
+        MemberRole.add(self.other, organization)
+        action.send(self.user, verb=SUBMISSION_CREATED, target=organization.user)
+        for mode in ("list", "grouped", "stats"):
+            self.assertEqual(self._read(self.user, self.user, mode).status_code, 200)
+            self.assertEqual(self._read(self.user, self.other, mode).status_code, 403)
+            for reader in (self.user, manager):
+                self.assertEqual(
+                    self._read(organization.user, reader, mode).status_code, 200
+                )
+            self.assertEqual(
+                self._read(organization.user, self.other, mode).status_code, 403
+            )
+        event = Action.objects.filter(target_object_id=organization.user.pk).last()
+        for reader in (self.user, manager):
+            request = self.factory.get("/messaging")
+            force_authenticate(request, user=reader)
+            response = MessagingViewSet.as_view({"get": "retrieve"})(
+                request, pk=event.pk
+            )
+            self.assertEqual(response.status_code, 200)
+            request = self.factory.delete("/messaging")
+            force_authenticate(request, user=reader)
+            response = MessagingViewSet.as_view({"delete": "destroy"})(
+                request, pk=event.pk
+            )
+            self.assertEqual(response.status_code, 403)
+            request = self.factory.post(
+                "/messaging",
+                {
+                    "target_type": "user",
+                    "target_id": organization.user.pk,
+                    "message": "Hi",
+                },
+            )
+            force_authenticate(request, user=reader)
+            self.assertEqual(
+                MessagingViewSet.as_view({"post": "create"})(request).status_code, 403
+            )
+
+    def test_invalid_targets(self):
+        """Malformed and absent targets fail before reading any activity."""
+        for viewset in (MessagingViewSet, MessagingStatsViewSet):
+            for target_id in ("invalid", "1.5", "99999999"):
+                request = self.factory.get(
+                    "/messaging",
+                    {
+                        "target_type": "xform",
+                        "target_id": target_id,
+                        "group_by": "day",
+                    },
+                )
+                force_authenticate(request, user=self.user)
+                response = viewset.as_view({"get": "list"})(request)
+                self.assertEqual(response.status_code, 404)
+
+    def test_dangling_action_target_is_denied(self):
+        """A missing Action target cannot authorize detail reads or deletion."""
+        action.send(self.user, verb=SUBMISSION_CREATED, target=self.user)
+        event = Action.objects.latest("pk")
+        Action.objects.filter(pk=event.pk).update(target_object_id="99999999")
+        for method, operation in (("get", "retrieve"), ("delete", "destroy")):
+            request = getattr(self.factory, method)("/messaging")
+            force_authenticate(request, user=self.user)
+            response = MessagingViewSet.as_view({method: operation})(
+                request, pk=event.pk
+            )
+            self.assertEqual(response.status_code, 403)
+
+    @override_settings(
+        CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    )
+    def test_site_cache_does_not_bypass_permissions(self):
+        """Site-cache middleware cannot reuse an authorized activity response."""
+        target = self.targets[1]
+        outsider = _create_user("cache-outsider")
+        for viewset in (MessagingViewSet, MessagingStatsViewSet):
+            view = viewset.as_view({"get": "list"})
+
+            def render(request):
+                response = view(request)
+                if hasattr(response, "render"):
+                    response.render()
+                return response
+
+            handler = UpdateCacheMiddleware(FetchFromCacheMiddleware(render))
+            assign_perm("logger.view_project", self.other, target)
+            for reader, expected in (
+                (self.other, 200),
+                (outsider, 403),
+                (self.user, 200),
+                (self.other, 403),
+            ):
+                if reader == self.other and expected == 403:
+                    remove_perm("logger.view_project", self.other, target)
+                request = self.factory.get(
+                    "/messaging",
+                    {
+                        "target_type": "project",
+                        "target_id": target.pk,
+                        "group_by": "day",
+                    },
+                )
+                force_authenticate(request, user=reader)
+                response = handler(request)
+                self.assertEqual(response.status_code, expected)
+                self.assertIn("no-store", response["Cache-Control"])
+                self.assertIn("private", response["Cache-Control"])
+                if getattr(response, "streaming", False):
+                    list(response.streaming_content)
+
+    def test_public_post_rejects_every_system_verb(self):
+        """Even editors cannot publish system events or notifications."""
+        view = MessagingViewSet.as_view({"post": "create"})
+        for reader in (self.user, self.other):
+            for verb in set(MESSAGE_VERBS) - {MESSAGE}:
+                with self.subTest(user=reader.username, verb=verb):
+                    before = Action.objects.count()
+                    request = self.factory.post(
+                        "/messaging",
+                        {
+                            "target_type": "xform",
+                            "target_id": self.xform.pk,
+                            "message": "forged",
+                            "verb": verb,
+                        },
+                    )
+                    force_authenticate(request, user=reader)
+                    with patch(
+                        "onadata.apps.messaging.serializers.action.send"
+                    ) as send:
+                        response = view(request)
+                    self.assertEqual(response.status_code, 400)
+                    self.assertIn("verb", response.data)
+                    self.assertEqual(Action.objects.count(), before)
+                    send.assert_not_called()
+
+    def test_message_create_and_system_event_read(self):
+        """Default and explicit messages need change permission; GET retains verbs."""
+        view = MessagingViewSet.as_view({"post": "create"})
+        for extra in ({}, {"verb": MESSAGE}):
+            for reader, expected in ((self.user, 201), (self.other, 403)):
+                request = self.factory.post(
+                    "/messaging",
+                    {
+                        "target_type": "xform",
+                        "target_id": self.xform.pk,
+                        "message": "hello",
+                        **extra,
+                    },
+                )
+                force_authenticate(request, user=reader)
+                self.assertEqual(view(request).status_code, expected)
+        action.send(self.user, verb=SUBMISSION_CREATED, target=self.xform)
+        response = self._read(self.xform, self.user)
+        self.assertIn(SUBMISSION_CREATED, [row["verb"] for row in response.data])

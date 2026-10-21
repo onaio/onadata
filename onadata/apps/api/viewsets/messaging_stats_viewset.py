@@ -6,7 +6,9 @@ import json
 
 from django.db.models import Count
 from django.http import StreamingHttpResponse
+from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
+from django.views.decorators.cache import never_cache
 
 from actstream.models import Action
 from django_filters.rest_framework import DjangoFilterBackend
@@ -22,6 +24,7 @@ from onadata.apps.messaging.filters import (
 from onadata.apps.messaging.permissions import TargetObjectPermissions
 
 
+@method_decorator(never_cache, name="dispatch")
 class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """Provides a count of each unique messaging event grouped by either day, month or
     year.
@@ -103,9 +106,8 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             .annotate(count=Count("verb"))
         )
 
-    def list(
-        self, request, *args, **kwargs
-    ):  # noqa pylint: disable=missing-function-docstring
+    def list(self, request, *args, **kwargs):
+        """Stream event counts for the authorized target."""
         queryset = self._generate_annotated_queryset(
             request, self.filter_queryset(self.get_queryset())
         )

@@ -3,6 +3,15 @@ Messaging Stats
 
 Provides a count of each unique messaging event grouped by either day, month or year.
 
+All requests require authentication and the same target read permissions as
+:doc:`messaging`, including organization owner/manager access to organization
+user feeds. Permission checks run before streaming, including for empty results.
+Missing target parameters or unknown types return ``400``; malformed or
+nonexistent target IDs return ``404``; unauthorized targets return ``403``.
+Deleted targets, targets in deleted projects, inactive user accounts, and
+targets belonging to inactive organizations also return ``404``.
+Responses are private and must not be cached.
+
 The endpoint accepts the following *required* query parameters:
 
 * *group_by* - field specifying whether to group events by `day`, `month` or `year`.

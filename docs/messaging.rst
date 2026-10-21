@@ -42,6 +42,42 @@ This endpoint provides access to event messages sent for a specific target. Wher
     - ``profile_updated``
 
 
+Access and caching
+------------------
+
+All messaging requests require authentication. Activity lists, grouped counts,
+and individual event reads require permission to view the requested target.
+This check also applies when the target has no events. Personal user feeds are
+self-only. Organization user feeds can also be read by that organization's
+owners and managers. This exception does not grant permission to create or
+delete messages.
+
+List requests return ``400`` for missing target parameters or unknown target
+types, ``404`` for malformed or nonexistent target IDs, and ``403`` for existing
+targets the caller cannot access.
+
+Reads return ``404`` for deleted targets, targets in deleted projects, inactive
+user accounts, and targets belonging to inactive organizations.
+
+Messaging and messaging statistics responses use ``Cache-Control`` directives
+``private``, ``no-store``, ``no-cache``, ``max-age=0``, and ``must-revalidate``.
+Each read checks current permissions. Activity lists, including grouped lists,
+may take up to ten minutes to reflect new events.
+
+Create a message
+----------------
+
+``POST /api/v1/messaging`` accepts ``message``, ``target_type``, ``target_id``,
+and an optional ``verb``. The only accepted POST verb is ``message``, which is
+also the default. All system-event verbs return ``400``, including when the
+caller can edit the target. System-event verbs can appear in GET responses but
+cannot be submitted via POST.
+
+You must have permission to edit the target to create a message. Otherwise,
+the API returns ``403``. Deleting an event for a resource requires permission
+to delete that resource. Only the user whose feed contains a user-targeted
+event can delete it.
+
 GET All event messages that have been sent for a form
 ------------------------------------------------------
 

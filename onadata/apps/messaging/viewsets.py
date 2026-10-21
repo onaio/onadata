@@ -17,6 +17,7 @@ from django.db.models.functions import (
     TruncWeek,
     TruncYear,
 )
+from django.utils.cache import add_never_cache_headers
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
@@ -35,6 +36,7 @@ from onadata.apps.messaging.filters import (
 from onadata.apps.messaging.permissions import TargetObjectPermissions
 from onadata.apps.messaging.serializers import (
     GroupedActivitySerializer,
+    MessageCreateSerializer,
     MessageSerializer,
 )
 from onadata.libs.pagination import StandardPageNumberPagination
@@ -43,7 +45,10 @@ User = get_user_model()
 
 
 # pylint: disable=too-many-ancestors
-@method_decorator(cache_page(10 * 60), name="list")
+# DRF checks target permissions before entering the cached list handler.
+@method_decorator(
+    cache_page(10 * 60, key_prefix="messaging-authorized-v1"), name="list"
+)
 class MessagingViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -66,6 +71,21 @@ class MessagingViewSet(
     )
     filterset_class = ActionFilterSet
     pagination_class = StandardPageNumberPagination
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        """Prevent downstream caching after the authorized server cache is filled."""
+        response = super().finalize_response(request, response, *args, **kwargs)
+        if hasattr(response, "add_post_render_callback"):
+            response.add_post_render_callback(add_never_cache_headers)
+        else:
+            add_never_cache_headers(response)
+        return response
+
+    def get_serializer_class(self):
+        """Restrict public creates while retaining system events on reads."""
+        if self.action == "create":
+            return MessageCreateSerializer
+        return super().get_serializer_class()
 
     # Grouping dimensions the ``group_by`` param accepts, mapped to the
     # Action column they aggregate on.
