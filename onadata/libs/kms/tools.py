@@ -590,6 +590,9 @@ def _decrypt_instance(instance: Instance) -> None:
                         validation_status.value
                     )
                     instance.save(force=True)
+                    update_fields_directly(
+                        instance, decryption_status=instance.decryption_status
+                    )
 
                 else:
                     # Save decrypted media file

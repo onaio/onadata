@@ -769,14 +769,6 @@ class Instance(models.Model, InstanceBaseClass):
         ]
 
     @classmethod
-    def from_db(cls, db, field_names, values):
-        instance = super().from_db(db, field_names, values)
-        # pylint: disable=protected-access
-        instance._loaded_xml = instance.__dict__.get("xml")
-
-        return instance
-
-    @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now(), user=None):
         """Set's the timestamp when a submission was deleted."""
         try:
@@ -804,22 +796,12 @@ class Instance(models.Model, InstanceBaseClass):
         if self.xform and self.xform.is_merged_dataset:
             raise FormIsMergedDatasetError()
 
-    def _is_xml_changed(self):
-        """Checks if the XML differs from the XML it was loaded with."""
-        if self._state.adding:
-            return True
-
-        if "xml" not in self.__dict__:
-            return False
-
-        return self.xml != getattr(self, "_loaded_xml", None)
-
-    def _set_encryption_status(self, xml_changed):
+    def _set_encryption_status(self):
         """Sets the encryption status"""
         if self.check_encrypted():
             self.is_encrypted = True
 
-            if xml_changed and self.xform.is_was_managed:
+            if self._state.adding and self.xform.is_was_managed:
                 self.decryption_status = Instance.DecryptionStatus.PENDING
         else:
             self.is_encrypted = False
@@ -885,11 +867,9 @@ class Instance(models.Model, InstanceBaseClass):
         if force:
             del kwargs["force"]
 
-        xml_changed = self._is_xml_changed()
-
-        if not xml_changed and not kwargs.get("update_fields"):
-            # Leave the decryption status to decryption, which may have
-            # changed it since this copy was loaded
+        if not self._state.adding and not kwargs.get("update_fields"):
+            # Decryption and edits update the decryption status directly, so
+            # this copy's status may be out of date
             deferred_fields = self.get_deferred_fields()
             kwargs["update_fields"] = [
                 field.name
@@ -904,10 +884,9 @@ class Instance(models.Model, InstanceBaseClass):
         self._set_geom()
         self._set_survey_type()
         self._set_uuid()
-        self._set_encryption_status(xml_changed)
+        self._set_encryption_status()
 
         super().save(*args, **kwargs)
-        self._loaded_xml = self.__dict__.get("xml")
 
     # pylint: disable=no-member
     def set_deleted(self, deleted_at=timezone.now(), user=None):
