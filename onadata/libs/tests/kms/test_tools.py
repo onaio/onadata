@@ -1570,7 +1570,7 @@ class DecryptInstanceTestCase(TestBase):
         )
 
     def test_media_not_all_received(self):
-        """Submission waits for decryption if not all media files were received."""
+        """Decryption waits for all media to be received."""
         self.instance.media_all_received = False
         self.instance.save()
 
