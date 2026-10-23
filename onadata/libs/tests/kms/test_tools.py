@@ -1557,7 +1557,7 @@ class DecryptInstanceTestCase(TestBase):
 
     @patch("onadata.libs.kms.tools.decrypt_submission")
     def test_kms_connection_error(self, mock_decrypt_submission):
-        """Submission waits for decryption if KMS cannot be reached."""
+        """Decryption waits for KMS to be reachable."""
         mock_decrypt_submission.side_effect = ValigettaConnectionException
 
         with self.assertRaises(ValigettaConnectionException):
