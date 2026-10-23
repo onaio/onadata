@@ -583,7 +583,7 @@ def _decrypt_instance(instance: Instance) -> None:
                 Instance.objects.select_for_update()
                 .filter(
                     pk=instance.pk,
-                    checksum=history.checksum,
+                    checksum=instance.checksum,
                     decryption_status=Instance.DecryptionStatus.IN_PROGRESS,
                 )
                 .only("pk")
