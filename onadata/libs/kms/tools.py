@@ -69,7 +69,6 @@ from onadata.libs.utils.model_tools import (
     adjust_counter,
     commit_cached_counters,
     queryset_iterator,
-    update_fields_directly,
 )
 
 logger = logging.getLogger(__name__)
@@ -460,6 +459,9 @@ def save_decryption_error(
 ):
     """Add decryption error metadata to Instance json.
 
+    The error is saved only if the Instance is unchanged since it was loaded,
+    so an edit saved meanwhile is not overwritten.
+
     :param instance: Instance
     :param error_name: Error code
     :param status: Decryption status to set
@@ -467,7 +469,11 @@ def save_decryption_error(
     # Create a copy that we'll mutate
     json = dict(instance.json or {})
     json[DECRYPTION_ERROR] = error_name
-    update_fields_directly(instance, json=json, decryption_status=status)
+    Instance.objects.filter(
+        pk=instance.pk,
+        checksum=instance.checksum,
+        decryption_status=instance.decryption_status,
+    ).update(json=json, decryption_status=status)
 
 
 def decrypt_instance(instance: Instance) -> None:
@@ -484,6 +490,8 @@ def decrypt_instance(instance: Instance) -> None:
     if not claimed:
         logger.info("Instance %s is not pending decryption", instance.pk)
         return
+
+    instance.decryption_status = Instance.DecryptionStatus.IN_PROGRESS
 
     try:
         _decrypt_instance(instance)

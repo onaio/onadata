@@ -35,6 +35,7 @@ from onadata.apps.logger.models import (
     KMSKey,
     SurveyType,
     XForm,
+    XFormKey,
 )
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import (
@@ -1472,6 +1473,31 @@ class DecryptInstanceTestCase(TestBase):
         )
         self.assertEqual(
             self.instance.json.get("_decryption_error"), "KMS_KEY_DISABLED"
+        )
+
+    def test_key_disabled_after_edit(self):
+        """A decryption error does not overwrite an edit saved meanwhile."""
+        self.kms_key.disabled_at = timezone.now()
+        self.kms_key.save()
+        edited_json = {**self.instance.json, "edited": True}
+        get_key = XFormKey.objects.get
+
+        def edit_then_get_key(**kwargs):
+            Instance.objects.filter(pk=self.instance.pk).update(
+                checksum="edited-checksum",
+                json=edited_json,
+                decryption_status=Instance.DecryptionStatus.PENDING,
+            )
+            return get_key(**kwargs)
+
+        with patch.object(XFormKey.objects, "get", side_effect=edit_then_get_key):
+            with self.assertRaises(DecryptionError):
+                decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+        self.assertEqual(self.instance.json, edited_json)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.PENDING
         )
 
     def test_encryption_key_not_found(self):
