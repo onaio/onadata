@@ -17,13 +17,13 @@ def retry_failed_decryptions(apps, schema_editor):
         is_encrypted=True,
         decryption_status="failed",
     ).only("json")
-    eta = candidates.count()
+    processed_count = 0
     retried_count = 0
     skipped_count = 0
 
     for instance in candidates.iterator(chunk_size=100):
-        eta -= 1
-        print("eta", eta)
+        processed_count += 1
+        print(f"Processed {processed_count} submissions")
 
         if (instance.json or {}).get("_decryption_error") not in (
             "NOT_ALL_MEDIA_RECEIVED",
