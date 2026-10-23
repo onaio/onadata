@@ -978,7 +978,7 @@ For submissions that have a status of ``failed``, there exists a ``_decryption_e
 - ``KMS_KEY_NOT_FOUND``: Encryption key used for encryption not found.
 - ``INVALID_SUBMISSION``: Data is corrupted.
 
-A submission with a status of ``pending`` is decrypted again later. If an earlier attempt to decrypt it did not succeed, its ``_decryption_error`` field contains the reason. The following are the possible errors:
+A submission with a status of ``pending`` can be decrypted again. Another attempt is made when the submission is saved with all its media files received, such as when its last media file arrives. If an earlier attempt to decrypt it did not succeed, its ``_decryption_error`` field contains the reason. The following are the possible errors:
 
 - ``MAX_RETRIES_EXCEEDED``: System was unable to decrypt the submission after multiple attempts.
 - ``NOT_ALL_MEDIA_RECEIVED``: Not all media files have been received.
