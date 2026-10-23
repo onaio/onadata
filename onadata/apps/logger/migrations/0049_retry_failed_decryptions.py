@@ -1,7 +1,9 @@
 """Make submissions that failed decryption for a temporary reason pending again."""
 
 from django.db import migrations
-from django.db.models import Q
+
+TEMPORARY_ERRORS = ("NOT_ALL_MEDIA_RECEIVED", "MAX_RETRIES_EXCEEDED")
+BATCH_SIZE = 1000
 
 
 # pylint: disable=unused-argument
@@ -13,11 +15,21 @@ def retry_failed_decryptions(apps, schema_editor):
     """
     # pylint: disable=invalid-name
     Instance = apps.get_model("logger", "Instance")
-    Instance.objects.filter(
-        Q(json__contains={"_decryption_error": "NOT_ALL_MEDIA_RECEIVED"})
-        | Q(json__contains={"_decryption_error": "MAX_RETRIES_EXCEEDED"}),
-        decryption_status="failed",
-    ).update(decryption_status="pending")
+    failed = Instance.objects.filter(decryption_status="failed").values_list(
+        "pk", "json"
+    )
+    pks = []
+
+    for pk, json in failed.iterator(chunk_size=BATCH_SIZE):
+        if (json or {}).get("_decryption_error") in TEMPORARY_ERRORS:
+            pks.append(pk)
+
+        if len(pks) == BATCH_SIZE:
+            Instance.objects.filter(pk__in=pks).update(decryption_status="pending")
+            pks = []
+
+    if pks:
+        Instance.objects.filter(pk__in=pks).update(decryption_status="pending")
 
 
 class Migration(migrations.Migration):
