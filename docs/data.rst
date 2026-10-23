@@ -977,7 +977,6 @@ For submissions that have a status of ``failed``, there exists a ``_decryption_e
 - ``KMS_KEY_DISABLED``: Encryption key is disabled.
 - ``KMS_KEY_NOT_FOUND``: Encryption key used for encryption not found.
 - ``INVALID_SUBMISSION``: Data is corrupted.
-- ``ENCRYPTION_UNMANAGED``: Encryption is not using managed keys.
 
 A submission with a status of ``pending`` is decrypted again later. If an earlier attempt to decrypt it did not succeed, its ``_decryption_error`` field contains the reason. The following are the possible errors:
 
