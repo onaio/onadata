@@ -8,6 +8,8 @@ ipdb
 isort
 moto
 pre-commit
+# Seed new environments with pip's corrected CA bundle.
+virtualenv>=21.14.13
 prospector>=1.10.3
 pylint
 pylint-django

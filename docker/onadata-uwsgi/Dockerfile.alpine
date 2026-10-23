@@ -5,6 +5,9 @@ ENV DJANGO_SETTINGS_MODULE onadata.preset.docker
 
 ARG optional_packages
 
+# Refresh both the CA sources and the preinstalled combined bundle.
+RUN apk add --no-cache --upgrade 'ca-certificates>=20261020-r0' 'ca-certificates-bundle>=20261020-r0'
+
 # Create container user
 RUN addgroup -g 11211 onadata
 RUN adduser -D -u 1121 -G onadata onadata
@@ -62,6 +65,8 @@ COPY ../../ ./
 RUN chown -R onadata:onadata /home/onadata
 RUN chown -R onadata:onadata /srv/onadata
 
+# Upgrade pip's vendored CA bundle before downloading dependencies.
+RUN python -m pip install --no-cache-dir --upgrade "pip>=26.2.2"
 RUN pip install --no-cache-dir -r requirements/base.pip
 RUN pip install --no-cache-dir -r requirements/s3.pip
 RUN pip install --no-cache-dir -r requirements/ses.pip

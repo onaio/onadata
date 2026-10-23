@@ -15,9 +15,13 @@ COPY requirements/ /srv/onadata/requirements/
 # Install service requirements
 WORKDIR /srv/onadata
 
+# ca-certificates-java uses which to find the JRE and generate its trust store.
 # hadolint ignore=DL3008
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev default-jre-headless \
+  && apt-get install -y --no-install-recommends ca-certificates gnu-which git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev default-jre-headless \
+  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20250419+deb13u1' \
+  && update-ca-certificates --fresh \
+  && test -s /etc/ssl/certs/java/cacerts \
   && ldconfig \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /srv/java-conf \
@@ -25,6 +29,8 @@ RUN apt-get update \
 
 RUN python -m venv /srv/onadata/.venv
 
+# Upgrade pip's vendored CA bundle before downloading dependencies.
+RUN python -m pip install --no-cache-dir --upgrade "pip>=26.2.2"
 
 # hadolint ignore=DL3013
 RUN --mount=type=secret,id=ONADEPLOY_GH_TOKEN \
@@ -42,7 +48,7 @@ RUN --mount=type=secret,id=ONADEPLOY_GH_TOKEN \
   fi
 
 # hadolint ignore=DL3013
-RUN python -m pip install --no-cache-dir -U pip setuptools && \
+RUN python -m pip install --no-cache-dir -U setuptools && \
   python -m pip install --no-cache-dir -r requirements/base.pip && \
   python -m pip install --no-cache-dir -r requirements/s3.pip && \
   python -m pip install --no-cache-dir -r requirements/ses.pip && \
@@ -78,6 +84,16 @@ ENV LC_ALL=C.UTF-8
 ENV LC_CTYPE=C.UTF-8
 ENV LANG=C.UTF-8
 ENV LANGUAGE=C.UTF-8
+
+# Replace the standard trust store for native clients and OpenSSL defaults.
+# Remove the old directory first so COPY cannot retain distrusted CA files.
+USER 0
+# ShellCheck cannot parse the Python argument in this exec-form RUN.
+# hadolint ignore=SC1072
+RUN ["python", "-c", "import shutil; shutil.rmtree('/etc/ssl/certs')"]
+COPY --from=base /etc/ssl/certs/ /etc/ssl/certs/
+COPY --from=base /usr/share/ca-certificates/ /usr/share/ca-certificates/
+USER 65532
 
 # Copy runtime shared libraries from the build stage (GDAL, libmemcached,
 # libxml2 and their transitive dependencies).

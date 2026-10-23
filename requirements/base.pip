@@ -37,8 +37,10 @@ cached-property==2.0.1
     # via tableschema
 celery==5.6.3
     # via onadata
-certifi==2026.7.22
+certifi==2026.10.19
     # via
+    #   -r requirements/base.in
+    #   onadata
     #   requests
     #   sentry-sdk
 cffi==2.1.1

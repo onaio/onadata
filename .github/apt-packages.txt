@@ -1,4 +1,5 @@
 libjpeg-dev
+ca-certificates
 zlib1g-dev
 software-properties-common
 ghostscript

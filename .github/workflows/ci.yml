@@ -50,6 +50,7 @@ jobs:
           sudo apt-get \
             -o Dir::Cache::archives="$PWD/.apt-cache/archives" \
             install -y --no-install-recommends $packages
+          dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20260816ubuntu0.22.04.1'
 
       - name: Install Pip requirements
         env:
@@ -61,7 +62,7 @@ jobs:
           git config --global --add \
             url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
             "ssh://git@github.com/"
-          pip install -U pip
+          python -m pip install --upgrade "pip>=26.2.2"
           pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
           pip install -r requirements/dev.pip
@@ -132,7 +133,9 @@ jobs:
         run: sudo apt-get update
 
       - name: Install APT requirements
-        run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
+        run: |
+          sudo apt-get install -y --no-install-recommends ca-certificates libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
+          dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20260816ubuntu0.22.04.1'
 
       - name: Install Pip requirements
         env:
@@ -144,7 +147,7 @@ jobs:
           git config --global --add \
             url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
             "ssh://git@github.com/"
-          pip install -U pip
+          python -m pip install --upgrade "pip>=26.2.2"
           pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
           pip install -r requirements/dev.pip
@@ -183,6 +186,7 @@ jobs:
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
+          pull: true
           platforms: linux/amd64
           push: false
           tags: ${{ steps.meta.outputs.tags }}

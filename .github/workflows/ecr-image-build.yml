@@ -67,6 +67,7 @@ jobs:
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
+          pull: true
           platforms: ${{ matrix.platforms[0] }}
           cache-from: type=gha,scope=${{ env.PLATFORM_PAIR }}
           cache-to: type=gha,scope=${{ env.PLATFORM_PAIR }},mode=max
