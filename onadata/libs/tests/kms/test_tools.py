@@ -23,6 +23,7 @@ from valigetta.exceptions import (
     CreateAliasException,
     GetPublicKeyException,
 )
+from valigetta.decryptor import decrypt_submission
 from valigetta.exceptions import ConnectionException as ValigettaConnectionException
 from valigetta.kms import APIKMSClient as BaseAPIClient
 from valigetta.kms import AWSKMSClient as BaseAWSClient
@@ -1220,6 +1221,38 @@ class DecryptInstanceTestCase(TestBase):
         mock_adjust_decrypted_submission_count.assert_called_once_with(
             self.xform.pk, delta=1
         )
+
+    @patch("onadata.libs.kms.tools.decrypt_submission")
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_submission_edited_while_being_decrypted(
+        self, mock_adjust_decrypted_submission_count, mock_decrypt_submission
+    ):
+        """An edit saved while the submission is being decrypted is kept."""
+
+        def edit_then_decrypt(**kwargs):
+            Instance.objects.filter(pk=self.instance.pk).update(
+                checksum="edited-checksum",
+                decryption_status=Instance.DecryptionStatus.PENDING,
+            )
+            return decrypt_submission(**kwargs)
+
+        mock_decrypt_submission.side_effect = edit_then_decrypt
+
+        decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+        self.assertEqual(self.instance.xml, self.metadata_xml)
+        self.assertEqual(self.instance.checksum, "edited-checksum")
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.PENDING
+        )
+        self.assertEqual(
+            self.instance.attachments.filter(deleted_at__isnull=True).count(), 3
+        )
+        self.assertEqual(self.instance.submission_history.count(), 0)
+        mock_adjust_decrypted_submission_count.assert_not_called()
 
     def test_validation_status_not_valid(self):
         """Submission not matching its signature is recorded as not valid."""

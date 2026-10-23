@@ -95,7 +95,7 @@ from onadata.libs.utils.common_tags import (
     METADATA_FIELDS,
 )
 from onadata.libs.utils.common_tools import get_uuid, report_exception
-from onadata.libs.utils.model_tools import set_uuid, update_fields_directly
+from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 
 OPEN_ROSA_VERSION_HEADER = "X-OpenRosa-Version"
@@ -177,7 +177,6 @@ def _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml):
 
     if instance.xform.is_was_managed and is_encrypted_submission(xml):
         instance.decryption_status = Instance.DecryptionStatus.PENDING
-        update_fields_directly(instance, decryption_status=instance.decryption_status)
 
     instance.save()
 

@@ -577,6 +577,21 @@ def _decrypt_instance(instance: Instance) -> None:
 
     try:
         with transaction.atomic():
+            # Lock the submission so an edit saved meanwhile is not overwritten
+            unchanged = (
+                Instance.objects.select_for_update()
+                .filter(
+                    pk=instance.pk,
+                    checksum=history.checksum,
+                    decryption_status=Instance.DecryptionStatus.IN_PROGRESS,
+                )
+                .only("pk")
+            )
+
+            if not unchanged:
+                logger.info("Instance %s changed while being decrypted", instance.pk)
+                return
+
             for original_name, decrypted_file in decrypted_files:
                 if original_name.lower() == "submission.xml":
                     # Replace submission with decrypted submission
@@ -590,9 +605,6 @@ def _decrypt_instance(instance: Instance) -> None:
                         validation_status.value
                     )
                     instance.save(force=True)
-                    update_fields_directly(
-                        instance, decryption_status=instance.decryption_status
-                    )
 
                 else:
                     # Save decrypted media file

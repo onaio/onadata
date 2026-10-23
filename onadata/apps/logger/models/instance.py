@@ -867,18 +867,6 @@ class Instance(models.Model, InstanceBaseClass):
         if force:
             del kwargs["force"]
 
-        if not self._state.adding and not kwargs.get("update_fields"):
-            # Decryption and edits update the decryption status directly, so
-            # this copy's status may be out of date
-            deferred_fields = self.get_deferred_fields()
-            kwargs["update_fields"] = [
-                field.name
-                for field in self._meta.concrete_fields
-                if not field.primary_key
-                and field.attname not in deferred_fields
-                and field.name != "decryption_status"
-            ]
-
         self._check_is_merged_dataset()
         self._check_active(force)
         self._set_geom()
