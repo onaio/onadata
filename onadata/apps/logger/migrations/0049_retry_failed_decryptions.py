@@ -2,9 +2,6 @@
 
 from django.db import migrations
 
-TEMPORARY_ERRORS = ("NOT_ALL_MEDIA_RECEIVED", "MAX_RETRIES_EXCEEDED")
-BATCH_SIZE = 1000
-
 
 # pylint: disable=unused-argument
 def retry_failed_decryptions(apps, schema_editor):
@@ -15,21 +12,26 @@ def retry_failed_decryptions(apps, schema_editor):
     """
     # pylint: disable=invalid-name
     Instance = apps.get_model("logger", "Instance")
-    failed = Instance.objects.filter(decryption_status="failed").values_list(
-        "pk", "json"
-    )
-    pks = []
+    candidates = Instance.objects.filter(
+        deleted_at__isnull=True,
+        is_encrypted=True,
+        decryption_status="failed",
+    ).only("json")
+    retried_count = 0
+    skipped_count = 0
 
-    for pk, json in failed.iterator(chunk_size=BATCH_SIZE):
-        if (json or {}).get("_decryption_error") in TEMPORARY_ERRORS:
-            pks.append(pk)
+    for instance in candidates.iterator(chunk_size=100):
+        if (instance.json or {}).get("_decryption_error") not in (
+            "NOT_ALL_MEDIA_RECEIVED",
+            "MAX_RETRIES_EXCEEDED",
+        ):
+            skipped_count += 1
+            continue
 
-        if len(pks) == BATCH_SIZE:
-            Instance.objects.filter(pk__in=pks).update(decryption_status="pending")
-            pks = []
+        Instance.objects.filter(pk=instance.pk).update(decryption_status="pending")
+        retried_count += 1
 
-    if pks:
-        Instance.objects.filter(pk__in=pks).update(decryption_status="pending")
+    print(f"Retrying {retried_count} submissions, {skipped_count} skipped")
 
 
 class Migration(migrations.Migration):
@@ -38,5 +40,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(retry_failed_decryptions, migrations.RunPython.noop),
+        migrations.RunPython(
+            retry_failed_decryptions,
+            reverse_code=migrations.RunPython.noop,
+        ),
     ]

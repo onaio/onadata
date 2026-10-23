@@ -23,6 +23,7 @@ class RetryFailedDecryptionsTestCase(TestBase):
 
     def _set_decryption_error(self, instance, error_name):
         Instance.objects.filter(pk=instance.pk).update(
+            is_encrypted=True,
             decryption_status=Instance.DecryptionStatus.FAILED,
             json={**instance.json, "_decryption_error": error_name},
         )
