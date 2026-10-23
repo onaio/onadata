@@ -1222,6 +1222,27 @@ class DecryptInstanceTestCase(TestBase):
             self.xform.pk, delta=1
         )
 
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_submission_edited_before_decryption_started(
+        self, mock_adjust_decrypted_submission_count
+    ):
+        """A copy loaded before an edit leaves the edit to its own decryption."""
+        Instance.objects.filter(pk=self.instance.pk).update(checksum="edited-checksum")
+
+        decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+        self.assertEqual(self.instance.xml, self.metadata_xml)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.PENDING
+        )
+        self.assertEqual(
+            self.instance.attachments.filter(deleted_at__isnull=True).count(), 3
+        )
+        mock_adjust_decrypted_submission_count.assert_not_called()
+
     @patch("onadata.libs.kms.tools.decrypt_submission")
     @patch(
         "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"

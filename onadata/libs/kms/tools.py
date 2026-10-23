@@ -476,7 +476,9 @@ def decrypt_instance(instance: Instance) -> None:
     :param instance: Instance to be decrypted
     """
     claimed = Instance.objects.filter(
-        pk=instance.pk, decryption_status=Instance.DecryptionStatus.PENDING
+        pk=instance.pk,
+        checksum=instance.checksum,
+        decryption_status=Instance.DecryptionStatus.PENDING,
     ).update(decryption_status=Instance.DecryptionStatus.IN_PROGRESS)
 
     if not claimed:
