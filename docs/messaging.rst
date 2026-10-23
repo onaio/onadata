@@ -1,91 +1,91 @@
 Messaging
 *********
 
-This endpoint provides access to event messages sent for a specific target. Where:
+The messaging API provides read-only access to events recorded by internal
+application code. Clients cannot create, edit or delete events. Authenticated
+POST, PUT, PATCH and DELETE requests return ``405 Method Not Allowed``.
 
-* ``target_type`` - The type of the target object. The supported target types are:
-    - ``xform``
+Events have the following target and action fields:
 
-    - ``project``
-
-    - ``user``
-
-    - ``kmskey``
-
-    - ``entitylist``
-
+* ``target_type`` - The type of the target object: ``xform``, ``project``,
+  ``user``, ``kmskey`` or ``entitylist``.
 * ``target_id`` - The unique identifier of the target object.
+* ``verb`` - The action recorded on the target. The following verbs can appear
+  in GET responses and can be used to filter events. None can be posted through
+  the API:
 
-* ``verb`` - A specific action that has occured on the object. The supported verbs are:
-    - ``message``
+  - ``message``
+  - ``submission_created``
+  - ``submission_edited``
+  - ``submission_deleted``
+  - ``submission_reviewed``
+  - ``form_updated``
+  - ``kmskey_rotated``
+  - ``export_created``
+  - ``export_downloaded``
+  - ``entitylist_imported``
+  - ``entitylist_deleted``
+  - ``profile_updated``
 
-    - ``submission_created``
+.. _messaging-access:
 
-    - ``submission_edited``
+Targets and feeds
+-----------------
 
-    - ``submission_deleted``
+Every event belongs to one target, identified by ``target_type`` and
+``target_id``. The events for a target are its *feed*.
 
-    - ``submission_reviewed``
+A ``user`` target is an account. Organizations are accounts too. To read an
+organization's feed, pass ``target_type=user`` and the organization's account
+ID, rather than its organization profile ID.
 
-    - ``form_updated``
+Permissions
+-----------
 
-    - ``kmskey_rotated``
+All requests require authentication. Read permissions apply to lists, grouped
+counts, individual event details and messaging statistics, including empty
+feeds.
 
-    - ``export_created``
+.. list-table::
+   :header-rows: 1
 
-    - ``export_downloaded``
+   * - Target
+     - Who can read its feed
+   * - ``xform``, ``project``, ``entitylist``, ``kmskey``
+     - Users with permission to view the target
+   * - Personal ``user`` account
+     - The account itself
+   * - Organization ``user`` account
+     - The account itself, and the organization's owners and managers
 
-    - ``entitylist_imported``
+Unavailable targets
+-------------------
 
-    - ``entitylist_deleted``
+A target is unavailable when it is deleted, belongs to a deleted project, is an
+inactive account, or an inactive personal or organization account owns it. A
+KMS key is unavailable unless an active account owns it. Rotating, expiring or
+disabling a key does not hide its events.
 
-    - ``profile_updated``
+Errors
+------
 
+* ``400`` - A list or stats request is missing ``target_type`` or ``target_id``,
+  or ``target_type`` is not supported.
+* ``403`` - The target exists but you cannot access it. This applies even when
+  the target has no events.
+* ``404`` - The target ID is malformed, does not exist, or identifies an
+  unavailable target. Event detail reads also return ``404`` for missing events
+  or events whose targets are unavailable.
+* ``405`` - An authenticated client attempts to create, edit or delete an event.
 
-Access and caching
-------------------
+Caching
+-------
 
-All messaging requests require authentication. Activity lists, grouped counts,
-and individual event reads require permission to view the requested target.
-This check also applies when the target has no events. Personal user feeds are
-self-only. Organization user feeds can also be read by that organization's
-owners and managers. This exception does not grant permission to create or
-delete messages.
-
-List requests return ``400`` for missing target parameters or unknown target
-types, ``404`` for malformed or nonexistent target IDs, and ``403`` for existing
-targets the caller cannot access.
-
-Reads and deletes return ``404`` for missing or deleted targets, targets in
-deleted projects, inactive user accounts, and targets belonging to inactive
-organizations. Creating a message for any of these targets returns ``400``
-with ``{"target_id": "target_id not found"}``.
-
-A KMS key is available only when its owner is an active user or an organization
-profile linked to an active user. Missing owners, null owner IDs, and other
-owner types make the key unavailable. Key expiry, rotation, disabling, and the
-key's own ``is_active`` value do not affect messaging availability.
-
-Messaging and messaging statistics responses use ``Cache-Control`` directives
-``private``, ``no-store``, ``no-cache``, ``max-age=0``, and ``must-revalidate``.
-Each read checks current permissions. Activity lists, including grouped lists,
-may take up to ten minutes to reflect new events.
-
-Create a message
-----------------
-
-``POST /api/v1/messaging`` accepts ``message``, ``target_type``, ``target_id``,
-and an optional ``verb``. The only accepted POST verb is ``message``, which is
-also the default. All system-event verbs return ``400``, including when the
-caller can edit the target. System-event verbs can appear in GET responses but
-cannot be submitted via POST.
-
-Internal system events can still record activity on soft-deleted targets.
-
-You must have permission to edit the target to create a message. Otherwise,
-the API returns ``403``. Deleting an event for a resource requires permission
-to delete that resource. Only the user whose feed contains a user-targeted
-event can delete it.
+Responses are private, and browsers and shared caches do not store them. The
+server caches list responses, including grouped counts, for up to ten minutes.
+Lists may omit new events or retain internally deleted events for that long.
+The API still checks permissions and target availability on every request.
+The server does not cache event detail or messaging stats responses.
 
 GET All event messages that have been sent for a form
 ------------------------------------------------------

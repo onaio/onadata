@@ -12,6 +12,7 @@ from rest_framework import exceptions, permissions
 from rest_framework.generics import get_object_or_404
 
 from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.messaging.constants import APP_LABEL_MAPPING
 from onadata.apps.messaging.utils import (
     TargetDoesNotExist,
     get_available_targets,
@@ -26,31 +27,6 @@ class TargetObjectPermissions(permissions.BasePermission):
     """
     Check target object permissions
     """
-
-    perms_map = {
-        "GET": ["%(app_label)s.view_%(model_name)s"],
-        "OPTIONS": ["%(app_label)s.view_%(model_name)s"],
-        "HEAD": ["%(app_label)s.view_%(model_name)s"],
-        "POST": ["%(app_label)s.change_%(model_name)s"],
-        "PUT": ["%(app_label)s.change_%(model_name)s"],
-        "PATCH": ["%(app_label)s.change_%(model_name)s"],
-        "DELETE": ["%(app_label)s.delete_%(model_name)s"],
-    }
-
-    def get_required_object_permissions(self, method, model_cls):
-        """
-        Return required object permissions for given request method.
-        """
-
-        kwargs = {
-            "app_label": model_cls._meta.app_label,
-            "model_name": model_cls._meta.model_name,
-        }
-
-        if method not in self.perms_map:
-            raise exceptions.MethodNotAllowed(method)
-
-        return [perm % kwargs for perm in self.perms_map[method]]
 
     def has_permission(self, request, view):
         """Authorize list targets before reading activity or aggregate counts."""
@@ -79,25 +55,27 @@ class TargetObjectPermissions(permissions.BasePermission):
         Check the target object's permissions
         """
 
-        target = obj.target if isinstance(obj, Action) else obj
-        if target is None:
-            raise exceptions.NotFound()
         if isinstance(obj, Action):
+            content_type = obj.target_content_type
+            model = content_type.model_class() if content_type else None
+            if model is None or APP_LABEL_MAPPING.get(model._meta.model_name) != (
+                model._meta.app_label
+            ):
+                raise exceptions.NotFound()
             target = get_object_or_404(
-                get_available_targets(type(target)), pk=target.pk
+                get_available_targets(model), pk=obj.target_object_id
             )
+        else:
+            target = obj
         if isinstance(target, User):
             if request.user == target:
                 return True
-            if request.method in permissions.SAFE_METHODS:
-                organization = OrganizationProfile.objects.filter(
-                    user=target, user__is_active=True
-                ).first()
-                return organization is not None and is_organization_admin(
-                    request.user, organization
-                )
-            return False
+            organization = OrganizationProfile.objects.filter(
+                user=target, user__is_active=True
+            ).first()
+            return organization is not None and is_organization_admin(
+                request.user, organization
+            )
 
-        perms = self.get_required_object_permissions(request.method, target)
-
-        return request.user.has_perms(perms, target)
+        meta = target._meta
+        return request.user.has_perm(f"{meta.app_label}.view_{meta.model_name}", target)

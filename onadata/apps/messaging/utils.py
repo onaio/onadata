@@ -18,33 +18,30 @@ User = get_user_model()
 def get_available_targets(model):
     """Return targets available through the public messaging endpoints."""
     filters = {
-        "xform": {
-            "deleted_at__isnull": True,
-            "project__deleted_at__isnull": True,
-            "project__organization__is_active": True,
-        },
-        "project": {"deleted_at__isnull": True, "organization__is_active": True},
-        "entitylist": {
-            "deleted_at__isnull": True,
-            "project__deleted_at__isnull": True,
-            "project__organization__is_active": True,
-        },
-        "user": {"is_active": True},
-    }
-    if model._meta.model_name == "kmskey":
-        return model.objects.filter(
-            Q(
-                content_type=ContentType.objects.get_for_model(User),
-                object_id__in=User.objects.filter(is_active=True).values("pk"),
-            )
-            | Q(
-                content_type=ContentType.objects.get_for_model(OrganizationProfile),
-                object_id__in=OrganizationProfile.objects.filter(
-                    user__is_active=True
-                ).values("pk"),
-            )
+        "xform": Q(
+            deleted_at__isnull=True,
+            project__deleted_at__isnull=True,
+            project__organization__is_active=True,
+        ),
+        "project": Q(deleted_at__isnull=True, organization__is_active=True),
+        "entitylist": Q(
+            deleted_at__isnull=True,
+            project__deleted_at__isnull=True,
+            project__organization__is_active=True,
+        ),
+        "user": Q(is_active=True),
+        "kmskey": Q(
+            content_type=ContentType.objects.get_for_model(User),
+            object_id__in=User.objects.filter(is_active=True).values("pk"),
         )
-    return model.objects.filter(**filters.get(model._meta.model_name, {}))
+        | Q(
+            content_type=ContentType.objects.get_for_model(OrganizationProfile),
+            object_id__in=OrganizationProfile.objects.filter(
+                user__is_active=True
+            ).values("pk"),
+        ),
+    }
+    return model.objects.filter(filters[model._meta.model_name]).only("pk")
 
 
 class TargetDoesNotExist(Exception):

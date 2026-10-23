@@ -16,12 +16,11 @@ from django.utils.translation import gettext as _
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
-from rest_framework import exceptions, serializers
+from rest_framework import serializers
 
 from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS
 from onadata.apps.messaging.utils import (
     TargetDoesNotExist,
-    get_available_targets,
     get_target,
 )
 from onadata.libs.utils.common_tools import report_exception
@@ -85,14 +84,8 @@ class MessageSerializer(serializers.ModelSerializer):
             for field in extra_fields:
                 self.fields.pop(field)
 
-    def get_target_object(self, content_type, target_id):
-        """Resolve the target for messages, including internal system events."""
-        return content_type.get_object_for_this_type(pk=target_id)
-
     def create(self, validated_data):
-        """
-        Creates the Message in the Action model
-        """
+        """Record an event from trusted internal code, including deleted targets."""
         request = self.context["request"]
         target_type = validated_data.get("target_content_type")
         target_id = validated_data.get("target_object_id")
@@ -104,21 +97,11 @@ class MessageSerializer(serializers.ModelSerializer):
                 {"target_type": _("Unknown target type")}
             ) from exc  # yapf: disable
         try:
-            target_object = self.get_target_object(content_type, target_id)
+            target_object = content_type.get_object_for_this_type(pk=target_id)
         except content_type.model_class().DoesNotExist as exc:
             raise serializers.ValidationError(
                 {"target_id": _("target_id not found")}
             ) from exc  # yapf: disable
-        # check if request.user has permission to the target_object
-        permission = (
-            f"{target_object._meta.app_label}.change_{target_object._meta.model_name}"
-        )
-        if not request.user.has_perm(permission, target_object) and verb == MESSAGE:
-            message = (
-                _("You do not have permission to add messages to target_id %s.")
-                % target_object
-            )
-            raise exceptions.PermissionDenied(detail=message)
         results = action.send(
             request.user,
             verb=verb,
@@ -147,16 +130,6 @@ class MessageSerializer(serializers.ModelSerializer):
                 "Message not created. Please retry."
             ) from exc
         return instance
-
-
-class MessageCreateSerializer(MessageSerializer):
-    """Accept only user messages from the public create endpoint."""
-
-    verb = serializers.ChoiceField([MESSAGE], default=MESSAGE)
-
-    def get_target_object(self, content_type, target_id):
-        """Require an available target for public message creation."""
-        return get_available_targets(content_type.model_class()).get(pk=target_id)
 
 
 # pylint: disable=abstract-method

@@ -23,7 +23,7 @@ from django.views.decorators.cache import cache_page
 
 from actstream.models import Action
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import exceptions, mixins, viewsets
+from rest_framework import exceptions, viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from onadata.apps.messaging.constants import MESSAGE_VERBS
@@ -36,7 +36,6 @@ from onadata.apps.messaging.filters import (
 from onadata.apps.messaging.permissions import TargetObjectPermissions
 from onadata.apps.messaging.serializers import (
     GroupedActivitySerializer,
-    MessageCreateSerializer,
     MessageSerializer,
 )
 from onadata.libs.pagination import StandardPageNumberPagination
@@ -49,13 +48,7 @@ User = get_user_model()
 @method_decorator(
     cache_page(10 * 60, key_prefix="messaging-authorized-v1"), name="list"
 )
-class MessagingViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet,
-):
+class MessagingViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for the Messaging app - implements /messaging API endpoint
     """
@@ -80,12 +73,6 @@ class MessagingViewSet(
         else:
             add_never_cache_headers(response)
         return response
-
-    def get_serializer_class(self):
-        """Restrict public creates while retaining system events on reads."""
-        if self.action == "create":
-            return MessageCreateSerializer
-        return super().get_serializer_class()
 
     # Grouping dimensions the ``group_by`` param accepts, mapped to the
     # Action column they aggregate on.

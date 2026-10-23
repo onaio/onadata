@@ -3,18 +3,9 @@ Messaging Stats
 
 Provides a count of each unique messaging event grouped by either day, month or year.
 
-All requests require authentication and the same target read permissions as
-:doc:`messaging`, including organization owner/manager access to organization
-user feeds. Permission checks run before streaming, including for empty results.
-Missing target parameters or unknown types return ``400``; malformed or
-nonexistent target IDs return ``404``; unauthorized targets return ``403``.
-Deleted targets, targets in deleted projects, inactive user accounts, and
-targets belonging to inactive organizations also return ``404``.
-KMS keys return ``404`` unless their owner is an active user or an organization
-profile linked to an active user. Missing owners, null owner IDs, and other
-owner types make the key unavailable. Key expiry, rotation, disabling, and the
-key's own ``is_active`` value do not affect messaging availability.
-Responses are private and must not be cached.
+Access rules, errors and target availability are the same as for
+:ref:`messaging <messaging-access>`. Stats responses are not cached, so counts
+include new events immediately.
 
 The endpoint accepts the following *required* query parameters:
 
