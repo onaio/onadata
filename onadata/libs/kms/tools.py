@@ -505,6 +505,13 @@ def decrypt_instance(instance: Instance) -> None:
 
 # pylint: disable=too-many-locals,too-many-statements
 def _decrypt_instance(instance: Instance) -> None:
+    """Decrypt an Instance the caller has claimed for decryption.
+
+    Callers must first claim the Instance by moving its decryption status from
+    pending to in progress, as decrypt_instance does.
+
+    :param instance: Instance to be decrypted
+    """
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
     incr_task = logger_tasks.adjust_xform_num_of_decrypted_submissions_async
