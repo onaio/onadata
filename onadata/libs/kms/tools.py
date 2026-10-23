@@ -588,6 +588,8 @@ def _decrypt_instance(instance: Instance) -> None:
             )
 
             if not unchanged:
+                # An edit or another decryption changed the submission while
+                # it was being decrypted, so this result is stale
                 logger.info("Instance %s changed while being decrypted", instance.pk)
                 return
 
