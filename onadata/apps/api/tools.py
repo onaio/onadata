@@ -4,6 +4,7 @@ API utility functions.
 """
 
 import importlib
+import json
 import os
 import tempfile
 from datetime import datetime
@@ -27,7 +28,8 @@ from guardian.shortcuts import get_perms, get_perms_for_model, remove_perm
 from kombu.exceptions import OperationalError
 from multidb.pinning import use_master
 from registration.models import RegistrationProfile
-from rest_framework import exceptions
+from rest_framework import exceptions, status
+from rest_framework.response import Response
 from six import iteritems
 from taggit.forms import TagField
 
@@ -43,12 +45,14 @@ from onadata.apps.logger.models import DataView, EntityList, Instance, Project, 
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
+from onadata.libs.exceptions import NoRecordsPermission
 from onadata.libs.permissions import (
     ROLES,
     ROLES_ORDERED,
     ManagerRole,
     MemberRole,
     OwnerRole,
+    filter_queryset_xform_meta_perms_sql,
     get_role,
     get_role_in_org,
     get_team_project_default_permissions,
@@ -636,6 +640,24 @@ def get_media_file_response(metadata, request=None):
         if obj:
             if isinstance(obj, EntityList):
                 return get_entity_list_export_response(request, obj, filename)
+
+            if isinstance(obj, XForm):
+                try:
+                    filter_queryset_xform_meta_perms_sql(obj, request.user, None)
+                except NoRecordsPermission:
+                    return Response(
+                        data=json.dumps(
+                            {
+                                "details": _(
+                                    "You don't have permission to access the "
+                                    'linked dataset "%(name)s".'
+                                )
+                                % {"name": filename}
+                            }
+                        ),
+                        status=status.HTTP_403_FORBIDDEN,
+                        content_type="application/json",
+                    )
 
             export_type = get_metadata_format(metadata.data_value)
             dataview = obj if isinstance(obj, DataView) else False
