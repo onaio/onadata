@@ -512,7 +512,6 @@ def _decrypt_instance(instance: Instance) -> None:
         return enc_files
 
     if not instance.xform.is_was_managed:
-        save_decryption_error(instance, DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED)
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED]
         )

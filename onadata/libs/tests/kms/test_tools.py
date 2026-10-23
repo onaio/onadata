@@ -1529,11 +1529,9 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(self.instance.xml, old_xml)
         self.assertEqual(self.instance.date_modified, old_date_modified)
         self.assertEqual(
-            self.instance.decryption_status, Instance.DecryptionStatus.FAILED
+            self.instance.decryption_status, Instance.DecryptionStatus.PENDING
         )
-        self.assertEqual(
-            self.instance.json.get("_decryption_error"), "ENCRYPTION_UNMANAGED"
-        )
+        self.assertIsNone(self.instance.json.get("_decryption_error"))
 
     @patch(
         "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
