@@ -963,7 +963,7 @@ Example
 
 Filter submissions using the decryption_status field.
 
-Use ``pending`` to get submissions that are pending decryption, ``success`` to get submissions that were successfully decrypted, ``failed`` to get submissions that failed decryption.
+Use ``pending`` to get submissions that are waiting to be decrypted, ``in_progress`` to get submissions that are being decrypted, ``success`` to get submissions that were successfully decrypted, ``failed`` to get submissions that failed decryption.
 
 Example
 ^^^^^^^^^
@@ -974,10 +974,13 @@ Example
 
 For submissions that have a status of ``failed``, there exists a ``_decryption_error`` field that contains an error name and message. The following are the possible errors:
 
-- ``MAX_RETRIES_EXCEEDED``: System was unable to decrypt the submission after multiple attempts.
 - ``KMS_KEY_DISABLED``: Encryption key is disabled.
 - ``KMS_KEY_NOT_FOUND``: Encryption key used for encryption not found.
 - ``INVALID_SUBMISSION``: Data is corrupted.
+
+A submission with a status of ``pending`` can be decrypted again. Another attempt is made when the submission is saved with all its media files received, such as when its last media file arrives. If an earlier attempt to decrypt it did not succeed, its ``_decryption_error`` field contains the reason. The following are the possible errors:
+
+- ``MAX_RETRIES_EXCEEDED``: System was unable to decrypt the submission after multiple attempts.
 - ``NOT_ALL_MEDIA_RECEIVED``: Not all media files have been received.
 
 Tag a submission data point

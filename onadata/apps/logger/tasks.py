@@ -201,7 +201,11 @@ class DecryptInstanceAutoRetryTask(AutoRetryTask):
         instance = self.get_instance_from_args(args, kwargs)
 
         if instance is not None and isinstance(exc, MaxRetriesExceededError):
-            save_decryption_error(instance, DECRYPTION_FAILURE_MAX_RETRIES)
+            save_decryption_error(
+                instance,
+                DECRYPTION_FAILURE_MAX_RETRIES,
+                Instance.DecryptionStatus.PENDING,
+            )
 
         super().on_failure(exc, task_id, args, kwargs, einfo)
 
