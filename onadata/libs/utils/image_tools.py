@@ -30,11 +30,13 @@ def flat(*nums):
     return tuple(int(round(n)) for n in nums)
 
 
-def generate_media_download_url(obj, expiration: int = 3600):
+def generate_media_download_url(obj, expiration: int | None = None):
     """
     Returns a HTTP response of a media object or a redirect to the image URL for S3 and
     Azure storage objects.
     """
+    if expiration is None:
+        expiration = settings.ATTACHMENT_SIGNED_URL_EXPIRATION
     file_path = obj.media_file.name
     filename = quote(file_path.split("/")[-1])
     # The filename is enclosed in quotes because it ensures that special characters,
