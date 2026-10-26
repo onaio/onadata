@@ -4,7 +4,7 @@ ODK Briefcase API and a REST API to manage data analysis, collection and
 visualization.
 """
 
-__version__ = "5.31.2"
+__version__ = "5.32.0"
 
 
 # This will make sure the app is always imported when
