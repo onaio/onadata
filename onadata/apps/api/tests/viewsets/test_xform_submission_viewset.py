@@ -2211,6 +2211,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertTrue(edited_instance.is_encrypted)
         self.assertEqual(edited_instance.xml, self._enc_instance_manifest_xml())
         self.assertTrue(edited_instance.media_all_received)
+        self.assertEqual(
+            edited_instance.decryption_status, Instance.DecryptionStatus.PENDING
+        )
         history = InstanceHistory.objects.get(xform_instance=edited_instance)
         self.assertEqual(history.uuid, original_uuid)
         self.assertEqual(history.xml, original_instance.xml)
