@@ -1,5 +1,5 @@
 cryptography>=48.0.1
-Django>=5.2.18,<6
+Django>=6.1.2,<7
 django-storages[azure]
 certifi>=2026.10.19
 idna>=3.20
