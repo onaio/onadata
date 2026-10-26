@@ -3,6 +3,33 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.31.3(2026-10-26)*
+--------------------
+- feat: name the linked dataset when access to it is denied
+  [@kelvin-muchiri]
+  `PR #3286 https://github.com/onaio/onadata/pull/3286`
+- fix: decrypt a submission once however many decryption tasks run
+  [@kelvin-muchiri]
+  `PR #3289 https://github.com/onaio/onadata/pull/3289`
+- Distrust compromised eMudhra CA certificates
+  [@ukanga]
+  `Commit f3bc10bb0 https://github.com/onaio/onadata/commit/f3bc10bb0c243f52bb00890c8971fd7f1e72bcdf`
+- Authorize messaging reads and restrict event verbs
+  [@ukanga]
+  `Commit c4968b446 https://github.com/onaio/onadata/commit/c4968b446c80e3ccf5adcd33041d040bb3476f53`
+- Reject messaging access to unavailable targets
+  [@ukanga]
+  `Commit e9fa0e445 https://github.com/onaio/onadata/commit/e9fa0e4453053320a6f6ed9089b059e7c7befad2`
+- Make messaging API read-only
+  [@ukanga]
+  `Commit 590582db6 https://github.com/onaio/onadata/commit/590582db680f6973856b38bdf989e816adf4a73a`
+- Add signed URLs to JSON data responses
+  [@ukanga]
+  `Commit c39c0d0f5 https://github.com/onaio/onadata/commit/c39c0d0f5bf6b34530b3c1ca9583ed621e60e2d8`
+- chore: update dependencies for the security release
+  [@FrankApiyo]
+  `PR #3292 https://github.com/onaio/onadata/pull/3292`
+
 v5.31.2(2026-10-06)
 --------------------
 - ci: bump postgres service image to 17
