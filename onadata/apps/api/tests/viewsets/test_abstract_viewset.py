@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Test base class for API viewset tests.
 """
@@ -9,6 +8,7 @@ import re
 import warnings
 from glob import glob
 from tempfile import NamedTemporaryFile
+from typing import ClassVar
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -97,7 +97,7 @@ def get_mocked_response_for_file(
         {
             "content-type": content_type,
             "Content-Disposition": (
-                f'attachment; filename="{filename}";' f" filename*=UTF-8''{filename}"
+                f"attachment; filename=\"{filename}\"; filename*=UTF-8''{filename}"
             ),
         }
     )
@@ -116,7 +116,7 @@ class TestAbstractViewSet(TestBase, TestCase):
     Base test class for API viewsets.
     """
 
-    surveys = [
+    surveys: ClassVar[list] = [
         "transport_2011-07-25_19-05-49",
         "transport_2011-07-25_19-05-36",
         "transport_2011-07-25_19-06-01",
@@ -124,7 +124,7 @@ class TestAbstractViewSet(TestBase, TestCase):
     ]
     main_directory = os.path.dirname(main_tests.__file__)
 
-    profile_data = {
+    profile_data: ClassVar[dict] = {
         "username": "bob",
         "email": "bob@columbia.edu",
         "password1": "bobbob",
@@ -309,9 +309,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         self, publish_data=None, merge=True, public=False, xlsform_path=None
     ):
         publish_data = {} if publish_data is None else publish_data
-        if not hasattr(self, "project"):
-            self._project_create()
-        elif self.project.created_by != self.user:
+        if not hasattr(self, "project") or self.project.created_by != self.user:
             self._project_create()
 
         view = ProjectViewSet.as_view({"post": "forms"})
@@ -348,21 +346,20 @@ class TestAbstractViewSet(TestBase, TestCase):
             "transportation.xlsx",
         )
 
-        with HTTMock(enketo_urls_mock):
-            with open(path, "rb") as xls_file:
-                post_data = {"xls_file": xls_file}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request, pk=project_id)
-                self.assertEqual(response.status_code, 201, response.data)
-                # pylint: disable=attribute-defined-outside-init
-                self.xform = XForm.objects.all().order_by("pk").reverse()[0]
-                data.update({"url": f"http://testserver/api/v1/forms/{self.xform.pk}"})
-                # Input was a private so change to public if project public
-                if public:
-                    data["public_data"] = data["public"] = True
+        with HTTMock(enketo_urls_mock), open(path, "rb") as xls_file:
+            post_data = {"xls_file": xls_file}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = view(request, pk=project_id)
+            self.assertEqual(response.status_code, 201, response.data)
+            # pylint: disable=attribute-defined-outside-init
+            self.xform = XForm.objects.all().order_by("pk").reverse()[0]
+            data.update({"url": f"http://testserver/api/v1/forms/{self.xform.pk}"})
+            # Input was a private so change to public if project public
+            if public:
+                data["public_data"] = data["public"] = True
 
-                # pylint: disable=attribute-defined-outside-init
-                self.form_data = response.data
+            # pylint: disable=attribute-defined-outside-init
+            self.form_data = response.data
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,unused-argument
     def _make_submission(
@@ -393,7 +390,7 @@ class TestAbstractViewSet(TestBase, TestCase):
             if media_file is not None:
                 if isinstance(media_file, list):
                     for position, _value in enumerate(media_file):
-                        post_data[f"media_file_{position}"] = media_file[position]
+                        post_data[f"media_file_{position}"] = _value
                         media_count += 1
                 else:
                     post_data["media_file"] = media_file
