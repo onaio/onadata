@@ -4,21 +4,21 @@
 #
 #    pip-compile --output-file=requirements/ses.pip requirements/ses.in
 #
-asgiref==3.12.1
+asgiref==3.13.0
     # via django
 boto==2.49.0
     # via -r requirements/ses.in
-boto3==1.43.79
+boto3==1.43.118
     # via django-ses
-botocore==1.43.79
+botocore==1.43.118
     # via
     #   boto3
     #   s3transfer
-django==5.2.17
+django==5.2.18
     # via
     #   -r requirements/ses.in
     #   django-ses
-django-ses==4.7.2
+django-ses==4.8.2
     # via -r requirements/ses.in
 jmespath==1.1.0
     # via
@@ -26,13 +26,13 @@ jmespath==1.1.0
     #   botocore
 python-dateutil==2.9.0.post0
     # via botocore
-s3transfer==0.19.2
+s3transfer==0.19.3
     # via boto3
 six==1.17.0
     # via python-dateutil
 sqlparse==0.6.0
     # via django
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   -r requirements/ses.in
     #   botocore

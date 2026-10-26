@@ -20,7 +20,6 @@ from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock
 from requests.structures import CaseInsensitiveDict
-from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.api.tests.mocked_data import enketo_urls_mock
@@ -48,6 +47,7 @@ from onadata.apps.main import tests as main_tests
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.test_utils.request_factory import LiveHeadersRequestFactory
 from onadata.libs.utils.common_tools import merge_dicts
 
 # pylint: disable=invalid-name
@@ -141,7 +141,7 @@ class TestAbstractViewSet(TestBase, TestCase):
 
     def setUp(self):
         TestCase.setUp(self)
-        self.factory = APIRequestFactory()
+        self.factory = LiveHeadersRequestFactory()
         self._login_user_and_profile()
         self.maxDiff = None
 
@@ -373,7 +373,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         auth=None,
     ):
         # store temporary file with dynamic uuid
-        self.factory = APIRequestFactory()
+        self.factory = LiveHeadersRequestFactory()
         if auth is None:
             auth = DigestAuth(
                 self.profile_data["username"], self.profile_data["password1"]

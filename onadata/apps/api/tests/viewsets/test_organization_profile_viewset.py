@@ -567,7 +567,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         # get profile as a anonymous user
         request = self.factory.get("/", **self.extra)
         request.user = AnonymousUser()
-        request.headers = None
         request.META["HTTP_AUTHORIZATION"] = ""
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
