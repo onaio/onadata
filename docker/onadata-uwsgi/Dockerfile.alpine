@@ -1,4 +1,4 @@
-FROM python:3.13-alpine3.22
+FROM python:3.13-alpine3.23
 
 ENV PYTHONUNBUFFERED 1
 ENV DJANGO_SETTINGS_MODULE onadata.preset.docker
@@ -60,7 +60,7 @@ RUN mkdir -p /srv/onadata
 
 WORKDIR /srv/onadata
 
-COPY ../../ ./ 
+COPY ../../ ./
 
 RUN chown -R onadata:onadata /home/onadata
 RUN chown -R onadata:onadata /srv/onadata
@@ -71,7 +71,7 @@ RUN pip install --no-cache-dir -r requirements/base.pip
 RUN pip install --no-cache-dir -r requirements/s3.pip
 RUN pip install --no-cache-dir -r requirements/ses.pip
 RUN pip install --no-cache-dir -r requirements/azure.pip
-RUN pip install --no-cache-dir pyyaml==6.0.3 uwsgitop==0.11
+RUN pip install --no-cache-dir pyyaml==6.0.3 uwsgitop==0.12
 
 # Install optional requirements
 # Read more on the ssh argument here: https://docs.docker.com/develop/develop-images/build_enhancements/#using-ssh-to-access-private-data-in-builds
