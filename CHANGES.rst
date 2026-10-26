@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.31.3(2026-10-26)*
+--------------------
+- feat: name the linked dataset when access to it is denied
+  [@kelvin-muchiri]
+  `PR #3286 https://github.com/onaio/onadata/pull/3286`
+- fix: decrypt a submission once however many decryption tasks run
+  [@kelvin-muchiri]
+  `PR #3289 https://github.com/onaio/onadata/pull/3289`
+- Security fixes: October 2026 batch
+  [@ukanga]
+  `Commits https://github.com/onaio/onadata/compare/6fb1dd101...c39c0d0f5`
+- chore: update dependencies for the security release
+  [@FrankApiyo]
+  `PR #3292 https://github.com/onaio/onadata/pull/3292`
+
 v5.31.2(2026-10-06)
 --------------------
 - ci: bump postgres service image to 17
