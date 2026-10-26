@@ -11,7 +11,9 @@ pre-commit
 # Seed new environments with pip's corrected CA bundle.
 virtualenv>=21.14.13
 prospector>=1.10.3
-pylint
+# 4.1 flags existing code that predates its stricter checks; lift the cap
+# once those are cleaned up.
+pylint<4.1
 pylint-django
 moto
 requests_mock

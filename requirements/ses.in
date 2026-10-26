@@ -1,4 +1,4 @@
 boto
-Django>=5.2.14,<6
+Django>=5.2.18,<6
 django-ses
 urllib3>=2.7.0
