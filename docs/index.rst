@@ -15,6 +15,7 @@ Authentication
    :maxdepth: 2
 
    authentication
+   two_factor
 
 Data Endpoints
 --------------
