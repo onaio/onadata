@@ -266,6 +266,22 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset["id"])
         self.assertEqual(response.status_code, 404)
 
+        self.assertFalse(merged_xform.shared)
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        alice_extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
+        response = view(self.factory.get("/", **alice_extra), pk=merged_dataset["id"])
+        self.assertEqual(response.status_code, 404)
+        ReadOnlyRole.add(alice, merged_xform)
+        response = view(self.factory.get("/", **alice_extra), pk=merged_dataset["id"])
+        self.assertEqual(response.status_code, 200)
+
+        # "²" is a Unicode digit that int() rejects
+        for pk in ("not-a-number", "²"):
+            response = view(self.factory.get("/", **self.extra), pk=pk)
+            self.assertEqual(response.status_code, 400)
+
         # status_code is 200 when: pk exists, user is authenticated
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=merged_dataset["id"])
@@ -311,7 +327,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(len(permission_sql), 1)
         # The outer query groups for the Sum; the permission subquery must not
         self.assertEqual(permission_sql[0].count("GROUP BY"), 1)
-        return response
+        return response, permission_sql[0]
 
     def test_permission_filter_does_not_aggregate_all_merged_datasets(self):
         """The permission subquery must not GROUP BY every merged dataset"""
@@ -325,14 +341,19 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(merged_xform.num_of_submissions, 0)
 
         request = self.factory.get("/", **self.extra)
-        response = self._assert_permission_query_groups_once(
+        response, permission_sql = self._assert_permission_query_groups_once(
             MergedXFormViewSet.as_view({"get": "retrieve"}),
             request,
             pk=merged_dataset["id"],
         )
         self.assertEqual(response.data["num_of_submissions"], 1)
+        # Django aliases the subquery's table as U0, so this checks the
+        # permission subquery covers only the requested dataset
+        self.assertRegex(
+            permission_sql, rf'U0\."xform_ptr_id" = {merged_dataset["id"]}\b'
+        )
 
-        response = self._assert_permission_query_groups_once(
+        response, _ = self._assert_permission_query_groups_once(
             MergedXFormViewSet.as_view({"get": "list"}), request
         )
         self.assertEqual(response.data[0]["num_of_submissions"], 1)
