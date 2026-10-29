@@ -47,12 +47,8 @@ class MergedXFormViewSet(
         filters.ActiveXFormOrganizationFilter,
     )
     permission_classes = [XFormPermissions]
-    queryset = (
-        MergedXForm.objects.filter(
-            deleted_at__isnull=True, project__organization__is_active=True
-        )
-        .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
-        .all()
+    queryset = MergedXForm.objects.filter(
+        deleted_at__isnull=True, project__organization__is_active=True
     )
     pagination_class = StandardPageNumberPagination
     serializer_class = MergedXFormSerializer
@@ -60,6 +56,18 @@ class MergedXFormViewSet(
         renderers.StaticXMLRenderer,
         renderers.GeoJsonRenderer,
     ]
+
+    def filter_queryset(self, queryset):
+        """Annotate submission totals after the filter backends run.
+
+        Guardian embeds the filtered queryset as a subquery, and an annotated
+        one groups every merged dataset by all of its columns.
+        """
+        return (
+            super()
+            .filter_queryset(queryset)
+            .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
+        )
 
     def get_serializer_class(self):
         """
