@@ -105,7 +105,7 @@ class MergedXFormViewSet(
         """
         List endpoint for Merged XForms
         """
-        queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset()).order_by("pk")
         page = self.paginate_queryset(queryset)
         if page:
             serializer = self.get_serializer(page, many=True)
