@@ -1182,10 +1182,23 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=merged_dataset["id"])
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["num_of_submissions"], 1)
 
         # delete parents
-        [parent.delete() for parent in merged_xform.xforms.all()]
+        for parent in merged_xform.xforms.all():
+            parent.delete()
         merged_xform.refresh_from_db()
+        self.assertFalse(merged_xform.xforms.exists())
+
+        response = view(request, pk=merged_dataset["id"])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["num_of_submissions"], 0)
+        response = MergedXFormViewSet.as_view({"get": "list"})(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [(md["id"], md["num_of_submissions"]) for md in response.data],
+            [(merged_dataset["id"], 0)],
+        )
 
         # merged dataset should be available at api/forms/[pk] endpoint
         request = self.factory.get("/", **self.extra)
@@ -1197,6 +1210,58 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertTrue(response.data["instances_with_geopoints"])
         # deleted parents, 0 submissions
         self.assertEqual(response.data["num_of_submissions"], 0)
+
+    def test_merged_dataset_counts_exclude_deleted_parents(self):
+        """A restored merged dataset doesn't count a parent that stays deleted"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
+        form_a = merged_xform.xforms.get(id_string="a")
+        form_b = merged_xform.xforms.get(id_string="b")
+        Instance(xform=form_a, xml='<data id="a"><fruit>orange</fruit></data>').save()
+        Instance(xform=form_a, xml='<data id="a"><fruit>apple</fruit></data>').save()
+        Instance(xform=form_b, xml='<data id="b"><fruit>mango</fruit></data>').save()
+        form_a.refresh_from_db()
+        form_b.refresh_from_db()
+        # Unequal counts, so only excluding form_b gives a total of 2
+        self.assertEqual((form_a.num_of_submissions, form_b.num_of_submissions), (2, 1))
+        form_a.last_submission_time = timezone.now() - timedelta(days=1)
+        form_a.save(update_fields=["last_submission_time"])
+        form_b.last_submission_time = timezone.now()
+        form_b.save(update_fields=["last_submission_time"])
+
+        # Deleting a parent deletes the merged dataset; restoring it brings the
+        # merged dataset back while the other parent stays deleted
+        form_a.soft_delete(self.user)
+        form_b.soft_delete(self.user)
+        form_a.refresh_from_db()
+        form_a.restore()
+        merged_xform.refresh_from_db()
+        form_b.refresh_from_db()
+        self.assertIsNone(merged_xform.deleted_at)
+        self.assertIsNotNone(form_b.deleted_at)
+        # form_b is newer, so getting form_a's time shows form_b was excluded
+        self.assertGreater(form_b.last_submission_time, form_a.last_submission_time)
+
+        request = self.factory.get("/", **self.extra)
+        response = MergedXFormViewSet.as_view({"get": "retrieve"})(
+            request, pk=merged_dataset["id"]
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["num_of_submissions"], 2)
+        self.assertEqual(
+            response.data["last_submission_time"],
+            form_a.last_submission_time.isoformat(),
+        )
+
+        response = MergedXFormViewSet.as_view({"get": "list"})(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [
+                (md["id"], md["num_of_submissions"], md["last_submission_time"])
+                for md in response.data
+            ],
+            [(merged_dataset["id"], 2, form_a.last_submission_time.isoformat())],
+        )
 
     def test_bbox_returns_null_without_geolocated_submissions(self):
         """Merged dataset bbox returns ``null`` when no underlying xform has
