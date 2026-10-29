@@ -5,7 +5,7 @@ MergedXFormViewSet: API endpoint for /api/merged-datasets
 
 import json
 
-from django.db.models import Sum
+from django.db.models import Max, Prefetch, Sum
 from django.http import HttpResponseBadRequest
 
 from rest_framework import mixins, viewsets
@@ -14,12 +14,15 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.logger.models import Instance, MergedXForm
+from onadata.apps.logger.models import Instance, MergedXForm, XForm
 from onadata.libs import filters
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
+from onadata.libs.serializers.merged_xform_serializer import (
+    SOURCE_XFORM_FIELDS,
+    MergedXFormSerializer,
+)
 from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.cache_tools import (
     MERGED_XFORM_BBOX_CACHE,
@@ -57,8 +60,22 @@ class MergedXFormViewSet(
         renderers.GeoJsonRenderer,
     ]
 
+    def get_queryset(self):
+        """Prefetch the source forms for the actions that serialize them"""
+        queryset = super().get_queryset()
+        if self.action not in ("list", "retrieve"):
+            return queryset
+        return queryset.prefetch_related(
+            Prefetch(
+                "xforms",
+                queryset=XForm.objects.select_related("user", "project").only(
+                    *SOURCE_XFORM_FIELDS
+                ),
+            )
+        )
+
     def filter_queryset(self, queryset):
-        """Annotate submission totals after the filter backends run.
+        """Annotate submission aggregates after the filter backends run.
 
         Guardian embeds the filtered queryset as a subquery, and an annotated
         one groups every merged dataset by all of its columns.
@@ -66,7 +83,10 @@ class MergedXFormViewSet(
         return (
             super()
             .filter_queryset(queryset)
-            .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
+            .annotate(
+                number_of_submissions=Sum("xforms__num_of_submissions"),
+                latest_submission_time=Max("xforms__last_submission_time"),
+            )
         )
 
     def get_serializer_class(self):
