@@ -5,7 +5,8 @@ MergedXFormViewSet: API endpoint for /api/merged-datasets
 
 import json
 
-from django.db.models import Max, Prefetch, Sum
+from django.db.models import Max, Prefetch, Q, Sum
+from django.db.models.functions import Coalesce
 from django.http import HttpResponseBadRequest
 
 from rest_framework import mixins, viewsets
@@ -80,12 +81,17 @@ class MergedXFormViewSet(
         Guardian embeds the filtered queryset as a subquery, and an annotated
         one groups every merged dataset by all of its columns.
         """
+        active_xforms = Q(xforms__deleted_at__isnull=True)
         return (
             super()
             .filter_queryset(queryset)
             .annotate(
-                number_of_submissions=Sum("xforms__num_of_submissions"),
-                latest_submission_time=Max("xforms__last_submission_time"),
+                number_of_submissions=Coalesce(
+                    Sum("xforms__num_of_submissions", filter=active_xforms), 0
+                ),
+                latest_submission_time=Max(
+                    "xforms__last_submission_time", filter=active_xforms
+                ),
             )
         )
 
