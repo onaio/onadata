@@ -9,6 +9,8 @@ from io import StringIO
 
 from django.conf import settings
 from django.core.files.base import File
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -292,6 +294,47 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             response.data["last_submission_time"],
             form_b.last_submission_time.isoformat(),
         )
+
+    def _assert_permission_query_groups_once(self, view, request, **kwargs):
+        """Call the view and assert its permission-filtered query groups once"""
+        with CaptureQueriesContext(connection) as ctx:
+            response = view(request, **kwargs)
+        self.assertEqual(response.status_code, 200)
+        # Relies on guardian embedding the filtered queryset as a subquery of
+        # the query that carries the Sum
+        permission_sql = [
+            q["sql"]
+            for q in ctx.captured_queries
+            if "guardian_userobjectpermission" in q["sql"] and "SUM(" in q["sql"]
+        ]
+        self.assertEqual(len(permission_sql), 1)
+        # The outer query groups for the Sum; the permission subquery must not
+        self.assertEqual(permission_sql[0].count("GROUP BY"), 1)
+        return response
+
+    def test_permission_filter_does_not_aggregate_all_merged_datasets(self):
+        """The permission subquery must not GROUP BY every merged dataset"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
+        self.assertFalse(merged_xform.shared)
+        form_b = merged_xform.xforms.all()[1]
+        Instance(xform=form_b, xml='<data id="b"><fruit>mango</fruit></data>').save()
+        # A count of 1 below can then only come from the Sum annotation
+        merged_xform.refresh_from_db()
+        self.assertEqual(merged_xform.num_of_submissions, 0)
+
+        request = self.factory.get("/", **self.extra)
+        response = self._assert_permission_query_groups_once(
+            MergedXFormViewSet.as_view({"get": "retrieve"}),
+            request,
+            pk=merged_dataset["id"],
+        )
+        self.assertEqual(response.data["num_of_submissions"], 1)
+
+        response = self._assert_permission_query_groups_once(
+            MergedXFormViewSet.as_view({"get": "list"}), request
+        )
+        self.assertEqual(response.data[0]["num_of_submissions"], 1)
 
     def test_merged_datasets_form_json(self):
         """Test retrieving the XLSForm JSON of a merged dataset"""
