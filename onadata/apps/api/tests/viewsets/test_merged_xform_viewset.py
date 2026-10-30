@@ -5,6 +5,7 @@ Test merged dataset functionality.
 import csv
 import json
 import os
+from datetime import timedelta
 from io import StringIO
 
 from django.conf import settings
@@ -335,6 +336,66 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             MergedXFormViewSet.as_view({"get": "list"}), request
         )
         self.assertEqual(response.data[0]["num_of_submissions"], 1)
+
+    def _query_count(self, action, **kwargs):
+        request = self.factory.get("/", **self.extra)
+        with CaptureQueriesContext(connection) as ctx:
+            response = MergedXFormViewSet.as_view({"get": action})(request, **kwargs)
+        self.assertEqual(response.status_code, 200)
+        return len(ctx.captured_queries), response.data
+
+    def test_merged_datasets_query_count_is_constant(self):
+        """Listing and retrieving merged datasets don't run queries per
+        dataset or per source form"""
+        merged_dataset = self._create_merged_dataset()
+        source_xforms = MergedXForm.objects.get(pk=merged_dataset["id"]).xforms
+        form_a = source_xforms.get(id_string="a")
+        form_a.last_submission_time = timezone.now() - timedelta(days=1)
+        form_a.save(update_fields=["last_submission_time"])
+        form_b = source_xforms.get(id_string="b")
+        form_b.last_submission_time = timezone.now()
+        form_b.save(update_fields=["last_submission_time"])
+        # Warm guardian's process-wide content type cache so counts compare
+        self._query_count("list")
+        single_count, data = self._query_count("list")
+        self.assertEqual(len(data), 1)
+
+        request = self.factory.post(
+            "/",
+            data={
+                "xforms": [xform["url"] for xform in merged_dataset["xforms"]],
+                "name": "Second Merged Dataset",
+                "project": merged_dataset["project"],
+            },
+            **self.extra,
+        )
+        response = MergedXFormViewSet.as_view({"post": "create"})(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            response.data["last_submission_time"],
+            form_b.last_submission_time.isoformat(),
+        )
+
+        double_count, data = self._query_count("list")
+        self.assertEqual(len(data), 2)
+        self.assertEqual(double_count, single_count)
+        for merged in data:
+            self.assertEqual(
+                merged["last_submission_time"], form_b.last_submission_time.isoformat()
+            )
+
+        two_forms_count, data = self._query_count("retrieve", pk=merged_dataset["id"])
+        self.assertEqual(len(data["xforms"]), 2)
+        form_c = self._publish_markdown(MD, self.user, id_string="c")
+        MergedXForm.objects.get(pk=merged_dataset["id"]).xforms.add(form_c)
+        three_forms_count, data = self._query_count("retrieve", pk=merged_dataset["id"])
+        self.assertEqual(
+            sorted(xform["id_string"] for xform in data["xforms"]), ["a", "b", "c"]
+        )
+        self.assertEqual(
+            {xform["owner"] for xform in data["xforms"]}, {self.user.username}
+        )
+        self.assertEqual(three_forms_count, two_forms_count)
 
     def test_merged_datasets_form_json(self):
         """Test retrieving the XLSForm JSON of a merged dataset"""
