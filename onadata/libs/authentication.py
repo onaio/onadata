@@ -633,6 +633,10 @@ def send_lockout_email(username, ip_address):
     except User.DoesNotExist:
         pass
     else:
+        # Accounts without an email address, e.g. the anonymous user
+        # account, cannot be notified of a lockout.
+        if not user.email:
+            return
         email_data = get_account_lockout_email_data(username, ip_address)
         end_email_data = get_account_lockout_email_data(username, ip_address, end=True)
 

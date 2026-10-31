@@ -27,6 +27,7 @@ from onadata.libs.authentication import (
     get_client_ip,
     get_lockout_username,
     is_lockout_excluded_path,
+    send_lockout_email,
 )
 from onadata.libs.utils.cache_tools import LOCKOUT_IP, safe_cache_set, safe_key
 from onadata.libs.utils.common_tags import API_TOKEN
@@ -321,6 +322,43 @@ class TestGetLockoutUsername(TestCase):
         """An unmatched identifier is returned unchanged so it is still
         throttled."""
         self.assertEqual(get_lockout_username("nobody"), "nobody")
+
+
+class TestSendLockoutEmail(TestCase):
+    """Test send_lockout_email() function."""
+
+    @patch("onadata.apps.api.tasks.send_account_lockout_email.apply_async")
+    def test_queues_start_and_end_emails(self, apply_async_mock):
+        """The lockout start and end emails are queued for the account."""
+        User.objects.create_user(
+            username="bob", email="bob@example.com", password="secret"
+        )
+        send_lockout_email("bob", "1.2.3.4")
+
+        self.assertEqual(apply_async_mock.call_count, 2)
+        start_call, end_call = apply_async_mock.call_args_list
+        self.assertEqual(start_call.kwargs["args"][0], "bob@example.com")
+        self.assertEqual(end_call.kwargs["args"][0], "bob@example.com")
+        self.assertEqual(
+            end_call.kwargs["countdown"],
+            getattr(settings, "LOCKOUT_TIME", 1800) + 60,
+        )
+
+    @patch("onadata.apps.api.tasks.send_account_lockout_email.apply_async")
+    def test_ignores_unknown_username(self, apply_async_mock):
+        """No lockout email is queued when no account matches the username."""
+        send_lockout_email("nobody", "1.2.3.4")
+
+        self.assertFalse(apply_async_mock.called)
+
+    @patch("onadata.apps.api.tasks.send_account_lockout_email.apply_async")
+    def test_skips_account_without_email(self, apply_async_mock):
+        """No lockout email is queued for an account without an email
+        address, e.g. the anonymous user account."""
+        User.objects.get_or_create(username=settings.ANONYMOUS_DEFAULT_USERNAME)
+        send_lockout_email(settings.ANONYMOUS_DEFAULT_USERNAME, "1.2.3.4")
+
+        self.assertFalse(apply_async_mock.called)
 
 
 class TestMasterReplicaOAuth2Validator(TestCase):
