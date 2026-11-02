@@ -308,7 +308,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             form_b.last_submission_time.isoformat(),
         )
 
-    def test_zero_submission_count_is_not_cached(self):
+    def test_cached_zero_submission_count_is_ignored(self):
         """A submission to a source form does not clear the merged dataset's key"""
         merged_dataset = self._create_merged_dataset()
         merged_xform = XForm.objects.get(pk=merged_dataset["id"])

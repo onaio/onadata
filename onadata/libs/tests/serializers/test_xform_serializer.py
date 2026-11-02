@@ -15,7 +15,11 @@ from onadata.libs.serializers.xform_serializer import (
     XFormManifestSerializer,
     XFormMixin,
 )
-from onadata.libs.utils.cache_tools import XFORM_COUNT, XFORM_ZERO_COUNT_TTL
+from onadata.libs.utils.cache_tools import (
+    DEFAULT_TIMEOUT,
+    XFORM_COUNT,
+    XFORM_ZERO_COUNT_TTL,
+)
 
 
 class TestXFormMixin(TestCase, TestBase):
@@ -71,7 +75,9 @@ class TestXFormMixin(TestCase, TestBase):
         self._make_submissions()
         self.xform.refresh_from_db()
         XFormMixin().get_num_of_submissions(self.xform)
-        cache_set.assert_called_once_with(key, self.xform.num_of_submissions)
+        cache_set.assert_called_once_with(
+            key, self.xform.num_of_submissions, DEFAULT_TIMEOUT
+        )
 
 
 class TestXFormManifestSerializer(TestCase, TestBase):
