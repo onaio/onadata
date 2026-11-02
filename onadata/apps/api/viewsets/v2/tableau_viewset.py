@@ -236,12 +236,7 @@ class TableauViewSet(OpenDataViewSet):
             xform_pks = [xform.id]
 
             if xform.is_merged_dataset:
-                # `IN ()` is invalid SQL, and a merged dataset has no submissions
-                # of its own, so its pk matches nothing when no source form is active
-                xform_pks = (
-                    list(xform.mergedxform.active_xforms().values_list("pk", flat=True))
-                    or xform_pks
-                )
+                xform_pks = xform.mergedxform.active_xform_pks_for_sql()
 
             sql_params = [tuple(xform_pks)] + sql_where_params
 

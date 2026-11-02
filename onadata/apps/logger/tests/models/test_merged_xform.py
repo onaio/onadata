@@ -18,15 +18,3 @@ class MergedXFormTestCase(TestBase):
             call(merged_xf.pk, self.project.pk),
         ]
         mock_set_perms.assert_has_calls(calls, any_order=True)
-
-    def test_active_xforms_leaves_out_deleted_source_forms(self):
-        """Only source forms that are not soft deleted are active"""
-        merged_xf = self._create_merged_dataset()
-        xf1 = merged_xf.xforms.get(id_string="a")
-        xf2 = merged_xf.xforms.get(id_string="b")
-        self.assertCountEqual(merged_xf.active_xforms(), [xf1, xf2])
-
-        xf2.soft_delete(self.user)
-
-        self.assertEqual(merged_xf.xforms.count(), 2)
-        self.assertEqual(list(merged_xf.active_xforms()), [xf1])

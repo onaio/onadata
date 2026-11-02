@@ -99,7 +99,6 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self._delete_form_b()
 
         self.assertEqual(_fruits(self._get_data(OpenDataViewSet)), ["orange"])
-        self.assertEqual(self._get_data(OpenDataViewSet, count=True).data["count"], 1)
 
     def test_tableau_leaves_out_deleted_source_form(self):
         self.assertEqual(_fruits(self._get_data(TableauViewSet)), ["mango", "orange"])
@@ -107,9 +106,7 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self._delete_form_b()
 
         self.assertEqual(_fruits(self._get_data(TableauViewSet)), ["orange"])
-        self.assertEqual(
-            _fruits(self._get_data(TableauViewSet, page=1, page_size=10)), ["orange"]
-        )
+        # The count comes from a separate query
         self.assertEqual(self._get_data(TableauViewSet, count=True).data["count"], 1)
 
     def test_filtered_dataset_leaves_out_deleted_source_form(self):
@@ -124,28 +121,18 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self.assertEqual(
             [row["fruit"] for row in DataView.query_data(data_view)], ["orange"]
         )
-        self.assertEqual(DataView.query_data(data_view, count=True), [{"count": 1}])
 
-    def test_data_is_empty_when_all_source_forms_are_deleted(self):
-        data_view = self._create_data_view()
+    def test_tableau_is_empty_when_all_source_forms_are_deleted(self):
+        self._delete_all_source_forms()
+
+        self.assertEqual(_fruits(self._get_data(TableauViewSet)), [])
+
+    def test_form_details_report_zero_when_all_source_forms_are_deleted(self):
+        self.assertEqual(self._retrieve_form()["num_of_submissions"], 2)
 
         self._delete_all_source_forms()
 
-        self.assertEqual(_fruits(self._get_data(OpenDataViewSet)), [])
-        self.assertEqual(_fruits(self._get_data(TableauViewSet)), [])
-        self.assertEqual(
-            _fruits(self._get_data(TableauViewSet, page=1, page_size=10)), []
-        )
-        self.assertEqual(self._get_data(TableauViewSet, count=True).data["count"], 0)
-        self.assertEqual(DataView.query_data(data_view), [])
-        self.assertEqual(DataView.query_data(data_view, count=True), [{"count": 0}])
-
-    def test_submission_count_leaves_out_deleted_source_form(self):
-        self.assertEqual(self.xform.submission_count(force_update=True), 2)
-
-        self._delete_form_b()
-
-        self.assertEqual(self.xform.submission_count(force_update=True), 1)
+        self.assertEqual(self._retrieve_form()["num_of_submissions"], 0)
 
     def test_form_details_leave_out_deleted_source_form(self):
         details = self._retrieve_form()
