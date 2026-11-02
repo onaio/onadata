@@ -282,7 +282,9 @@ class DataViewSet(
     # pylint: disable=unused-argument
     def filter_queryset(self, queryset, view=None):
         """Returns and filters queryset based on context and query params."""
-        queryset = super().filter_queryset(queryset.only("id", "shared"))
+        queryset = super().filter_queryset(
+            queryset.only("id", "shared", "id_string", "title", "description")
+        )
         form_pk = self.kwargs.get(self.lookup_field)
 
         if form_pk:
