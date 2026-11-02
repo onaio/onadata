@@ -14,8 +14,9 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectV
 from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSet
 from onadata.apps.logger.models import EntityList, Project, XForm
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.project_serializer import PROJECT_PUBLIC_EXCLUDED_FIELDS
+from onadata.libs.serializers.v2.project_serializer import ProjectListSerializer
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     PROJ_V2_OWNER_CACHE,
@@ -136,6 +137,34 @@ class GetProjectListTestCase(TestAbstractViewSet):
         public_project = next(p for p in response.data if p["name"] == "Public")
         public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
         self.assertFalse(public_excluded_fields & set(public_project))
+
+    def _serialize_for(self, user):
+        request = self.factory.get("/")
+        request.user = user
+        return ProjectListSerializer(
+            [self.project], many=True, context={"request": request}
+        ).data[0]
+
+    def test_user_specific_fields_for_superuser_and_inactive_user(self):
+        """Superusers get the full shape and inactive users the public shape."""
+        superuser = self._create_user_profile(
+            {"username": "root", "email": "root@localhost.com"}
+        ).user
+        superuser.is_superuser = True
+        superuser.save()
+        inactive = self._create_user_profile(
+            {"username": "gone", "email": "gone@localhost.com"}
+        ).user
+        ManagerRole.add(inactive, self.project)
+        self.assertEqual(self._serialize_for(inactive)["current_user_role"], "manager")
+        inactive.is_active = False
+        inactive.save()
+
+        superuser_project = self._serialize_for(superuser)
+        self.assertEqual(superuser_project["current_user_role"], "owner")
+        self.assertTrue(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(superuser_project))
+        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
+        self.assertFalse(public_excluded_fields & set(self._serialize_for(inactive)))
 
     def test_public_inactive_organization_project_excluded(self):
         """Anonymous list omits public projects under inactive organizations."""
