@@ -313,7 +313,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         )
 
     def test_source_form_submission_changes_clear_cached_counts(self):
-        """Merged dataset counts follow each way a source form's submissions change"""
+        """Merged dataset counts update when a source form's submissions change"""
         merged_dataset = self._create_merged_dataset()
         merged_xform = XForm.objects.get(pk=merged_dataset["id"])
         form_a = merged_xform.mergedxform.xforms.get(id_string="a")
@@ -329,7 +329,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             return instance
 
         def count_after(change):
-            # The refill stands in for a read that lands before the commit.
+            # These writes simulate a read before the commit.
             with self.captureOnCommitCallbacks(execute=True):
                 result = change()
                 cache.set(count_key, 99)
