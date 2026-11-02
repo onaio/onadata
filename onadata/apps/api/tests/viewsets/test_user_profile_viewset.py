@@ -743,6 +743,32 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.metadata, {"b": "caah"})
 
+    def test_partial_update_metadata_clears_cached_profile(self):
+        """A metadata update with overwrite=false invalidates the cached profile"""
+        profile = UserProfile.objects.get(user=self.user)
+        profile.metadata = {}
+        profile.save()
+        retrieve_view = UserProfileViewSet.as_view({"get": "retrieve"})
+
+        # prime the cache with a retrieve
+        request = self.factory.get("/", **self.extra)
+        response = retrieve_view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        cache_key = f"{USER_PROFILE_PREFIX}{self.user.username}{self.user.username}"
+        self.assertIsNotNone(cache.get(cache_key))
+
+        data = {"metadata": '{"zebra": {"key1": "value1"}}', "overwrite": "false"}
+        request = self.factory.patch("/", data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 200)
+
+        # the cached profile is gone and the next retrieve returns fresh data
+        self.assertIsNone(cache.get(cache_key))
+        request = self.factory.get("/", **self.extra)
+        response = retrieve_view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["metadata"], {"zebra": {"key1": "value1"}})
+
     def test_put_update(self):
         data = _profile_data()
         # create profile
