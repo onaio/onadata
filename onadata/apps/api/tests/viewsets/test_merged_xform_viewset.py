@@ -5,11 +5,13 @@ Test merged dataset functionality.
 import csv
 import json
 import os
+import warnings
 from datetime import timedelta
 from io import StringIO
 
 from django.conf import settings
 from django.core.files.base import File
+from django.core.paginator import UnorderedObjectListWarning
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -225,7 +227,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         # A list containing the merged datasets for user bob
         request = self.factory.get("/", **self.extra)
-        response = view(request)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UnorderedObjectListWarning)
+            response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertIn(merged_dataset, response.data)
