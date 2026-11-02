@@ -173,6 +173,7 @@ class SubmissionReviewPermissions(XFormPermissions):
     Custom Permission Checks for SubmissionReviews
     """
 
+    authenticated_users_only = True
     perms_map = {
         "GET": [],
         "OPTIONS": [],

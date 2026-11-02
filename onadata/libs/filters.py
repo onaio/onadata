@@ -1037,6 +1037,26 @@ class NoteFilter(filters.BaseFilterBackend):
 
 
 # pylint: disable=too-few-public-methods
+class SubmissionReviewFilter(ObjectPermissionsFilter):
+    """Scope submission reviews to forms the user is permitted to view."""
+
+    def filter_queryset(self, request, queryset, view):
+        """Keep reviews whose form the user holds ``view_xform`` on."""
+        if request.user.is_anonymous:
+            return queryset.none()
+
+        xforms = super().filter_queryset(
+            request,
+            XForm.objects.filter(
+                deleted_at__isnull=True, project__organization__is_active=True
+            ),
+            view,
+        )
+
+        return queryset.filter(instance__xform__in=xforms)
+
+
+# pylint: disable=too-few-public-methods
 class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
     """
     ExportFilter class uses permissions on the related xform to filter Export
