@@ -1212,7 +1212,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.data["num_of_submissions"], 0)
 
     def test_merged_dataset_counts_exclude_deleted_parents(self):
-        """A restored merged dataset doesn't count a parent that stays deleted"""
+        """A restored merged dataset doesn't count or list a parent that stays
+        deleted"""
         merged_dataset = self._create_merged_dataset()
         merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
         form_a = merged_xform.xforms.get(id_string="a")
@@ -1252,6 +1253,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             response.data["last_submission_time"],
             form_a.last_submission_time.isoformat(),
         )
+        self.assertEqual([xf["id"] for xf in response.data["xforms"]], [form_a.pk])
 
         response = MergedXFormViewSet.as_view({"get": "list"})(request)
         self.assertEqual(response.status_code, 200)
@@ -1262,6 +1264,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             ],
             [(merged_dataset["id"], 2, form_a.last_submission_time.isoformat())],
         )
+        self.assertEqual([xf["id"] for xf in response.data[0]["xforms"]], [form_a.pk])
 
     def test_merged_dataset_restored_without_active_parents_reports_zero(self):
         """A merged dataset restored while all its parents stay deleted stays
@@ -1285,6 +1288,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["num_of_submissions"], 2)
         self.assertIsNotNone(response.data["last_submission_time"])
+        self.assertEqual(len(response.data["xforms"]), 2)
 
         # Deleting a parent deletes the merged dataset, so restoring the merged
         # dataset itself is what leaves it active without an active parent
@@ -1302,6 +1306,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["num_of_submissions"], 0)
         self.assertIsNone(response.data["last_submission_time"])
+        self.assertEqual(response.data["xforms"], [])
 
         response = MergedXFormViewSet.as_view({"get": "list"})(request)
         self.assertEqual(response.status_code, 200)

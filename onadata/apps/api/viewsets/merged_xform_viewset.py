@@ -62,16 +62,16 @@ class MergedXFormViewSet(
     ]
 
     def get_queryset(self):
-        """Prefetch the source forms for the actions that serialize them"""
+        """Prefetch the active source forms for the actions that serialize them"""
         queryset = super().get_queryset()
         if self.action not in ("list", "retrieve"):
             return queryset
         return queryset.prefetch_related(
             Prefetch(
                 "xforms",
-                queryset=XForm.objects.select_related("user", "project").only(
-                    *SOURCE_XFORM_FIELDS
-                ),
+                queryset=XForm.objects.filter(deleted_at__isnull=True)
+                .select_related("user", "project")
+                .only(*SOURCE_XFORM_FIELDS),
             )
         )
 
