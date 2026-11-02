@@ -45,6 +45,8 @@ from taggit.managers import TaggableManager
 from onadata.apps.logger.xform_instance_parser import XLSFormError, clean_and_parse_xml
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (
+    DATAVIEW_COUNT,
+    DATAVIEW_LAST_SUBMISSION_TIME,
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
@@ -1401,7 +1403,7 @@ class XForm(XFormMixin, BaseModel):
         # Delete associated Form Media Files
         for metadata in self.metadata_set.filter(deleted_at__isnull=True):
             metadata.soft_delete()
-        self._clear_merged_dataset_counts()
+        self._refresh_merged_datasets()
         clear_project_cache(self.project_id)
 
     @transaction.atomic()
@@ -1448,13 +1450,16 @@ class XForm(XFormMixin, BaseModel):
         for metadata in self.metadata_set.filter(deleted_at__isnull=False):
             metadata.restore()
 
-        self._clear_merged_dataset_counts()
+        self._refresh_merged_datasets()
         clear_project_cache(self.project_id)
 
-    def _clear_merged_dataset_counts(self):
-        """Clear the cached counts of merged datasets this form is a source of."""
-        for merged_dataset_pk in self.mergedxform_ptr.values_list("pk", flat=True):
-            safe_cache_delete(f"{XFORM_COUNT}{merged_dataset_pk}")
+    def _refresh_merged_datasets(self):
+        """Update the counts of merged datasets this form is a source of."""
+        for merged_dataset in self.mergedxform_ptr.all():
+            merged_dataset.submission_count(force_update=True)
+            safe_cache_delete(f"{DATAVIEW_COUNT}{merged_dataset.pk}")
+            safe_cache_delete(f"{DATAVIEW_LAST_SUBMISSION_TIME}{merged_dataset.pk}")
+            clear_project_cache(merged_dataset.project_id)
 
     def submission_count(self, force_update=False):
         """Returns the form's number of submission."""

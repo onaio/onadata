@@ -2,17 +2,24 @@
 
 import json
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.api.viewsets.v2.tableau_viewset import TableauViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import DataView, XForm
+from onadata.apps.logger.models import DataView, Project, XForm
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
-from onadata.libs.utils.cache_tools import XFORM_COUNT, safe_cache_delete
+from onadata.libs.utils.cache_tools import (
+    DATAVIEW_COUNT,
+    DATAVIEW_LAST_SUBMISSION_TIME,
+    XFORM_COUNT,
+    safe_cache_delete,
+    safe_cache_get,
+)
 
 
 def _fruits(response):
@@ -26,10 +33,9 @@ class MergedXFormSourceFormsTestCase(TestBase):
     def setUp(self):
         super().setUp()
         self.merged_xform = self._create_merged_dataset(make_submissions=True)
-        # The submission count is cached by form pk, and the cache outlives the
-        # test database
-        self._clear_count_cache()
-        self.addCleanup(self._clear_count_cache)
+        # Counts are cached by form pk, and the cache outlives the test database
+        self._clear_count_caches()
+        self.addCleanup(self._clear_count_caches)
         self.xform = XForm.objects.get(pk=self.merged_xform.pk)
         self.form_a = self.merged_xform.xforms.get(id_string="a")
         self.form_b = self.merged_xform.xforms.get(id_string="b")
@@ -39,8 +45,9 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self.form_b.save(update_fields=["last_submission_time"])
         self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
 
-    def _clear_count_cache(self):
-        safe_cache_delete(f"{XFORM_COUNT}{self.merged_xform.pk}")
+    def _clear_count_caches(self):
+        for key in (XFORM_COUNT, DATAVIEW_COUNT, DATAVIEW_LAST_SUBMISSION_TIME):
+            safe_cache_delete(f"{key}{self.merged_xform.pk}")
 
     def _delete_form_b(self):
         """Deleting either source form deletes the merged dataset, and restoring
@@ -76,14 +83,13 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self.assertEqual(response.status_code, 200)
         return response
 
-    def _create_data_view(self):
-        return DataView.objects.create(
-            name="fruits",
-            xform=self.xform,
-            project=self.project,
-            columns=["fruit"],
-            query=[],
+    def _retrieve_data_view(self, data_view):
+        request = self.factory.get("/", **self.extra)
+        response = DataViewViewSet.as_view({"get": "retrieve"})(
+            request, pk=data_view.pk
         )
+        self.assertEqual(response.status_code, 200)
+        return response.data
 
     def _retrieve_form(self):
         request = self.factory.get("/", **self.extra)
@@ -109,20 +115,56 @@ class MergedXFormSourceFormsTestCase(TestBase):
         # The count comes from a separate query
         self.assertEqual(self._get_data(TableauViewSet, count=True).data["count"], 1)
 
-    def test_filtered_dataset_leaves_out_deleted_source_form(self):
-        data_view = self._create_data_view()
-        self.assertEqual(
-            sorted(row["fruit"] for row in DataView.query_data(data_view)),
-            ["mango", "orange"],
+    def test_filtered_dataset_follows_source_form_changes(self):
+        data_view = DataView.objects.create(
+            name="fruits",
+            xform=self.xform,
+            project=self.project,
+            columns=["fruit"],
+            query=[],
         )
+        self._delete_form_b()
+        time_key = f"{DATAVIEW_LAST_SUBMISSION_TIME}{self.merged_xform.pk}"
+
+        self.assertEqual(self._retrieve_data_view(data_view)["count"], 1)
+        self.assertIsNotNone(safe_cache_get(time_key))
+
+        self.form_b.refresh_from_db()
+        self.form_b.restore()
+
+        self.assertIsNone(safe_cache_get(time_key))
+        self.assertEqual(self._retrieve_data_view(data_view)["count"], 2)
+
+    def test_stored_count_follows_source_form_changes(self):
+        self.assertEqual(self.xform.submission_count(force_update=True), 2)
 
         self._delete_form_b()
 
-        self.assertEqual(
-            [row["fruit"] for row in DataView.query_data(data_view)], ["orange"]
+        self.assertEqual(self.merged_xform.num_of_submissions, 1)
+
+        self.form_b.refresh_from_db()
+        self.form_b.restore()
+
+        self.merged_xform.refresh_from_db()
+        self.assertEqual(self.merged_xform.num_of_submissions, 2)
+
+    @patch("onadata.apps.logger.models.xform.clear_project_cache")
+    def test_source_form_change_clears_merged_dataset_project_cache(self, clear_cache):
+        """The merged dataset can be in a different project from its source forms"""
+        self._delete_form_b()
+        other_project = Project.objects.create(
+            name="other", organization=self.user, created_by=self.user
         )
+        XForm.objects.filter(pk=self.merged_xform.pk).update(project=other_project)
+
+        self.form_b.refresh_from_db()
+        self.form_b.restore()
+
+        clear_cache.assert_any_call(other_project.pk)
 
     def test_tableau_is_empty_when_all_source_forms_are_deleted(self):
+        self.assertEqual(_fruits(self._get_data(TableauViewSet)), ["mango", "orange"])
+
         self._delete_all_source_forms()
 
         self.assertEqual(_fruits(self._get_data(TableauViewSet)), [])
@@ -160,18 +202,4 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self.assertEqual(
             details["last_submission_time"],
             self.form_b.last_submission_time.isoformat(),
-        )
-
-    def test_merged_serializer_last_submission_time_without_annotation(self):
-        serializer = MergedXFormSerializer()
-        self.assertEqual(
-            serializer.get_last_submission_time(self.merged_xform),
-            self.form_b.last_submission_time.isoformat(),
-        )
-
-        self._delete_form_b()
-
-        self.assertEqual(
-            serializer.get_last_submission_time(self.merged_xform),
-            self.form_a.last_submission_time.isoformat(),
         )
