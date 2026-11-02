@@ -223,6 +223,13 @@ def _update_submission_count_for_today(
         safe_cache_decr(count_cache_key)
 
 
+def _merged_dataset_ids(xform_id):
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.models.merged_xform import MergedXForm
+
+    return MergedXForm.objects.filter(xforms__pk=xform_id).values_list("pk", flat=True)
+
+
 def invalidate_bbox_cache(xform_id):
     """Bust cached bbox responses affected by a change to ``xform_id``.
 
@@ -232,7 +239,6 @@ def invalidate_bbox_cache(xform_id):
     """
     # pylint: disable=import-outside-toplevel
     from onadata.apps.logger.models.data_view import DataView
-    from onadata.apps.logger.models.merged_xform import MergedXForm
 
     safe_cache_delete(f"{XFORM_BBOX_CACHE}{xform_id}")
 
@@ -242,30 +248,24 @@ def invalidate_bbox_cache(xform_id):
     for dataview_id in dataview_ids:
         safe_cache_delete(f"{DATAVIEW_BBOX_CACHE}{dataview_id}")
 
-    merged_ids = MergedXForm.objects.filter(xforms__pk=xform_id).values_list(
-        "pk", flat=True
-    )
-    for merged_id in merged_ids:
+    for merged_id in _merged_dataset_ids(xform_id):
         safe_cache_delete(f"{MERGED_XFORM_BBOX_CACHE}{merged_id}")
 
 
 def clear_merged_dataset_counts_on_commit(xform_id):
     """Clears the counts cached for the merged datasets that include ``xform_id``.
 
-    Waits for the commit because a read before it would cache the old count.
+    Waits for the commit because a read before it would cache the old count. A failed
+    clear is logged rather than raised, because a task retried after the commit would
+    count its submission again.
     """
-    # pylint: disable=import-outside-toplevel
-    from onadata.apps.logger.models.merged_xform import MergedXForm
 
     def clear_counts():
-        merged_ids = MergedXForm.objects.filter(xforms__pk=xform_id).values_list(
-            "pk", flat=True
-        )
-        for merged_id in merged_ids:
+        for merged_id in _merged_dataset_ids(xform_id):
             safe_cache_delete(f"{DATAVIEW_COUNT}{merged_id}")
             safe_cache_delete(f"{XFORM_COUNT}{merged_id}")
 
-    transaction.on_commit(clear_counts)
+    transaction.on_commit(clear_counts, robust=True)
 
 
 def update_xform_submission_count(instance):
