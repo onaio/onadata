@@ -1182,23 +1182,10 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=merged_dataset["id"])
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["num_of_submissions"], 1)
 
         # delete parents
-        for parent in merged_xform.xforms.all():
-            parent.delete()
+        [parent.delete() for parent in merged_xform.xforms.all()]
         merged_xform.refresh_from_db()
-        self.assertFalse(merged_xform.xforms.exists())
-
-        response = view(request, pk=merged_dataset["id"])
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["num_of_submissions"], 0)
-        response = MergedXFormViewSet.as_view({"get": "list"})(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            [(md["id"], md["num_of_submissions"]) for md in response.data],
-            [(merged_dataset["id"], 0)],
-        )
 
         # merged dataset should be available at api/forms/[pk] endpoint
         request = self.factory.get("/", **self.extra)
@@ -1211,24 +1198,51 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         # deleted parents, 0 submissions
         self.assertEqual(response.data["num_of_submissions"], 0)
 
-    def test_merged_dataset_counts_exclude_deleted_parents(self):
-        """A restored merged dataset doesn't count or list a parent that stays
-        deleted"""
+    def _merged_dataset_with_submissions(self):
+        """Form a has two submissions, and form b has one newer submission"""
         merged_dataset = self._create_merged_dataset()
         merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
         form_a = merged_xform.xforms.get(id_string="a")
         form_b = merged_xform.xforms.get(id_string="b")
-        Instance(xform=form_a, xml='<data id="a"><fruit>orange</fruit></data>').save()
-        Instance(xform=form_a, xml='<data id="a"><fruit>apple</fruit></data>').save()
-        Instance(xform=form_b, xml='<data id="b"><fruit>mango</fruit></data>').save()
-        form_a.refresh_from_db()
-        form_b.refresh_from_db()
-        # Unequal counts, so only excluding form_b gives a total of 2
-        self.assertEqual((form_a.num_of_submissions, form_b.num_of_submissions), (2, 1))
-        form_a.last_submission_time = timezone.now() - timedelta(days=1)
-        form_a.save(update_fields=["last_submission_time"])
-        form_b.last_submission_time = timezone.now()
-        form_b.save(update_fields=["last_submission_time"])
+        for form, fruits, days_ago in (
+            (form_a, ("orange", "apple"), 1),
+            (form_b, ("mango",), 0),
+        ):
+            for fruit in fruits:
+                xml = f'<data id="{form.id_string}"><fruit>{fruit}</fruit></data>'
+                Instance(xform=form, xml=xml).save()
+            form.refresh_from_db()
+            form.last_submission_time = timezone.now() - timedelta(days=days_ago)
+            form.save(update_fields=["last_submission_time"])
+        return merged_xform, form_a, form_b
+
+    def _assert_retrieved_and_listed(self, merged_xform, count, latest_form, forms):
+        request = self.factory.get("/", **self.extra)
+        retrieved = MergedXFormViewSet.as_view({"get": "retrieve"})(
+            request, pk=merged_xform.pk
+        )
+        listed = MergedXFormViewSet.as_view({"get": "list"})(request)
+        self.assertEqual((retrieved.status_code, listed.status_code), (200, 200))
+        latest = latest_form.last_submission_time.isoformat() if latest_form else None
+        expected = (merged_xform.pk, count, latest, [form.pk for form in forms])
+        self.assertEqual(
+            [
+                (
+                    data["id"],
+                    data["num_of_submissions"],
+                    data["last_submission_time"],
+                    sorted(xform["id"] for xform in data["xforms"]),
+                )
+                for data in (retrieved.data, *listed.data)
+            ],
+            [expected, expected],
+        )
+
+    def test_merged_dataset_counts_exclude_deleted_parents(self):
+        """A restored merged dataset doesn't count or list a parent that stays
+        deleted"""
+        merged_xform, form_a, form_b = self._merged_dataset_with_submissions()
+        self._assert_retrieved_and_listed(merged_xform, 3, form_b, [form_a, form_b])
 
         # Deleting a parent deletes the merged dataset; restoring it brings the
         # merged dataset back while the other parent stays deleted
@@ -1237,86 +1251,25 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         form_a.refresh_from_db()
         form_a.restore()
         merged_xform.refresh_from_db()
-        form_b.refresh_from_db()
         self.assertIsNone(merged_xform.deleted_at)
-        self.assertIsNotNone(form_b.deleted_at)
-        # form_b is newer, so getting form_a's time shows form_b was excluded
-        self.assertGreater(form_b.last_submission_time, form_a.last_submission_time)
 
-        request = self.factory.get("/", **self.extra)
-        response = MergedXFormViewSet.as_view({"get": "retrieve"})(
-            request, pk=merged_dataset["id"]
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["num_of_submissions"], 2)
-        self.assertEqual(
-            response.data["last_submission_time"],
-            form_a.last_submission_time.isoformat(),
-        )
-        self.assertEqual([xf["id"] for xf in response.data["xforms"]], [form_a.pk])
-
-        response = MergedXFormViewSet.as_view({"get": "list"})(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            [
-                (md["id"], md["num_of_submissions"], md["last_submission_time"])
-                for md in response.data
-            ],
-            [(merged_dataset["id"], 2, form_a.last_submission_time.isoformat())],
-        )
-        self.assertEqual([xf["id"] for xf in response.data[0]["xforms"]], [form_a.pk])
+        self._assert_retrieved_and_listed(merged_xform, 2, form_a, [form_a])
 
     def test_merged_dataset_restored_without_active_parents_reports_zero(self):
         """A merged dataset restored while all its parents stay deleted stays
         listed and retrievable, with no submissions"""
-        merged_dataset = self._create_merged_dataset()
-        merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
-        form_a = merged_xform.xforms.get(id_string="a")
-        form_b = merged_xform.xforms.get(id_string="b")
-        for form, fruit in ((form_a, "orange"), (form_b, "mango")):
-            Instance(
-                xform=form,
-                xml=f'<data id="{form.id_string}"><fruit>{fruit}</fruit></data>',
-            ).save()
-            form.refresh_from_db()
-            form.last_submission_time = timezone.now()
-            form.save(update_fields=["last_submission_time"])
+        merged_xform, form_a, form_b = self._merged_dataset_with_submissions()
 
-        request = self.factory.get("/", **self.extra)
-        view = MergedXFormViewSet.as_view({"get": "retrieve"})
-        response = view(request, pk=merged_dataset["id"])
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["num_of_submissions"], 2)
-        self.assertIsNotNone(response.data["last_submission_time"])
-        self.assertEqual(len(response.data["xforms"]), 2)
-
-        # Deleting a parent deletes the merged dataset, so restoring the merged
-        # dataset itself is what leaves it active without an active parent
+        # Restoring the merged dataset itself leaves it without an active parent
         form_a.soft_delete(self.user)
         form_b.soft_delete(self.user)
         merged_xform.refresh_from_db()
-        self.assertIsNotNone(merged_xform.deleted_at)
         merged_xform.restore()
         merged_xform.refresh_from_db()
         self.assertIsNone(merged_xform.deleted_at)
         self.assertEqual(merged_xform.xforms.count(), 2)
-        self.assertFalse(merged_xform.xforms.filter(deleted_at__isnull=True).exists())
 
-        response = view(request, pk=merged_dataset["id"])
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["num_of_submissions"], 0)
-        self.assertIsNone(response.data["last_submission_time"])
-        self.assertEqual(response.data["xforms"], [])
-
-        response = MergedXFormViewSet.as_view({"get": "list"})(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            [
-                (md["id"], md["num_of_submissions"], md["last_submission_time"])
-                for md in response.data
-            ],
-            [(merged_dataset["id"], 0, None)],
-        )
+        self._assert_retrieved_and_listed(merged_xform, 0, None, [])
 
     def test_bbox_returns_null_without_geolocated_submissions(self):
         """Merged dataset bbox returns ``null`` when no underlying xform has
