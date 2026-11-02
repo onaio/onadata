@@ -3,7 +3,9 @@
 from datetime import timedelta
 
 from django.core.cache import cache
+from django.db import connection
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -848,6 +850,24 @@ class ProjectOrderingTestCase(ProjectListFilterTestBase):
         self.assertEqual(
             self._names(response, sort=False), ["Banana", "Cherry", "Apple"]
         )
+
+    def test_order_by_last_submission_groups_outside_permission_filters(self):
+        """Permission subqueries must not GROUP BY every project."""
+        self._make_forms()
+        for params in (
+            {"ordering": "last_submission_date"},
+            {"ordering": "last_submission_date", "role": "owner"},
+        ):
+            with CaptureQueriesContext(connection) as ctx:
+                response = self._list(params)
+            self.assertEqual(
+                self._names(response, sort=False), ["Apple", "Cherry", "Banana"]
+            )
+            ordered_sql = [q["sql"] for q in ctx.captured_queries if "MAX(" in q["sql"]]
+            self.assertEqual(len(ordered_sql), 1)
+            self.assertIn("objectpermission", ordered_sql[0])
+            # The outer query groups for the Max; the permission subqueries must not
+            self.assertEqual(ordered_sql[0].count("GROUP BY"), 1)
 
 
 @override_settings(TIME_ZONE="UTC")
