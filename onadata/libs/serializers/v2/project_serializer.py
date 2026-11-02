@@ -84,7 +84,7 @@ def load_project_page(projects, user):
 
 # pylint: disable=abstract-method
 class ProjectUserFieldsListSerializer(serializers.ListSerializer):
-    """Looks up the request user's permissions and stars once for all the projects."""
+    """Looks up permissions, stars and cached counts once for all the projects."""
 
     page = None
 

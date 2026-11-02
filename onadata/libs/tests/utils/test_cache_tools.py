@@ -443,8 +443,6 @@ class SafeCacheDeleteTestCase(TestCase):
 
 
 class TestSafeCacheGetMany(TestCase):
-    """Tests for safe_cache_get_many"""
-
     def test_returns_only_cached_keys(self):
         cache.set("many-a", 1)
         self.addCleanup(cache.delete, "many-a")

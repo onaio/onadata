@@ -203,7 +203,7 @@ class GetProjectListTestCase(TestAbstractViewSet):
         self.assertEqual(dict(project), dict(self._serialize_for(self.user)))
 
     def test_serializes_related_manager(self):
-        """A related manager lists the same projects as a list of them."""
+        """A related manager serializes like a list of projects."""
         request = self.factory.get("/")
         request.user = self.user
 
