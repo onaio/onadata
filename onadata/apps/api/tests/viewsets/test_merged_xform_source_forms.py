@@ -21,6 +21,7 @@ from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
     MERGED_XFORM_BBOX_CACHE,
+    PROJ_FORMS_CACHE,
     XFORM_COUNT,
     safe_cache_delete,
     safe_cache_get,
@@ -199,6 +200,24 @@ class MergedXFormSourceFormsTestCase(TestBase):
 
         for key in keys:
             self.assertIsNone(safe_cache_get(key))
+
+    def test_source_form_change_clears_its_project_cache_after_commit(self):
+        """A read before the commit refills this cache from the old forms"""
+        self._delete_form_b()
+        other_project = Project.objects.create(
+            name="other", organization=self.user, created_by=self.user
+        )
+        XForm.objects.filter(pk=self.merged_xform.pk).update(project=other_project)
+        key = f"{PROJ_FORMS_CACHE}{self.form_b.project_id}"
+        self.addCleanup(safe_cache_delete, key)
+        self.form_b.refresh_from_db()
+
+        with transaction.atomic():
+            self.form_b.restore()
+            safe_cache_set(key, "stale")
+            self.assertEqual(safe_cache_get(key), "stale")
+
+        self.assertIsNone(safe_cache_get(key))
 
     def test_tableau_is_empty_when_all_source_forms_are_deleted(self):
         self._delete_all_source_forms()

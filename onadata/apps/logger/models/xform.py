@@ -1416,7 +1416,7 @@ class XForm(XFormMixin, BaseModel):
         for metadata in self.metadata_set.filter(deleted_at__isnull=True):
             metadata.soft_delete()
         self._refresh_merged_datasets()
-        clear_project_cache(self.project_id)
+        transaction.on_commit(partial(clear_project_cache, self.project_id))
 
     @transaction.atomic()
     def restore(self):
@@ -1463,7 +1463,7 @@ class XForm(XFormMixin, BaseModel):
             metadata.restore()
 
         self._refresh_merged_datasets()
-        clear_project_cache(self.project_id)
+        transaction.on_commit(partial(clear_project_cache, self.project_id))
 
     def _refresh_merged_datasets(self):
         """Update the stored counts and caches of merged datasets this form is a
