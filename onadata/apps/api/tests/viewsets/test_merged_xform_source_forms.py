@@ -252,13 +252,19 @@ class MergedXFormSourceFormsTestCase(TestBase):
         with CaptureQueriesContext(connection) as queries:
             self.form_b.restore()
 
-        locks = [
-            query["sql"]
-            for query in queries
-            if "FOR UPDATE" in query["sql"] and '"logger_mergedxform"' in query["sql"]
-        ]
-        self.assertEqual(len(locks), 1)
-        self.assertIn("ORDER BY", locks[0])
+        statements = [query["sql"] for query in queries]
+        lock, sum_position = None, None
+        for position, sql in enumerate(statements):
+            if "FOR UPDATE" in sql and '"logger_mergedxform"' in sql:
+                lock = position
+            if 'SUM("logger_xform"."num_of_submissions")' in sql:
+                sum_position = position
+        self.assertIsNotNone(lock)
+        self.assertIsNotNone(sum_position)
+        self.assertLess(lock, sum_position)
+        self.assertIn('"logger_mergedxform"."xform_ptr_id" ASC', statements[lock])
+        # The lock covers the parent row that the sum's save writes.
+        self.assertNotIn('FOR UPDATE OF "logger_mergedxform"', statements[lock])
 
     def test_tableau_is_empty_when_all_source_forms_are_deleted(self):
         self._delete_all_source_forms()

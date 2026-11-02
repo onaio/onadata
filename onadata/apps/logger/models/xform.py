@@ -1469,7 +1469,7 @@ class XForm(XFormMixin, BaseModel):
         """Update the stored counts and caches of merged datasets this form is a
         source of."""
         # Without the lock, concurrent changes to two source forms each sum without
-        # the other's change. The order stops two transactions deadlocking.
+        # the other's change. The order stops two refreshes deadlocking each other.
         merged_datasets = self.mergedxform_ptr.select_for_update(
             of=("xform_ptr",)
         ).order_by("pk")
