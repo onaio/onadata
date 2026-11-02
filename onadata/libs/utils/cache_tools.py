@@ -70,6 +70,7 @@ def get_enketo_urls_cache_ttl():
 
 XFORM_DATA_VERSIONS = "xfs-get_xform_data_versions"
 XFORM_COUNT = "xfs-submission_count"
+XFORM_ZERO_COUNT_TTL = 60
 DATAVIEW_COUNT = "dvs-get_data_count"
 DATAVIEW_LAST_SUBMISSION_TIME = "dvs-last_submission_time"
 PROJ_TEAM_USERS_CACHE = "ps-project-team-users"

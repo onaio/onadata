@@ -47,6 +47,7 @@ from onadata.libs.utils.cache_tools import (
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
     ENKETO_URL_CACHE,
     XFORM_COUNT,
+    XFORM_ZERO_COUNT_TTL,
     XFORM_DATA_VERSIONS,
     XFORM_LINKED_DATAVIEWS,
     XFORM_METADATA_CACHE,
@@ -359,7 +360,10 @@ class XFormMixin(XFormEntityListsMixin):
 
             count = obj.submission_count(obj.is_merged_dataset)
 
-            safe_cache_set(key, count)
+            if count == 0:
+                safe_cache_set(key, count, XFORM_ZERO_COUNT_TTL)
+            else:
+                safe_cache_set(key, count)
             return count
         return 0
 

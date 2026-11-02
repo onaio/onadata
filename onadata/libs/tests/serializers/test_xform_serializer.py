@@ -2,7 +2,7 @@
 """
 Test onadata.libs.serializers.xform_serializer
 """
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 from django.db.models import F
@@ -15,6 +15,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormManifestSerializer,
     XFormMixin,
 )
+from onadata.libs.utils.cache_tools import XFORM_COUNT, XFORM_ZERO_COUNT_TTL
 
 
 class TestXFormMixin(TestCase, TestBase):
@@ -33,12 +34,44 @@ class TestXFormMixin(TestCase, TestBase):
         with self.assertNumQueries(0):
             self.assertEqual(mixin.get_num_of_submissions(self.xform), 0)
 
-        self._make_submissions()
+        with self.captureOnCommitCallbacks(execute=True):
+            self._make_submissions()
         self.xform.refresh_from_db()
         self.assertEqual(
             mixin.get_num_of_submissions(self.xform), self.xform.instances.count()
         )
         self.assertGreater(self.xform.num_of_submissions, 0)
+
+    def test_zero_submission_count_refilled_before_commit_is_cleared(self):
+        """A read before the first submission commits caches 0 from the old count."""
+        cache.clear()
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        key = f"{XFORM_COUNT}{self.xform.pk}"
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._make_submissions()
+            cache.set(key, 0)
+            self.assertEqual(cache.get(key), 0)
+
+        self.assertIsNone(cache.get(key))
+
+    @patch("onadata.libs.serializers.xform_serializer.safe_cache_set")
+    def test_zero_submission_count_uses_short_timeout(self, cache_set):
+        """A count of 0 expires soon, in case a racing read cached it wrongly."""
+        cache.clear()
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        key = f"{XFORM_COUNT}{self.xform.pk}"
+
+        XFormMixin().get_num_of_submissions(self.xform)
+        cache_set.assert_called_once_with(key, 0, XFORM_ZERO_COUNT_TTL)
+
+        cache_set.reset_mock()
+        self._make_submissions()
+        self.xform.refresh_from_db()
+        XFormMixin().get_num_of_submissions(self.xform)
+        cache_set.assert_called_once_with(key, self.xform.num_of_submissions)
 
 
 class TestXFormManifestSerializer(TestCase, TestBase):
