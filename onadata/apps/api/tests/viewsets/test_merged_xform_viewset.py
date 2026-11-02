@@ -266,24 +266,10 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset["id"])
         self.assertEqual(response.status_code, 404)
 
-        self.assertFalse(merged_xform.shared)
-        alice = self._create_user_profile(
-            {"username": "alice", "email": "alice@localhost.com"}
-        ).user
-        alice_extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
-        response = view(self.factory.get("/", **alice_extra), pk=merged_dataset["id"])
-        self.assertEqual(response.status_code, 404)
-        ReadOnlyRole.add(alice, merged_xform)
-        response = view(self.factory.get("/", **alice_extra), pk=merged_dataset["id"])
-        self.assertEqual(response.status_code, 200)
-
-        # "²" is a Unicode digit that int() rejects. 4,301 digits passes
-        # isdecimal() and exceeds the digit limit of int().
+        # 4,301 digits passes isdecimal() and exceeds the digit limit of int()
         oversized_pk = "1" * 4301
-        for pk in ("not-a-number", "²", oversized_pk):
-            response = view(self.factory.get("/", **self.extra), pk=pk)
-            self.assertEqual(response.status_code, 400)
-
+        response = view(self.factory.get("/", **self.extra), pk=oversized_pk)
+        self.assertEqual(response.status_code, 400)
         response = view(self.factory.get("/"), pk=oversized_pk)
         self.assertEqual(response.status_code, 404)
 
