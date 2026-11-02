@@ -279,7 +279,7 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
 
         values = [
             x.last_submission_time.isoformat()
-            for x in obj.xforms.only("last_submission_time")
+            for x in obj.active_xforms().only("last_submission_time")
             if x.last_submission_time
         ]
         if values:

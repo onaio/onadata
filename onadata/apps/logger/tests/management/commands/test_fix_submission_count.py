@@ -92,3 +92,22 @@ class FixSubmissionCountTestCase(TestBase):
             "Repaired 3 form count mismatch(es) and 1 profile count mismatch(es).",
             output.getvalue(),
         )
+
+    def test_merged_count_leaves_out_deleted_source_form(self):
+        """A merged dataset is repaired from its active source forms only."""
+        merged_xform = self._create_merged_dataset(make_submissions=True)
+        xform_a = XForm.objects.get(id_string="a")
+        xform_b = XForm.objects.get(id_string="b")
+        xform_a.soft_delete(self.user)
+        xform_b.soft_delete(self.user)
+        xform_a.refresh_from_db()
+        xform_a.restore()
+        merged_xform.refresh_from_db()
+        self.assertIsNone(merged_xform.deleted_at)
+        self.assertTrue(merged_xform.downloadable)
+        XForm.objects.filter(pk=merged_xform.pk).update(num_of_submissions=2)
+
+        call_command("fix_submission_count", stdout=StringIO())
+
+        merged_xform.refresh_from_db()
+        self.assertEqual(merged_xform.num_of_submissions, 1)

@@ -1401,6 +1401,7 @@ class XForm(XFormMixin, BaseModel):
         # Delete associated Form Media Files
         for metadata in self.metadata_set.filter(deleted_at__isnull=True):
             metadata.soft_delete()
+        self._clear_merged_dataset_counts()
         clear_project_cache(self.project_id)
 
     @transaction.atomic()
@@ -1447,16 +1448,22 @@ class XForm(XFormMixin, BaseModel):
         for metadata in self.metadata_set.filter(deleted_at__isnull=False):
             metadata.restore()
 
+        self._clear_merged_dataset_counts()
         clear_project_cache(self.project_id)
+
+    def _clear_merged_dataset_counts(self):
+        """Clear the cached counts of merged datasets this form is a source of."""
+        for merged_dataset_pk in self.mergedxform_ptr.values_list("pk", flat=True):
+            safe_cache_delete(f"{XFORM_COUNT}{merged_dataset_pk}")
 
     def submission_count(self, force_update=False):
         """Returns the form's number of submission."""
         if self.num_of_submissions == 0 or force_update:
             if self.is_merged_dataset:
                 count = (
-                    self.mergedxform.xforms.aggregate(
-                        num=Sum("num_of_submissions")
-                    ).get("num")
+                    self.mergedxform.active_xforms()
+                    .aggregate(num=Sum("num_of_submissions"))
+                    .get("num")
                     or 0
                 )
             else:

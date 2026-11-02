@@ -373,7 +373,7 @@ class XFormMixin(XFormEntityListsMixin):
         if obj.is_merged_dataset:
             values = [
                 x.last_submission_time.isoformat()
-                for x in obj.mergedxform.xforms.only("last_submission_time")
+                for x in obj.mergedxform.active_xforms().only("last_submission_time")
                 if x.last_submission_time
             ]
             if values:

@@ -24,6 +24,10 @@ class MergedXForm(XForm):
         set_uuid(self)
         return super().save(*args, **kwargs)
 
+    def active_xforms(self):
+        """Return the source forms that are not soft deleted."""
+        return self.xforms.filter(deleted_at__isnull=True)
+
 
 # pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
