@@ -1057,6 +1057,16 @@ class XFormMixin:
         ]
 
 
+def _clear_merged_dataset_caches(merged_dataset):
+    for prefix in (
+        XFORM_COUNT,
+        DATAVIEW_COUNT,
+        DATAVIEW_LAST_SUBMISSION_TIME,
+        MERGED_XFORM_BBOX_CACHE,
+    ):
+        safe_cache_delete(f"{prefix}{merged_dataset.pk}")
+
+
 # pylint: disable=too-many-instance-attributes
 class XForm(XFormMixin, BaseModel):
     """XForm model - stores the XLSForm and related data."""
@@ -1460,9 +1470,9 @@ class XForm(XFormMixin, BaseModel):
         source of."""
         for merged_dataset in self.mergedxform_ptr.all():
             merged_dataset.submission_count(force_update=True)
-            safe_cache_delete(f"{DATAVIEW_COUNT}{merged_dataset.pk}")
-            safe_cache_delete(f"{DATAVIEW_LAST_SUBMISSION_TIME}{merged_dataset.pk}")
-            safe_cache_delete(f"{MERGED_XFORM_BBOX_CACHE}{merged_dataset.pk}")
+            # A read before the commit would refill these caches from the old
+            # source forms.
+            transaction.on_commit(partial(_clear_merged_dataset_caches, merged_dataset))
             # Saving a MergedXForm does not fire this XForm pre_save receiver. It
             # runs after commit so this transaction never locks a second project.
             transaction.on_commit(partial(save_project, XForm, merged_dataset))

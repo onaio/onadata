@@ -4,6 +4,7 @@ import json
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.db import transaction
 from django.utils import timezone
 
 from httmock import HTTMock
@@ -176,16 +177,28 @@ class MergedXFormSourceFormsTestCase(TestBase):
         other_project.refresh_from_db()
         self.assertGreater(other_project.date_modified, date_modified)
 
-    def test_source_form_change_clears_merged_dataset_bbox(self):
+    def test_source_form_change_clears_merged_dataset_caches_after_commit(self):
+        """A read before the commit refills these caches from the old source forms"""
         self._delete_form_b()
-        bbox_key = f"{MERGED_XFORM_BBOX_CACHE}{self.merged_xform.pk}"
-        safe_cache_set(bbox_key, {"bbox": [0, 0, 1, 1]})
-        self.assertIsNotNone(safe_cache_get(bbox_key))
-
+        keys = [
+            f"{prefix}{self.merged_xform.pk}"
+            for prefix in (
+                XFORM_COUNT,
+                DATAVIEW_COUNT,
+                DATAVIEW_LAST_SUBMISSION_TIME,
+                MERGED_XFORM_BBOX_CACHE,
+            )
+        ]
         self.form_b.refresh_from_db()
-        self.form_b.restore()
 
-        self.assertIsNone(safe_cache_get(bbox_key))
+        with transaction.atomic():
+            self.form_b.restore()
+            for key in keys:
+                safe_cache_set(key, "stale")
+                self.assertEqual(safe_cache_get(key), "stale")
+
+        for key in keys:
+            self.assertIsNone(safe_cache_get(key))
 
     def test_tableau_is_empty_when_all_source_forms_are_deleted(self):
         self._delete_all_source_forms()
