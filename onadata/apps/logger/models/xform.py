@@ -9,6 +9,7 @@ import json
 import os
 import re
 import uuid
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 from xml.dom import Node
@@ -1455,13 +1456,16 @@ class XForm(XFormMixin, BaseModel):
         clear_project_cache(self.project_id)
 
     def _refresh_merged_datasets(self):
-        """Update the counts of merged datasets this form is a source of."""
+        """Update the stored counts and caches of merged datasets this form is a
+        source of."""
         for merged_dataset in self.mergedxform_ptr.all():
             merged_dataset.submission_count(force_update=True)
             safe_cache_delete(f"{DATAVIEW_COUNT}{merged_dataset.pk}")
             safe_cache_delete(f"{DATAVIEW_LAST_SUBMISSION_TIME}{merged_dataset.pk}")
             safe_cache_delete(f"{MERGED_XFORM_BBOX_CACHE}{merged_dataset.pk}")
-            save_project(XForm, merged_dataset)
+            # Saving a MergedXForm does not fire this XForm pre_save receiver. It
+            # runs after commit so this transaction never locks a second project.
+            transaction.on_commit(partial(save_project, XForm, merged_dataset))
 
     def submission_count(self, force_update=False):
         """Returns the form's number of submission."""

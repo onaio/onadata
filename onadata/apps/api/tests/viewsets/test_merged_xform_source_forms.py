@@ -38,9 +38,9 @@ class MergedXFormSourceFormsTestCase(TestBase):
     def setUp(self):
         super().setUp()
         self.merged_xform = self._create_merged_dataset(make_submissions=True)
-        # Counts are cached by form pk, and the cache outlives the test database
-        self._clear_count_caches()
-        self.addCleanup(self._clear_count_caches)
+        # These caches are keyed by form pk, and they outlive the test database
+        self._clear_merged_dataset_caches()
+        self.addCleanup(self._clear_merged_dataset_caches)
         self.xform = XForm.objects.get(pk=self.merged_xform.pk)
         self.form_a = self.merged_xform.xforms.get(id_string="a")
         self.form_b = self.merged_xform.xforms.get(id_string="b")
@@ -50,7 +50,7 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self.form_b.save(update_fields=["last_submission_time"])
         self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
 
-    def _clear_count_caches(self):
+    def _clear_merged_dataset_caches(self):
         for key in (
             XFORM_COUNT,
             DATAVIEW_COUNT,
@@ -180,6 +180,7 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self._delete_form_b()
         bbox_key = f"{MERGED_XFORM_BBOX_CACHE}{self.merged_xform.pk}"
         safe_cache_set(bbox_key, {"bbox": [0, 0, 1, 1]})
+        self.assertIsNotNone(safe_cache_get(bbox_key))
 
         self.form_b.refresh_from_db()
         self.form_b.restore()
