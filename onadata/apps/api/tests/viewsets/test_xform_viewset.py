@@ -933,7 +933,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 response = self.view(request)
             return len(queries), response.data
 
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
             trees = EntityList.objects.create(name="trees", project=self.project)
             deleted = EntityList.objects.create(
