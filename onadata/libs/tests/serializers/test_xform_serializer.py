@@ -2,7 +2,7 @@
 """
 Test onadata.libs.serializers.xform_serializer
 """
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from django.core.cache import cache
 from django.db.models import F
@@ -15,11 +15,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormManifestSerializer,
     XFormMixin,
 )
-from onadata.libs.utils.cache_tools import (
-    DEFAULT_TIMEOUT,
-    XFORM_COUNT,
-    XFORM_ZERO_COUNT_TTL,
-)
+from onadata.libs.utils.cache_tools import XFORM_COUNT
 
 
 class TestXFormMixin(TestCase, TestBase):
@@ -59,25 +55,6 @@ class TestXFormMixin(TestCase, TestBase):
             self.assertEqual(cache.get(key), 0)
 
         self.assertIsNone(cache.get(key))
-
-    @patch("onadata.libs.serializers.xform_serializer.safe_cache_set")
-    def test_zero_submission_count_uses_short_timeout(self, cache_set):
-        """A count of 0 expires soon, in case a racing read cached it wrongly."""
-        cache.clear()
-        self._create_user_and_login()
-        self._publish_transportation_form()
-        key = f"{XFORM_COUNT}{self.xform.pk}"
-
-        XFormMixin().get_num_of_submissions(self.xform)
-        cache_set.assert_called_once_with(key, 0, XFORM_ZERO_COUNT_TTL)
-
-        cache_set.reset_mock()
-        self._make_submissions()
-        self.xform.refresh_from_db()
-        XFormMixin().get_num_of_submissions(self.xform)
-        cache_set.assert_called_once_with(
-            key, self.xform.num_of_submissions, DEFAULT_TIMEOUT
-        )
 
 
 class TestXFormManifestSerializer(TestCase, TestBase):

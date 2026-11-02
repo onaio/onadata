@@ -43,7 +43,6 @@ from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.libs.utils.cache_tools import (
-    DEFAULT_TIMEOUT,
     ENKETO_PREVIEW_URL_CACHE,
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
     ENKETO_URL_CACHE,
@@ -52,7 +51,6 @@ from onadata.libs.utils.cache_tools import (
     XFORM_LINKED_DATAVIEWS,
     XFORM_METADATA_CACHE,
     XFORM_PERMISSIONS_CACHE,
-    XFORM_ZERO_COUNT_TTL,
     safe_cache_get,
     safe_cache_set,
 )
@@ -361,9 +359,7 @@ class XFormMixin(XFormEntityListsMixin):
 
             count = obj.submission_count(obj.is_merged_dataset)
 
-            safe_cache_set(
-                key, count, XFORM_ZERO_COUNT_TTL if count == 0 else DEFAULT_TIMEOUT
-            )
+            safe_cache_set(key, count)
             return count
         return 0
 
