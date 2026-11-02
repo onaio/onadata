@@ -4,6 +4,7 @@ MergedXFormViewSet: API endpoint for /api/merged-datasets
 """
 
 import json
+from contextlib import suppress
 
 from django.db.models import Max, Prefetch, Q, Sum
 from django.db.models.functions import Coalesce
@@ -76,11 +77,18 @@ class MergedXFormViewSet(
         )
 
     def filter_queryset(self, queryset):
-        """Annotate submission aggregates after the filter backends run.
+        """Scope and annotate the queryset around the filter backends.
 
         Guardian embeds the filtered queryset as a subquery, and an annotated
-        one groups every merged dataset by all of its columns.
+        one groups every merged dataset by all of its columns. On a detail
+        route, filtering on the requested pk first limits that subquery to one
+        dataset. A pk that can't convert to an integer is left for get_object to
+        reject.
         """
+        lookup = self.kwargs.get(self.lookup_url_kwarg or self.lookup_field)
+        if str(lookup).isdecimal():
+            with suppress(ValueError):
+                queryset = queryset.filter(pk=lookup)
         active_xforms = Q(xforms__deleted_at__isnull=True)
         return (
             super()
