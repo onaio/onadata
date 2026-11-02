@@ -23,9 +23,10 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.db.models import Q
 from django.http import HttpResponseRedirect
-from django.test.utils import override_settings
+from django.test.utils import CaptureQueriesContext, override_settings
 from django.utils.dateparse import parse_datetime
 from django.utils.html import conditional_escape
 
@@ -57,7 +58,15 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
 )
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment, EntityList, Instance, Project, XForm
+from onadata.apps.logger.models import (
+    Attachment,
+    EntityList,
+    FollowUpForm,
+    Instance,
+    Project,
+    RegistrationForm,
+    XForm,
+)
 from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.views import delete_xform
@@ -902,6 +911,45 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             request = self.factory.get("/", **self.extra)
             response = self.view(request)
             self.assertNotEqual(response.get("Cache-Control"), None)
+
+    def test_form_list_query_count_is_constant(self):
+        """Listing forms doesn't run queries per form"""
+        md = """
+        | survey |
+        |        | type | name | label |
+        |        | text | city | City? |
+        """
+
+        def warm_list_query_count(xform):
+            RegistrationForm.objects.create(entity_list=trees, xform=xform)
+            RegistrationForm.objects.create(entity_list=deleted, xform=xform)
+            FollowUpForm.objects.create(entity_list=trees, xform=xform)
+            FollowUpForm.objects.create(entity_list=deleted, xform=xform)
+            # A count of 0 is not cached, and is looked up for each form
+            XForm.objects.update(num_of_submissions=1)
+            request = self.factory.get("/", **self.extra)
+            self.view(request)
+            with CaptureQueriesContext(connection) as queries:
+                response = self.view(request)
+            return len(queries), response.data
+
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            trees = EntityList.objects.create(name="trees", project=self.project)
+            deleted = EntityList.objects.create(
+                name="old", project=self.project, deleted_at=datetime.now(timezone.utc)
+            )
+            one_form_count, _ = warm_list_query_count(self.xform)
+            second_form = self._publish_markdown(
+                md, self.user, project=self.project, id_string="second"
+            )
+            two_forms_count, data = warm_list_query_count(second_form)
+
+        self.assertEqual(two_forms_count, one_form_count)
+        second = next(form for form in data if form["formid"] == second_form.pk)
+        expected_lists = [{"id": trees.pk, "name": "trees", "is_active": True}]
+        self.assertEqual(second["contributes_entities_to"], expected_lists)
+        self.assertEqual(second["consumes_entities_from"], expected_lists)
 
     @override_settings(STREAM_DATA=True)
     def test_form_list_stream(self):

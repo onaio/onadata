@@ -466,8 +466,10 @@ class XFormViewSet(
             Prefetch("metadata_set"),
             Prefetch("tags"),
             Prefetch("dataview_set"),
+            Prefetch("registration_forms__entity_list"),
+            Prefetch("follow_up_forms__entity_list"),
         )
-        .defer("xml", "json", "xls")
+        .defer("xml", "json")
     )
     serializer_class = XFormSerializer
     pagination_class = StandardPageNumberPagination

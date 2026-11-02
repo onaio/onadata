@@ -160,41 +160,25 @@ class MultiLookupIdentityField(serializers.HyperlinkedIdentityField):
 class XFormEntityListsMixin:
     """Mixin for the EntityLists an XForm contributes to or consumes from"""
 
+    @staticmethod
+    def _active_entity_lists(entity_list_forms):
+        return [
+            {
+                "id": entity_list_form.entity_list.pk,
+                "name": entity_list_form.entity_list.name,
+                "is_active": entity_list_form.is_active,
+            }
+            for entity_list_form in entity_list_forms
+            if entity_list_form.entity_list.deleted_at is None
+        ]
+
     def get_contributes_entities_to(self, obj: XForm):
         """Return the EntityLists that the form contributes Entities to"""
-        queryset = obj.registration_forms.filter(entity_list__deleted_at__isnull=True)
-
-        if not queryset:
-            return []
-
-        return list(
-            map(
-                lambda registration_form: {
-                    "id": registration_form.entity_list.pk,
-                    "name": registration_form.entity_list.name,
-                    "is_active": registration_form.is_active,
-                },
-                queryset,
-            )
-        )
+        return self._active_entity_lists(obj.registration_forms.all())
 
     def get_consumes_entities_from(self, obj: XForm):
         """Return the EntityLIst that the form consumes Entities"""
-        queryset = obj.follow_up_forms.filter(entity_list__deleted_at__isnull=True)
-
-        if not queryset:
-            return []
-
-        return list(
-            map(
-                lambda follow_up_form: {
-                    "id": follow_up_form.entity_list.pk,
-                    "name": follow_up_form.entity_list.name,
-                    "is_active": follow_up_form.is_active,
-                },
-                queryset,
-            )
-        )
+        return self._active_entity_lists(obj.follow_up_forms.all())
 
 
 class XFormMixin(XFormEntityListsMixin):
@@ -335,7 +319,11 @@ class XFormMixin(XFormEntityListsMixin):
                 return data_views
 
             data_views = DataViewMinimalSerializer(
-                obj.dataview_set.filter(deleted_at__isnull=True),
+                [
+                    dataview
+                    for dataview in obj.dataview_set.all()
+                    if dataview.deleted_at is None
+                ],
                 many=True,
                 context=self.context,
             ).data
@@ -683,6 +671,11 @@ class XFormCreateSerializer(XFormSerializer):
         fields = XFormSerializer.Meta.fields + ("has_id_string_changed",)
 
 
+def media_metadata(xform_id):
+    """Returns the media files attached to the form with id ``xform_id``."""
+    return MetaData.objects.filter(data_type="media", object_id=xform_id)
+
+
 # pylint: disable=abstract-method
 class XFormListSerializer(serializers.Serializer):
     """
@@ -714,8 +707,10 @@ class XFormListSerializer(serializers.Serializer):
         """
         kwargs = {"pk": obj.pk, "username": obj.user.username}
         request = self.context.get("request")
-        object_list = MetaData.objects.filter(data_type="media", object_id=obj.pk)
-        if object_list:
+        has_media = getattr(obj, "has_media", None)
+        if has_media is None:
+            has_media = media_metadata(obj.pk).exists()
+        if has_media:
             return reverse("manifest-url", kwargs=kwargs, request=request)
         return None
 

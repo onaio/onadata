@@ -10,7 +10,9 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import connection
 from django.test import TransactionTestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from django_digest.test import Client as DigestClient
@@ -38,6 +40,39 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         super(self.__class__, self).setUp()
         self.view = XFormListViewSet.as_view({"get": "list"})
         self._publish_xls_form_to_project()
+
+    def test_get_xform_list_query_count_is_constant(self):
+        """Listing forms doesn't run queries per form"""
+        md = """
+        | survey |
+        |        | type | name | label |
+        |        | text | city | City? |
+        """
+
+        def list_forms():
+            request = self.factory.get("/")
+            response = self.view(request)
+            auth = DigestAuth("bob", "bobbob")
+            request.META.update(auth(request.META, response))
+            with CaptureQueriesContext(connection) as queries:
+                response = self.view(request, username="bob")
+            self.assertEqual(response.status_code, 200)
+            return len(queries), response.data
+
+        list_forms()
+        one_form_count, _ = list_forms()
+        second_form = self._publish_markdown(
+            md, self.user, project=self.project, id_string="second"
+        )
+        MetaData.objects.create(
+            content_object=second_form, data_type="media", data_value="trees.csv"
+        )
+        two_forms_count, data = list_forms()
+
+        self.assertEqual(two_forms_count, one_form_count)
+        manifest_urls = {form["formID"]: form["manifestUrl"] for form in data}
+        self.assertIsNone(manifest_urls[self.xform.id_string])
+        self.assertIn(f"/xformsManifest/{second_form.pk}", manifest_urls["second"])
 
     def test_get_xform_list(self):
         request = self.factory.get("/")
