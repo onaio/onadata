@@ -2,8 +2,11 @@
 
 from datetime import timedelta
 
+from django.contrib.auth.models import Group
 from django.core.cache import cache
+from django.db import connection
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -11,6 +14,7 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectV
 from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSet
 from onadata.apps.logger.models import EntityList, Project, XForm
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs.serializers.project_serializer import PROJECT_PUBLIC_EXCLUDED_FIELDS
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
@@ -86,6 +90,52 @@ class GetProjectListTestCase(TestAbstractViewSet):
         self.assertEqual(len(response.data), 1)
         public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
         self.assertFalse(public_excluded_fields & set(response.data[0]))
+
+    def test_user_specific_fields_query_count_is_constant(self):
+        """Roles and stars are looked up once for all the listed projects."""
+        group = Group.objects.create(name="readers")
+        self.user.groups.add(group)
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        request = self.factory.get("/", **self.extra)
+        self.view(request)
+        with CaptureQueriesContext(connection) as one_project:
+            response = self.view(request)
+        self.assertEqual(len(response.data), 1)
+
+        starred = Project.objects.create(
+            name="Starred", organization=self.user, created_by=self.user
+        )
+        starred.user_stars.add(self.user)
+        through_group = Project.objects.create(
+            name="Through Group", organization=alice, created_by=alice
+        )
+        ReadOnlyRole.add(group, through_group)
+        with CaptureQueriesContext(connection) as three_projects:
+            response = self.view(request)
+
+        self.assertEqual(len(three_projects), len(one_project))
+        self.assertEqual(
+            {
+                project["name"]: (project["current_user_role"], project["starred"])
+                for project in response.data
+            },
+            {
+                "Tree Monitoring": ("owner", False),
+                "Starred": ("owner", True),
+                "Through Group": ("readonly", False),
+            },
+        )
+
+        Project.objects.create(
+            name="Public", organization=alice, created_by=alice, shared=True
+        )
+        request = self.factory.get("/", {"owner": "alice"}, **self.extra)
+        response = self.view(request)
+        public_project = next(p for p in response.data if p["name"] == "Public")
+        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
+        self.assertFalse(public_excluded_fields & set(public_project))
 
     def test_public_inactive_organization_project_excluded(self):
         """Anonymous list omits public projects under inactive organizations."""

@@ -5,6 +5,7 @@ Project serializer for v2 API
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
+from guardian.core import ObjectPermissionChecker
 from guardian.shortcuts import get_perms
 from rest_framework import serializers
 
@@ -37,6 +38,34 @@ def get_current_user_role(project, request):
     perms = get_perms(request.user, project)
 
     return get_role(perms, project)
+
+
+# pylint: disable=abstract-method
+class ProjectUserFieldsListSerializer(serializers.ListSerializer):
+    """Looks up the request user's permissions and stars once for all the projects."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.project_perms = {}
+        self.starred_project_ids = set()
+
+    def to_representation(self, data):
+        projects = list(data)
+        user = self.context["request"].user
+
+        if projects and user.is_authenticated:
+            checker = ObjectPermissionChecker(user)
+            checker.prefetch_perms(projects)
+            self.project_perms = {
+                project.pk: checker.get_perms(project) for project in projects
+            }
+            self.starred_project_ids = set(
+                Project.user_stars.through.objects.filter(
+                    user=user, project__in=projects
+                ).values_list("project_id", flat=True)
+            )
+
+        return super().to_representation(projects)
 
 
 class ProjectListSerializer(
@@ -86,18 +115,27 @@ class ProjectListSerializer(
             "date_created",
             "date_modified",
         ]
+        list_serializer_class = ProjectUserFieldsListSerializer
 
     def get_starred(self, obj):
         """
         Return True if request user has starred this project.
         """
-        return is_starred(obj, self.context["request"])
+        return obj.pk in self.parent.starred_project_ids
 
     def get_current_user_role(self, obj):
         """
         Return the role of the request user in the project.
         """
-        return get_current_user_role(obj, self.context["request"])
+        return get_role(self.parent.project_perms[obj.pk], obj)
+
+    def is_public_access(self, instance):
+        """Return True if the request should receive the public-safe shape."""
+        user = self.context["request"].user
+        if isinstance(instance, Project) and user.is_authenticated:
+            return "view_project" not in self.parent.project_perms[instance.pk]
+
+        return super().is_public_access(instance)
 
     def get_num_datasets(self, obj):
         """
