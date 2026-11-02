@@ -733,7 +733,7 @@ class XFormViewSet(
             # pylint: disable=attribute-defined-outside-init
             self.object_list = self._get_public_forms_queryset()
 
-            page = self.paginate_queryset(self.object_list.order_by("pk"))
+            page = self.paginate_queryset(self.object_list)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
             else:

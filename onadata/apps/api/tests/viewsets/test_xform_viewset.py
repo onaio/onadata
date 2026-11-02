@@ -1014,7 +1014,9 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             request = self.factory.get("/")
-            response = self.view(request)
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", UnorderedObjectListWarning)
+                response = self.view(request)
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get("Cache-Control"), None)
             self.assertEqual(response.data, [])
