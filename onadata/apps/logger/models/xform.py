@@ -1468,14 +1468,23 @@ class XForm(XFormMixin, BaseModel):
     def _refresh_merged_datasets(self):
         """Update the stored counts and caches of merged datasets this form is a
         source of."""
-        for merged_dataset in self.mergedxform_ptr.all():
+        # Without the lock, concurrent changes to two source forms each sum without
+        # the other's change. The order stops two transactions deadlocking.
+        merged_datasets = self.mergedxform_ptr.select_for_update(
+            of=("xform_ptr",)
+        ).order_by("pk")
+        for merged_dataset in merged_datasets:
             merged_dataset.submission_count(force_update=True)
             # A read before the commit would refill these caches from the old
             # source forms.
             transaction.on_commit(partial(_clear_merged_dataset_caches, merged_dataset))
             # Saving a MergedXForm does not fire this XForm pre_save receiver. It
-            # runs after commit so this transaction never locks a second project.
-            transaction.on_commit(partial(save_project, XForm, merged_dataset))
+            # runs after commit so this transaction never locks a second project,
+            # and a failure is only logged because the change is already committed.
+            transaction.on_commit(
+                lambda dataset=merged_dataset: save_project(XForm, dataset),
+                robust=True,
+            )
 
     def submission_count(self, force_update=False):
         """Returns the form's number of submission."""

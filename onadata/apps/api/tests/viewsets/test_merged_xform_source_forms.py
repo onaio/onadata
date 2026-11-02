@@ -4,7 +4,8 @@ import json
 from datetime import timedelta
 from unittest.mock import patch
 
-from django.db import transaction
+from django.db import OperationalError, connection, transaction
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from httmock import HTTMock
@@ -218,6 +219,46 @@ class MergedXFormSourceFormsTestCase(TestBase):
             self.assertEqual(safe_cache_get(key), "stale")
 
         self.assertIsNone(safe_cache_get(key))
+
+        with transaction.atomic():
+            self.form_b.soft_delete()
+            safe_cache_set(key, "stale")
+            self.assertEqual(safe_cache_get(key), "stale")
+
+        self.assertIsNone(safe_cache_get(key))
+
+    def test_failed_project_update_does_not_undo_cache_clearing(self):
+        """A project update that fails after commit reaches neither caller nor caches"""
+        self._delete_form_b()
+        key = f"{XFORM_COUNT}{self.merged_xform.pk}"
+        self.form_b.refresh_from_db()
+
+        with patch(
+            "onadata.apps.logger.models.xform.save_project",
+            side_effect=OperationalError,
+        ) as save_project_mock:
+            with transaction.atomic():
+                self.form_b.restore()
+                safe_cache_set(key, "stale")
+
+        save_project_mock.assert_called_once()
+        self.assertIsNone(safe_cache_get(key))
+
+    def test_source_form_change_locks_merged_datasets_before_summing(self):
+        """Concurrent source form changes sum in turn and lock in the same order"""
+        self._delete_form_b()
+        self.form_b.refresh_from_db()
+
+        with CaptureQueriesContext(connection) as queries:
+            self.form_b.restore()
+
+        locks = [
+            query["sql"]
+            for query in queries
+            if "FOR UPDATE" in query["sql"] and '"logger_mergedxform"' in query["sql"]
+        ]
+        self.assertEqual(len(locks), 1)
+        self.assertIn("ORDER BY", locks[0])
 
     def test_tableau_is_empty_when_all_source_forms_are_deleted(self):
         self._delete_all_source_forms()
