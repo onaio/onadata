@@ -468,6 +468,7 @@ class XFormViewSet(
             Prefetch("dataview_set"),
         )
         .defer("xml", "json", "xls")
+        .order_by("pk")
     )
     serializer_class = XFormSerializer
     pagination_class = StandardPageNumberPagination
