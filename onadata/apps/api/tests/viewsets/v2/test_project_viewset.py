@@ -1,6 +1,7 @@
 """Tests for onadata.apps.api.viewsets.v2.project_viewset"""
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth.models import Group
 from django.core.cache import cache
@@ -18,7 +19,9 @@ from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.project_serializer import PROJECT_PUBLIC_EXCLUDED_FIELDS
 from onadata.libs.serializers.v2.project_serializer import ProjectListSerializer
 from onadata.libs.utils.cache_tools import (
+    PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
+    PROJ_SUB_DATE_CACHE,
     PROJ_V2_OWNER_CACHE,
     PROJ_V2_PUBLIC_OWNER_CACHE,
 )
@@ -113,10 +116,10 @@ class GetProjectListTestCase(TestAbstractViewSet):
             name="Through Group", organization=alice, created_by=alice
         )
         ReadOnlyRole.add(group, through_group)
-        with CaptureQueriesContext(connection) as three_projects:
+        with CaptureQueriesContext(connection) as listed_projects:
             response = self.view(request)
 
-        self.assertEqual(len(three_projects), len(one_project))
+        self.assertEqual(len(listed_projects), len(one_project))
         self.assertEqual(
             {
                 project["name"]: (project["current_user_role"], project["starred"])
@@ -128,15 +131,6 @@ class GetProjectListTestCase(TestAbstractViewSet):
                 "Through Group": ("readonly", False),
             },
         )
-
-        Project.objects.create(
-            name="Public", organization=alice, created_by=alice, shared=True
-        )
-        request = self.factory.get("/", {"owner": "alice"}, **self.extra)
-        response = self.view(request)
-        public_project = next(p for p in response.data if p["name"] == "Public")
-        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
-        self.assertFalse(public_excluded_fields & set(public_project))
 
     def _serialize_for(self, user):
         request = self.factory.get("/")
@@ -165,6 +159,76 @@ class GetProjectListTestCase(TestAbstractViewSet):
         self.assertTrue(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(superuser_project))
         public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
         self.assertFalse(public_excluded_fields & set(self._serialize_for(inactive)))
+
+    def test_public_projects_listed_for_user_without_permissions(self):
+        """Shared projects with no permissions keep the public shape and query count."""
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        public_project = Project.objects.create(
+            name="Public", organization=alice, created_by=alice, shared=True
+        )
+        public_project.user_stars.add(self.user)
+        request = self.factory.get("/", {"owner": "alice"}, **self.extra)
+        self.view(request)
+        with CaptureQueriesContext(connection) as one_project:
+            response = self.view(request)
+        self.assertEqual(len(response.data), 1)
+
+        Project.objects.create(
+            name="Public Too", organization=alice, created_by=alice, shared=True
+        )
+        with CaptureQueriesContext(connection) as two_projects:
+            response = self.view(request)
+
+        self.assertEqual(len(two_projects), len(one_project))
+        self.assertEqual(
+            {project["name"]: project["starred"] for project in response.data},
+            {"Public": True, "Public Too": False},
+        )
+        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
+        for project in response.data:
+            self.assertFalse(public_excluded_fields & set(project))
+
+    def test_serializes_single_project_without_list_parent(self):
+        """A single project matches the same project in a list."""
+        self.project.user_stars.add(self.user)
+        request = self.factory.get("/")
+        request.user = self.user
+
+        project = ProjectListSerializer(self.project, context={"request": request}).data
+
+        self.assertEqual(project["current_user_role"], "owner")
+        self.assertTrue(project["starred"])
+        self.assertEqual(dict(project), dict(self._serialize_for(self.user)))
+
+    def test_serializes_related_manager(self):
+        """A related manager lists the same projects as a list of them."""
+        request = self.factory.get("/")
+        request.user = self.user
+
+        projects = ProjectListSerializer(
+            self.user.project_org, many=True, context={"request": request}
+        ).data
+
+        self.assertEqual([item["name"] for item in projects], ["Tree Monitoring"])
+
+    def test_cached_project_counts_are_read_once_per_page(self):
+        """Cached counts and dates come from one cache read for the page."""
+        cache.set(f"{PROJ_NUM_DATASET_CACHE}{self.project.pk}", 7)
+        self.addCleanup(cache.delete, f"{PROJ_NUM_DATASET_CACHE}{self.project.pk}")
+        submitted = timezone.now()
+        cache.set(f"{PROJ_SUB_DATE_CACHE}{self.project.pk}", submitted)
+        self.addCleanup(cache.delete, f"{PROJ_SUB_DATE_CACHE}{self.project.pk}")
+
+        with patch(
+            "onadata.libs.serializers.project_serializer.safe_cache_get"
+        ) as cache_get_mock:
+            project = self._serialize_for(self.user)
+
+        cache_get_mock.assert_not_called()
+        self.assertEqual(project["num_datasets"], 7)
+        self.assertEqual(project["last_submission_date"], submitted)
 
     def test_public_inactive_organization_project_excluded(self):
         """Anonymous list omits public projects under inactive organizations."""

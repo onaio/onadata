@@ -2,8 +2,11 @@
 Project serializer for v2 API
 """
 
+from typing import NamedTuple
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db.models.manager import BaseManager
 
 from guardian.core import ObjectPermissionChecker
 from guardian.shortcuts import get_perms
@@ -25,6 +28,12 @@ from onadata.libs.serializers.project_serializer import (
     is_starred,
 )
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
+from onadata.libs.utils.cache_tools import (
+    PROJ_NUM_DATASET_CACHE,
+    PROJ_SUB_DATE_CACHE,
+    is_public_project_access,
+    safe_cache_get_many,
+)
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -40,30 +49,48 @@ def get_current_user_role(project, request):
     return get_role(perms, project)
 
 
+class ProjectPage(NamedTuple):
+    """The values looked up once for all the projects in a list."""
+
+    perms: dict
+    starred_ids: frozenset
+    cached: dict
+
+
+def load_project_page(projects, user):
+    """Return the request user's permissions and stars and the cached counts."""
+    cached = safe_cache_get_many(
+        [
+            f"{prefix}{project.pk}"
+            for project in projects
+            for prefix in (PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE)
+        ]
+    )
+    if not projects or not user.is_authenticated:
+        return ProjectPage({}, frozenset(), cached)
+
+    checker = ObjectPermissionChecker(user)
+    checker.prefetch_perms(projects)
+    return ProjectPage(
+        {project.pk: checker.get_perms(project) for project in projects},
+        frozenset(
+            Project.user_stars.through.objects.filter(
+                user=user, project__in=projects
+            ).values_list("project_id", flat=True)
+        ),
+        cached,
+    )
+
+
 # pylint: disable=abstract-method
 class ProjectUserFieldsListSerializer(serializers.ListSerializer):
     """Looks up the request user's permissions and stars once for all the projects."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.project_perms = {}
-        self.starred_project_ids = set()
+    page = None
 
     def to_representation(self, data):
-        projects = list(data)
-        user = self.context["request"].user
-
-        if projects and user.is_authenticated:
-            checker = ObjectPermissionChecker(user)
-            checker.prefetch_perms(projects)
-            self.project_perms = {
-                project.pk: checker.get_perms(project) for project in projects
-            }
-            self.starred_project_ids = set(
-                Project.user_stars.through.objects.filter(
-                    user=user, project__in=projects
-                ).values_list("project_id", flat=True)
-            )
+        projects = list(data.all() if isinstance(data, BaseManager) else data)
+        self.page = load_project_page(projects, self.context["request"].user)
 
         return super().to_representation(projects)
 
@@ -117,37 +144,54 @@ class ProjectListSerializer(
         ]
         list_serializer_class = ProjectUserFieldsListSerializer
 
+    def _page(self):
+        return getattr(self.parent, "page", None)
+
+    def _cached(self, prefix, obj):
+        page = self._page()
+        return page.cached.get(f"{prefix}{obj.pk}") if page else None
+
     def get_starred(self, obj):
         """
         Return True if request user has starred this project.
         """
-        return obj.pk in self.parent.starred_project_ids
+        page = self._page()
+        if page is None:
+            return is_starred(obj, self.context["request"])
+
+        return obj.pk in page.starred_ids
 
     def get_current_user_role(self, obj):
         """
         Return the role of the request user in the project.
         """
-        return get_role(self.parent.project_perms[obj.pk], obj)
+        page = self._page()
+        if page is None:
+            return get_current_user_role(obj, self.context["request"])
+
+        return get_role(page.perms[obj.pk], obj)
 
     def is_public_access(self, instance):
         """Return True if the request should receive the public-safe shape."""
-        user = self.context["request"].user
-        if isinstance(instance, Project) and user.is_authenticated:
-            return "view_project" not in self.parent.project_perms[instance.pk]
+        page = self._page()
+        if page is None or not isinstance(instance, Project):
+            return super().is_public_access(instance)
 
-        return super().is_public_access(instance)
+        return is_public_project_access(
+            self.context["request"], instance, perms=page.perms.get(instance.pk)
+        )
 
     def get_num_datasets(self, obj):
         """
         Return the number of datasets attached to the project.
         """
-        return get_num_datasets(obj)
+        return self._cached(PROJ_NUM_DATASET_CACHE, obj) or get_num_datasets(obj)
 
     def get_last_submission_date(self, obj):
         """
         Return the most recent submission date to any of the projects datasets.
         """
-        return get_last_submission_date(obj)
+        return self._cached(PROJ_SUB_DATE_CACHE, obj) or get_last_submission_date(obj)
 
 
 class ProjectPrivateSerializer(serializers.ModelSerializer):
