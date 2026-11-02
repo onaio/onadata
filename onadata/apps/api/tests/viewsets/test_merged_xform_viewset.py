@@ -277,10 +277,15 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(self.factory.get("/", **alice_extra), pk=merged_dataset["id"])
         self.assertEqual(response.status_code, 200)
 
-        # "²" is a Unicode digit that int() rejects
-        for pk in ("not-a-number", "²"):
+        # "²" is a Unicode digit that int() rejects. 4,301 digits passes
+        # isdecimal() and exceeds the digit limit of int().
+        oversized_pk = "1" * 4301
+        for pk in ("not-a-number", "²", oversized_pk):
             response = view(self.factory.get("/", **self.extra), pk=pk)
             self.assertEqual(response.status_code, 400)
+
+        response = view(self.factory.get("/"), pk=oversized_pk)
+        self.assertEqual(response.status_code, 404)
 
         # status_code is 200 when: pk exists, user is authenticated
         request = self.factory.get("/", **self.extra)
