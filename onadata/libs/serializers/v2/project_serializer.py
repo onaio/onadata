@@ -6,7 +6,6 @@ from typing import NamedTuple
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models.manager import BaseManager
 
 from guardian.core import ObjectPermissionChecker
 from guardian.shortcuts import get_perms
@@ -89,7 +88,7 @@ class ProjectUserFieldsListSerializer(serializers.ListSerializer):
     page = None
 
     def to_representation(self, data):
-        projects = list(data.all() if isinstance(data, BaseManager) else data)
+        projects = list(data)
         self.page = load_project_page(projects, self.context["request"].user)
 
         return super().to_representation(projects)
@@ -144,41 +143,30 @@ class ProjectListSerializer(
         ]
         list_serializer_class = ProjectUserFieldsListSerializer
 
-    def _page(self):
-        return getattr(self.parent, "page", None)
-
     def _cached(self, prefix, obj):
-        page = self._page()
-        return page.cached.get(f"{prefix}{obj.pk}") if page else None
+        return self.parent.page.cached.get(f"{prefix}{obj.pk}")
 
     def get_starred(self, obj):
         """
         Return True if request user has starred this project.
         """
-        page = self._page()
-        if page is None:
-            return is_starred(obj, self.context["request"])
-
-        return obj.pk in page.starred_ids
+        return obj.pk in self.parent.page.starred_ids
 
     def get_current_user_role(self, obj):
         """
         Return the role of the request user in the project.
         """
-        page = self._page()
-        if page is None:
-            return get_current_user_role(obj, self.context["request"])
-
-        return get_role(page.perms[obj.pk], obj)
+        return get_role(self.parent.page.perms[obj.pk], obj)
 
     def is_public_access(self, instance):
         """Return True if the request should receive the public-safe shape."""
-        page = self._page()
-        if page is None or not isinstance(instance, Project):
+        if not isinstance(instance, Project):
             return super().is_public_access(instance)
 
         return is_public_project_access(
-            self.context["request"], instance, perms=page.perms.get(instance.pk)
+            self.context["request"],
+            instance,
+            perms=self.parent.page.perms.get(instance.pk),
         )
 
     def get_num_datasets(self, obj):

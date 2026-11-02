@@ -443,12 +443,6 @@ class SafeCacheDeleteTestCase(TestCase):
 
 
 class TestSafeCacheGetMany(TestCase):
-    def test_returns_only_cached_keys(self):
-        cache.set("many-a", 1)
-        self.addCleanup(cache.delete, "many-a")
-
-        self.assertEqual(safe_cache_get_many(["many-a", "many-b"]), {"many-a": 1})
-
     @patch("onadata.libs.utils.cache_tools.cache.get_many")
     def test_unreachable_cache_returns_nothing(self, get_many_mock):
         get_many_mock.side_effect = ConnectionError

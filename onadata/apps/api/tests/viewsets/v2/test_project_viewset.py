@@ -190,29 +190,6 @@ class GetProjectListTestCase(TestAbstractViewSet):
         for project in response.data:
             self.assertFalse(public_excluded_fields & set(project))
 
-    def test_serializes_single_project_without_list_parent(self):
-        """A single project matches the same project in a list."""
-        self.project.user_stars.add(self.user)
-        request = self.factory.get("/")
-        request.user = self.user
-
-        project = ProjectListSerializer(self.project, context={"request": request}).data
-
-        self.assertEqual(project["current_user_role"], "owner")
-        self.assertTrue(project["starred"])
-        self.assertEqual(dict(project), dict(self._serialize_for(self.user)))
-
-    def test_serializes_related_manager(self):
-        """A related manager serializes like a list of projects."""
-        request = self.factory.get("/")
-        request.user = self.user
-
-        projects = ProjectListSerializer(
-            self.user.project_org, many=True, context={"request": request}
-        ).data
-
-        self.assertEqual([item["name"] for item in projects], ["Tree Monitoring"])
-
     def test_cached_project_counts_are_read_once_per_page(self):
         """Cached counts and dates come from one cache read for the page."""
         cache.set(f"{PROJ_NUM_DATASET_CACHE}{self.project.pk}", 7)
