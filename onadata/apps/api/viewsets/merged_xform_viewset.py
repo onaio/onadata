@@ -52,7 +52,7 @@ class MergedXFormViewSet(
     permission_classes = [XFormPermissions]
     queryset = MergedXForm.objects.filter(
         deleted_at__isnull=True, project__organization__is_active=True
-    )
+    ).order_by("pk")
     pagination_class = StandardPageNumberPagination
     serializer_class = MergedXFormSerializer
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
@@ -105,7 +105,7 @@ class MergedXFormViewSet(
         """
         List endpoint for Merged XForms
         """
-        queryset = self.filter_queryset(self.get_queryset()).order_by("pk")
+        queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page:
             serializer = self.get_serializer(page, many=True)
