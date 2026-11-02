@@ -249,6 +249,25 @@ def invalidate_bbox_cache(xform_id):
         safe_cache_delete(f"{MERGED_XFORM_BBOX_CACHE}{merged_id}")
 
 
+def clear_merged_dataset_counts_on_commit(xform_id):
+    """Clears the counts cached for the merged datasets that include ``xform_id``.
+
+    Waits for the commit because a read before it would cache the old count.
+    """
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.models.merged_xform import MergedXForm
+
+    def clear_counts():
+        merged_ids = MergedXForm.objects.filter(xforms__pk=xform_id).values_list(
+            "pk", flat=True
+        )
+        for merged_id in merged_ids:
+            safe_cache_delete(f"{DATAVIEW_COUNT}{merged_id}")
+            safe_cache_delete(f"{XFORM_COUNT}{merged_id}")
+
+    transaction.on_commit(clear_counts)
+
+
 def update_xform_submission_count(instance):
     """Updates the XForm submissions count on a new submission being created."""
     with transaction.atomic():
@@ -277,6 +296,7 @@ def update_xform_submission_count(instance):
     safe_cache_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
     safe_cache_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
     safe_cache_delete(f"{XFORM_COUNT}{instance.xform_id}")
+    clear_merged_dataset_counts_on_commit(instance.xform_id)
     # Clear project cache
     # pylint: disable=import-outside-toplevel
     from onadata.apps.logger.models.xform import clear_project_cache
@@ -318,6 +338,7 @@ def _update_xform_submission_count_delete(instance):
     safe_cache_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
     safe_cache_delete(f"{DATAVIEW_COUNT}{xform.pk}")
     safe_cache_delete(f"{XFORM_COUNT}{xform.pk}")
+    clear_merged_dataset_counts_on_commit(xform.pk)
 
     # Bust bbox caches so a removed submission no longer counts toward extent.
     invalidate_bbox_cache(xform.pk)

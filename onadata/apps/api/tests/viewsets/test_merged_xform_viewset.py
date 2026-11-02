@@ -10,6 +10,7 @@ from datetime import timedelta
 from io import StringIO
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.files.base import File
 from django.core.paginator import UnorderedObjectListWarning
 from django.db import connection
@@ -30,9 +31,13 @@ from onadata.apps.logger.models.instance import FormIsMergedDatasetError
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesViewSet
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
+from onadata.libs.serializers.xform_serializer import XFormMixin
+from onadata.libs.utils.cache_tools import DATAVIEW_COUNT, XFORM_COUNT
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
+from onadata.libs.utils.logger_tools import delete_xform_submissions
 from onadata.libs.utils.user_auth import get_user_default_project
 
 MD = """
@@ -306,6 +311,41 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             response.data["last_submission_time"],
             form_b.last_submission_time.isoformat(),
         )
+
+    def test_source_form_submission_changes_clear_cached_counts(self):
+        """Merged dataset counts follow each way a source form's submissions change"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = XForm.objects.get(pk=merged_dataset["id"])
+        form_a = merged_xform.mergedxform.xforms.get(id_string="a")
+        count_key = f"{XFORM_COUNT}{merged_xform.pk}"
+        dataview_key = f"{DATAVIEW_COUNT}{merged_xform.pk}"
+        self.addCleanup(cache.delete_many, [count_key, dataview_key])
+
+        def submit(fruit):
+            instance = Instance(
+                xform=form_a, xml=f'<data id="a"><fruit>{fruit}</fruit></data>'
+            )
+            instance.save()
+            return instance
+
+        def count_after(change):
+            # The refill stands in for a read that lands before the commit.
+            with self.captureOnCommitCallbacks(execute=True):
+                result = change()
+                cache.set(count_key, 99)
+                cache.set(dataview_key, {1: "stale"})
+            self.assertIsNone(cache.get(dataview_key))
+            merged_xform.refresh_from_db()
+            return XFormMixin().get_num_of_submissions(merged_xform), result
+
+        count, orange = count_after(lambda: submit("orange"))
+        self.assertEqual(count, 1)
+        self.assertEqual(count_after(lambda: submit("mango"))[0], 2)
+        ParsedInstance.objects.create(instance=orange)
+        count, _ = count_after(lambda: orange.set_deleted(timezone.now(), self.user))
+        self.assertEqual(count, 1)
+        count, _ = count_after(lambda: delete_xform_submissions(form_a, self.user))
+        self.assertEqual(count, 0)
 
     def _assert_permission_query_groups_once(self, view, request, **kwargs):
         """Call the view and assert its permission-filtered query groups once"""
