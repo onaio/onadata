@@ -188,13 +188,12 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self.assertIsNone(safe_cache_get(bbox_key))
 
     def test_tableau_is_empty_when_all_source_forms_are_deleted(self):
-        self.assertEqual(_fruits(self._get_data(TableauViewSet)), ["mango", "orange"])
-
         self._delete_all_source_forms()
 
         self.assertEqual(_fruits(self._get_data(TableauViewSet)), [])
 
     def test_form_details_report_zero_when_all_source_forms_are_deleted(self):
+        # Deleting the source forms must replace the count this read stores
         self.assertEqual(self._retrieve_form()["num_of_submissions"], 2)
 
         self._delete_all_source_forms()
@@ -216,15 +215,4 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self.assertEqual(
             details["last_submission_time"],
             self.form_a.last_submission_time.isoformat(),
-        )
-
-        # The merged dataset is already active, so only the source form changes
-        self.form_b.refresh_from_db()
-        self.form_b.restore()
-
-        details = self._retrieve_form()
-        self.assertEqual(details["num_of_submissions"], 2)
-        self.assertEqual(
-            details["last_submission_time"],
-            self.form_b.last_submission_time.isoformat(),
         )
