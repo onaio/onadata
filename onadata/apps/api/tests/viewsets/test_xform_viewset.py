@@ -5910,6 +5910,28 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "The uploaded file 'good.xlsx' could not be validated.",
             )
 
+    def test_replacing_form_reports_entity_lists_after_publish(self):
+        """The response reflects what publishing the new file changed"""
+        xform = self._publish_registration_form(self.user)
+        view = XFormViewSet.as_view({"patch": "partial_update"})
+
+        def publish(*_args):
+            RegistrationForm.objects.filter(xform=xform).update(is_active=False)
+            return xform
+
+        with patch(
+            "onadata.apps.api.viewsets.xform_viewset.utils.publish_xlsform",
+            side_effect=publish,
+        ) as publish_mock:
+            request = self.factory.patch(
+                "/", data={"text_xls_form": "form"}, **self.extra
+            )
+            response = view(request, pk=xform.pk)
+
+        publish_mock.assert_called_once()
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["contributes_entities_to"][0]["is_active"])
+
     @override_settings(TIME_ZONE="UTC")
     def test_get_single_registration_form(self):
         """Response a for an XForm contributing entities is correct"""
