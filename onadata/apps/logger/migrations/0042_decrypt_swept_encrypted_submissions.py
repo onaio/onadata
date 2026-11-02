@@ -37,6 +37,7 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
             continue
 
         instance.attachments.filter(deleted_at__isnull=False).update(deleted_at=None)
+        Instance.objects.filter(pk=instance.pk).update(decryption_status="pending")
 
         try:
             decrypt_instance(LiveInstance.objects.get(pk=instance.pk))

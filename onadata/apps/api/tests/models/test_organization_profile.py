@@ -5,12 +5,17 @@ from django.db import IntegrityError
 from django.test import override_settings
 
 import reversion
+from guardian.shortcuts import get_perms, get_perms_for_model
 from moto import mock_aws
 from reversion import revisions
 from reversion.models import Version
 
 from onadata.apps.api import tools
-from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.models.organization_profile import (
+    OrganizationProfile,
+    add_user_to_team,
+    is_organization_owners_team,
+)
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.main.tests.test_base import TestBase
@@ -147,3 +152,66 @@ class TestOrganizationProfile(TestBase):
         self.assertIsNotNone(version)
         self.assertEqual(version.field_dict["email"], "info@modilabs.org")
         self.assertEqual(version.field_dict["name"], "Modi Labs")
+
+
+class TestIsOrganizationOwnersTeam(TestBase):
+    """Tests for ``is_organization_owners_team``."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self._create_organization(
+            username="modilabs", name="Modi Labs", created_by=self.user
+        )
+
+    def test_only_the_canonical_owners_team_qualifies(self):
+        """Only the team named ``<organization>#Owners`` is the Owners team."""
+        owners_team = Team.objects.get(
+            organization=self.organization.user, name="modilabs#Owners"
+        )
+        self.assertTrue(is_organization_owners_team(owners_team))
+
+        for name in ["Data Owners", "Co-Owners", "xOwners"]:
+            team = Team.objects.create(organization=self.organization.user, name=name)
+            self.assertFalse(is_organization_owners_team(team))
+
+
+class TestAddUserToTeam(TestBase):
+    """Tests for ``add_user_to_team``."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self._create_organization(
+            username="modilabs", name="Modi Labs", created_by=self.user
+        )
+        self.owners_team = Team.objects.get(
+            organization=self.organization.user, name="modilabs#Owners"
+        )
+        self.members_team = Team.objects.create(
+            organization=self.organization.user, name="members"
+        )
+        self.user_deno = self._create_user("deno", "deno")
+        self.team_perms = sorted(perm.codename for perm in get_perms_for_model(Team))
+
+    def test_lookalike_owners_team_grants_no_owner_perms(self):
+        """Joining a team merely named like Owners grants no Owners permissions."""
+        for name in ["Data Owners", "Co-Owners", "xOwners"]:
+            team = Team.objects.create(organization=self.organization.user, name=name)
+            add_user_to_team(team, self.user_deno)
+
+            self.assertIn(team.group_ptr, self.user_deno.groups.all())
+            self.assertEqual(get_perms(self.user_deno, self.owners_team), [])
+            self.assertEqual(get_perms(self.user_deno, self.members_team), [])
+            self.assertFalse(self.organization.is_organization_owner(self.user_deno))
+
+    def test_owners_team_grants_owner_perms(self):
+        """Joining the Owners team grants the Owners and members team permissions."""
+        add_user_to_team(self.owners_team, self.user_deno)
+
+        self.assertIn(self.owners_team.group_ptr, self.user_deno.groups.all())
+        self.assertEqual(
+            sorted(get_perms(self.user_deno, self.owners_team)), self.team_perms
+        )
+        self.assertEqual(
+            sorted(get_perms(self.user_deno, self.members_team)), self.team_perms
+        )
+        self.assertTrue(self.organization.is_organization_owner(self.user_deno))

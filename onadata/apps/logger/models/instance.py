@@ -382,7 +382,12 @@ def save_full_json(instance, include_related=True):
 
     # Preserve dynamic metadata fields if present
     if (
-        instance.decryption_status == Instance.DecryptionStatus.FAILED
+        instance.decryption_status
+        in (
+            Instance.DecryptionStatus.PENDING,
+            Instance.DecryptionStatus.IN_PROGRESS,
+            Instance.DecryptionStatus.FAILED,
+        )
         and instance.json.get(DECRYPTION_ERROR) is not None
     ):
         json[DECRYPTION_ERROR] = instance.json[DECRYPTION_ERROR]
@@ -654,6 +659,7 @@ class Instance(models.Model, InstanceBaseClass):
     class DecryptionStatus(models.TextChoices):  # pylint: disable=too-many-ancestors
         UNMANAGED = "unmanaged", _("Does not use managed keys")
         PENDING = "pending", _("Pending decryption")
+        IN_PROGRESS = "in_progress", _("Decryption in progress")
         SUCCESS = "success", _("Decryption successful")
         FAILED = "failed", _("Decryption failed")
 
@@ -795,7 +801,7 @@ class Instance(models.Model, InstanceBaseClass):
         if self.check_encrypted():
             self.is_encrypted = True
 
-            if self.xform.is_was_managed:
+            if self._state.adding and self.xform.is_was_managed:
                 self.decryption_status = Instance.DecryptionStatus.PENDING
         else:
             self.is_encrypted = False

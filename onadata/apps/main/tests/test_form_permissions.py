@@ -8,6 +8,7 @@ from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import set_perm, show, edit, api, profile
 from onadata.apps.viewer.views import map_view
+from onadata.libs.permissions import EditorRole, ManagerRole, ReadOnlyRole
 
 
 class TestFormPermissions(TestBase):
@@ -89,6 +90,50 @@ class TestFormPermissions(TestBase):
         self._create_user_and_login('alice')
         response = self.client.post(self.perm_url)
         self.assertContains(response, 'Permission denied.', status_code=403)
+
+    def test_read_only_collaborator_cannot_grant_themselves_edit(self):
+        user = self._create_user('alice', 'alice')
+        ReadOnlyRole.add(user, self.xform)
+        alice = self._login('alice', 'alice')
+        response = alice.post(self.perm_url, {
+            'for_user': user.username, 'perm_type': 'edit'})
+        self.assertContains(response, 'Permission denied.', status_code=403)
+        response = alice.post(self.edit_url, {'description': 'Changed'})
+        self.assertEqual(response.status_code, 403)
+
+    def test_manager_can_share_form(self):
+        manager = self._create_user('alice', 'alice')
+        ManagerRole.add(manager, self.xform)
+        user = self._create_user('jo', 'jo')
+        alice = self._login('alice', 'alice')
+        response = alice.post(self.perm_url, {
+            'for_user': user.username, 'perm_type': 'view'})
+        self.assertEqual(response.status_code, 302)
+        jo = self._login('jo', 'jo')
+        response = jo.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_editor_cannot_share_form(self):
+        editor = self._create_user('alice', 'alice')
+        EditorRole.add(editor, self.xform)
+        user = self._create_user('jo', 'jo')
+        alice = self._login('alice', 'alice')
+        response = alice.post(self.perm_url, {
+            'for_user': user.username, 'perm_type': 'view'})
+        self.assertContains(response, 'Permission denied.', status_code=403)
+        jo = self._login('jo', 'jo')
+        response = jo.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_anon_cannot_turn_on_link_for_form_with_shared_data(self):
+        self.xform.shared_data = True
+        self.xform.save()
+        response = self.anon.post(self.perm_url, {
+            'for_user': 'all', 'perm_type': 'link'})
+        self.assertContains(response, 'Permission denied.', status_code=403)
+        self.anon.get(self.show_url)
+        response = self.anon.get(self.show_normal_url)
+        self.assertRedirects(response, '/')
 
     def test_add_view_to_user(self):
         user = self._create_user('alice', 'alice')

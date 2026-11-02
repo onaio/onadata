@@ -535,6 +535,23 @@ def get_role_in_org(user, organization):
     return get_role(perms, organization) or MemberRole.name
 
 
+def is_organization_admin(user, organization):
+    """Return True if ``user`` is an owner or manager of ``organization``.
+
+    Owners are members of the organization's Owners team or holders of the
+    owner role on the organization; managers hold the manager role.
+
+    :param user: The user to check if admin in org
+    :param organization: The organization to check in
+    :return: True of the user is an admin, False otherwise
+    """
+    return (
+        organization.is_organization_owner(user)
+        or OwnerRole.user_has_role(user, organization)
+        or ManagerRole.user_has_role(user, organization)
+    )
+
+
 def get_user_perms(obj):
     """
     Return XFormUserObjectPermission or ProjectUserObjectPermission queryset.

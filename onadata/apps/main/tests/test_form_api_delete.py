@@ -6,6 +6,7 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import delete_data
 from onadata.apps.viewer.models.parsed_instance import query_data, query_fields_data
+from onadata.libs.permissions import EditorRole, ReadOnlyRole
 
 
 class TestFormAPIDelete(TestBase):
@@ -79,3 +80,44 @@ class TestFormAPIDelete(TestBase):
         self.data_args.update({"query": query})
         after = list(query_fields_data(**self.data_args))
         self.assertEqual(len(after), count - 1)
+
+    def test_cannot_delete_submission_of_another_form(self):
+        instance = Instance.objects.filter(xform=self.xform).latest("date_created")
+        self._create_user_and_login("alice")
+        self._publish_transportation_form()
+        delete_url = reverse(
+            delete_data,
+            kwargs={"username": self.user.username, "id_string": self.xform.id_string},
+        )
+        response = self.client.post(delete_url, {"id": instance.id})
+        self.assertEqual(response.status_code, 404)
+        instance.refresh_from_db()
+        self.assertIsNone(instance.deleted_at)
+
+    def test_read_only_collaborator_cannot_delete_submission(self):
+        instance = Instance.objects.filter(xform=self.xform).latest("date_created")
+        self._create_user_and_login("alice")
+        ReadOnlyRole.add(self.user, self.xform)
+        response = self.client.post(self.delete_url, {"id": instance.id})
+        self.assertEqual(response.status_code, 403)
+        instance.refresh_from_db()
+        self.assertIsNone(instance.deleted_at)
+
+    def test_editor_can_delete_submission(self):
+        instance = Instance.objects.filter(xform=self.xform).latest("date_created")
+        self._create_user_and_login("alice")
+        EditorRole.add(self.user, self.xform)
+        response = self.client.post(self.delete_url, {"id": instance.id})
+        self.assertEqual(response.status_code, 200)
+        instance.refresh_from_db()
+        self.assertIsNotNone(instance.deleted_at)
+
+    def test_cannot_delete_submission_of_form_with_shared_data(self):
+        self.xform.shared_data = True
+        self.xform.save()
+        instance = Instance.objects.filter(xform=self.xform).latest("date_created")
+        self._create_user_and_login("alice")
+        response = self.client.post(self.delete_url, {"id": instance.id})
+        self.assertEqual(response.status_code, 403)
+        instance.refresh_from_db()
+        self.assertIsNone(instance.deleted_at)

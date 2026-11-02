@@ -673,10 +673,17 @@ def delete_export(request, username, id_string, export_type):
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_("Not shared."))
 
+    if request.user != xform.user and not request.user.has_perm(
+        "logger.delete_xform", xform
+    ):
+        return HttpResponseForbidden(_("Permission denied."))
+
     export_id = request.POST.get("export_id")
 
     # find the export entry in the db
-    export = get_object_or_404(Export, id=export_id)
+    export = get_object_or_404(
+        Export, id=export_id, xform=xform, export_type=export_type
+    )
     export_type = export.export_type
     export.delete()
 
