@@ -1263,6 +1263,56 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             [(merged_dataset["id"], 2, form_a.last_submission_time.isoformat())],
         )
 
+    def test_merged_dataset_restored_without_active_parents_reports_zero(self):
+        """A merged dataset restored while all its parents stay deleted stays
+        listed and retrievable, with no submissions"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
+        form_a = merged_xform.xforms.get(id_string="a")
+        form_b = merged_xform.xforms.get(id_string="b")
+        for form, fruit in ((form_a, "orange"), (form_b, "mango")):
+            Instance(
+                xform=form,
+                xml=f'<data id="{form.id_string}"><fruit>{fruit}</fruit></data>',
+            ).save()
+            form.refresh_from_db()
+            form.last_submission_time = timezone.now()
+            form.save(update_fields=["last_submission_time"])
+
+        request = self.factory.get("/", **self.extra)
+        view = MergedXFormViewSet.as_view({"get": "retrieve"})
+        response = view(request, pk=merged_dataset["id"])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["num_of_submissions"], 2)
+        self.assertIsNotNone(response.data["last_submission_time"])
+
+        # Deleting a parent deletes the merged dataset, so restoring the merged
+        # dataset itself is what leaves it active without an active parent
+        form_a.soft_delete(self.user)
+        form_b.soft_delete(self.user)
+        merged_xform.refresh_from_db()
+        self.assertIsNotNone(merged_xform.deleted_at)
+        merged_xform.restore()
+        merged_xform.refresh_from_db()
+        self.assertIsNone(merged_xform.deleted_at)
+        self.assertEqual(merged_xform.xforms.count(), 2)
+        self.assertFalse(merged_xform.xforms.filter(deleted_at__isnull=True).exists())
+
+        response = view(request, pk=merged_dataset["id"])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["num_of_submissions"], 0)
+        self.assertIsNone(response.data["last_submission_time"])
+
+        response = MergedXFormViewSet.as_view({"get": "list"})(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [
+                (md["id"], md["num_of_submissions"], md["last_submission_time"])
+                for md in response.data
+            ],
+            [(merged_dataset["id"], 0, None)],
+        )
+
     def test_bbox_returns_null_without_geolocated_submissions(self):
         """Merged dataset bbox returns ``null`` when no underlying xform has
         geolocated rows. Shape verification keeps parity with the XForm and
