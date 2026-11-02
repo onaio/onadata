@@ -35,6 +35,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.organization_member_serializer import (
+    OrganizationMemberListSerializer,
     OrganizationMemberSerializer,
 )
 from onadata.libs.serializers.organization_serializer import (
@@ -138,8 +139,25 @@ class OrganizationProfileViewSet(
     def members(self, request, *args, **kwargs):
         """Return organization members."""
         organization = self.get_object()
+
+        if request.method == "GET":
+            data = self.serializer_class(
+                organization, context={"request": request}
+            ).data
+            # pylint: disable=attribute-defined-outside-init
+            self.etag_data = json.dumps(data)
+
+            return Response(OrganizationMemberListSerializer(organization).data)
+
+        # Writes take their input from the request body; DELETE also accepts
+        # the query string because clients cannot reliably send a DELETE body.
+        # The body takes precedence so the username the permission check
+        # authorized is the one acted on.
+        query_params = (
+            request.query_params.dict() if request.method == "DELETE" else {}
+        )
         data = merge_dicts(
-            request.data, request.query_params.dict(), {"organization": organization.pk}
+            query_params, request.data, {"organization": organization.pk}
         )
 
         if request.method == "POST" and "username" not in data:

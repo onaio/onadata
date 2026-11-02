@@ -692,6 +692,91 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         self.assertNotIn(alice, users_in_users)
 
+    def test_members_get_is_read_only(self):
+        """GET members ignores write parameters in the query string."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"get": "members"})
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        # a member requests a role escalation through GET
+        request = self.factory.get(
+            "/", data={"username": "alice", "role": "owner"}, **self.extra
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.data), set(["denoinc", "alice"]))
+        owners_team = Team.objects.get(name="denoinc#Owners")
+        self.assertFalse(owners_team.user_set.filter(username="alice").exists())
+
+        # a member requests a member removal through GET
+        request = self.factory.get(
+            "/", data={"username": "alice", "remove": "true"}, **self.extra
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.data), set(["denoinc", "alice"]))
+
+    def test_members_write_params_body_only(self):
+        """POST and PUT members read write parameters from the body only."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view(
+            {"post": "members", "put": "members"}
+        )
+
+        aboy = self._create_user_profile(extra_post_data={"username": "aboy"}).user
+
+        # username in the query string is not an add request
+        request = self.factory.post("/?username=aboy", data={}, **self.extra)
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"username": ["This field may not be null."]})
+        members_team = Team.objects.get(name="denoinc#members")
+        self.assertFalse(members_team.user_set.filter(username="aboy").exists())
+
+        self._add_user_to_organization(self.organization, aboy)
+
+        # role in the query string is not a role change
+        request = self.factory.put(
+            "/?role=owner",
+            data=json.dumps({"username": "aboy"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"role": ["This field may not be null."]})
+        owners_team = Team.objects.get(name="denoinc#Owners")
+        self.assertFalse(owners_team.user_set.filter(username="aboy").exists())
+
+    def test_members_delete_acts_on_body_username(self):
+        """DELETE members removes the username in the body, not the query string."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "members"})
+
+        aboy = self._create_user_profile(extra_post_data={"username": "aboy"}).user
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, aboy)
+        self._add_user_to_organization(self.organization, self.user)
+
+        # a member's self-removal naming another member in the query string
+        # removes the caller, not the other member
+        request = self.factory.delete(
+            "/?username=aboy",
+            data=json.dumps({"username": "alice"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        members_team = Team.objects.get(name="denoinc#members")
+        self.assertTrue(members_team.user_set.filter(username="aboy").exists())
+        self.assertFalse(members_team.user_set.filter(username="alice").exists())
+
     def test_orgs_create_with_mixed_case(self):
         data = {
             "name": "denoinc",
