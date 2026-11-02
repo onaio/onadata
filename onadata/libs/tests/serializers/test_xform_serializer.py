@@ -4,13 +4,41 @@ Test onadata.libs.serializers.xform_serializer
 """
 from unittest.mock import MagicMock
 
+from django.core.cache import cache
 from django.db.models import F
 from django.test import TestCase
 from django.utils import timezone
 
 from onadata.apps.logger.models import EntityList
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
+from onadata.libs.serializers.xform_serializer import (
+    XFormManifestSerializer,
+    XFormMixin,
+)
+
+
+class TestXFormMixin(TestCase, TestBase):
+    """
+    Test XFormMixin
+    """
+
+    def test_zero_submission_count_is_cached_until_a_submission(self):
+        """A count of 0 is not looked up again until a submission clears it."""
+        cache.clear()
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        mixin = XFormMixin()
+        self.assertEqual(mixin.get_num_of_submissions(self.xform), 0)
+
+        with self.assertNumQueries(0):
+            self.assertEqual(mixin.get_num_of_submissions(self.xform), 0)
+
+        self._make_submissions()
+        self.xform.refresh_from_db()
+        self.assertEqual(
+            mixin.get_num_of_submissions(self.xform), self.xform.instances.count()
+        )
+        self.assertGreater(self.xform.num_of_submissions, 0)
 
 
 class TestXFormManifestSerializer(TestCase, TestBase):

@@ -352,7 +352,9 @@ class XFormMixin(XFormEntityListsMixin):
         if obj:
             key = f"{XFORM_COUNT}{obj.pk}"
             count = safe_cache_get(key)
-            if count:
+            # A submission to a source form doesn't clear a merged dataset's key,
+            # so a merged dataset's 0 is always looked up again
+            if count or (count == 0 and not obj.is_merged_dataset):
                 return count
 
             count = obj.submission_count(obj.is_merged_dataset)
