@@ -47,6 +47,7 @@ from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
+    MERGED_XFORM_BBOX_CACHE,
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
@@ -1459,7 +1460,8 @@ class XForm(XFormMixin, BaseModel):
             merged_dataset.submission_count(force_update=True)
             safe_cache_delete(f"{DATAVIEW_COUNT}{merged_dataset.pk}")
             safe_cache_delete(f"{DATAVIEW_LAST_SUBMISSION_TIME}{merged_dataset.pk}")
-            clear_project_cache(merged_dataset.project_id)
+            safe_cache_delete(f"{MERGED_XFORM_BBOX_CACHE}{merged_dataset.pk}")
+            save_project(XForm, merged_dataset)
 
     def submission_count(self, force_update=False):
         """Returns the form's number of submission."""

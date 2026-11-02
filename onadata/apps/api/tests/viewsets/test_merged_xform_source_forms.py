@@ -6,6 +6,9 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from httmock import HTTMock
+
+from onadata.apps.api.tests.mocked_data import enketo_urls_mock
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.api.viewsets.v2.tableau_viewset import TableauViewSet
@@ -16,9 +19,11 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
+    MERGED_XFORM_BBOX_CACHE,
     XFORM_COUNT,
     safe_cache_delete,
     safe_cache_get,
+    safe_cache_set,
 )
 
 
@@ -46,7 +51,12 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
 
     def _clear_count_caches(self):
-        for key in (XFORM_COUNT, DATAVIEW_COUNT, DATAVIEW_LAST_SUBMISSION_TIME):
+        for key in (
+            XFORM_COUNT,
+            DATAVIEW_COUNT,
+            DATAVIEW_LAST_SUBMISSION_TIME,
+            MERGED_XFORM_BBOX_CACHE,
+        ):
             safe_cache_delete(f"{key}{self.merged_xform.pk}")
 
     def _delete_form_b(self):
@@ -93,9 +103,10 @@ class MergedXFormSourceFormsTestCase(TestBase):
 
     def _retrieve_form(self):
         request = self.factory.get("/", **self.extra)
-        response = XFormViewSet.as_view({"get": "retrieve"})(
-            request, pk=self.merged_xform.pk
-        )
+        with HTTMock(enketo_urls_mock):
+            response = XFormViewSet.as_view({"get": "retrieve"})(
+                request, pk=self.merged_xform.pk
+            )
         self.assertEqual(response.status_code, 200)
         return response.data
 
@@ -156,11 +167,24 @@ class MergedXFormSourceFormsTestCase(TestBase):
             name="other", organization=self.user, created_by=self.user
         )
         XForm.objects.filter(pk=self.merged_xform.pk).update(project=other_project)
+        date_modified = other_project.date_modified
 
         self.form_b.refresh_from_db()
         self.form_b.restore()
 
         clear_cache.assert_any_call(other_project.pk)
+        other_project.refresh_from_db()
+        self.assertGreater(other_project.date_modified, date_modified)
+
+    def test_source_form_change_clears_merged_dataset_bbox(self):
+        self._delete_form_b()
+        bbox_key = f"{MERGED_XFORM_BBOX_CACHE}{self.merged_xform.pk}"
+        safe_cache_set(bbox_key, {"bbox": [0, 0, 1, 1]})
+
+        self.form_b.refresh_from_db()
+        self.form_b.restore()
+
+        self.assertIsNone(safe_cache_get(bbox_key))
 
     def test_tableau_is_empty_when_all_source_forms_are_deleted(self):
         self.assertEqual(_fruits(self._get_data(TableauViewSet)), ["mango", "orange"])
