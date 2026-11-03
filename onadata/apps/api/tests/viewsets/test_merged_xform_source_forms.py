@@ -1,7 +1,10 @@
-"""Tests that reads of a merged dataset leave out its deleted source forms."""
+"""Tests that a merged dataset follows changes to its source forms and their
+submissions."""
 
 import json
+from contextlib import contextmanager
 from datetime import timedelta
+from io import BytesIO
 from unittest.mock import patch
 
 from django.db import OperationalError, connection, transaction
@@ -15,9 +18,11 @@ from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.api.viewsets.v2.tableau_viewset import TableauViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import DataView, Project, XForm
+from onadata.apps.logger.models import DataView, Instance, Project, XForm
+from onadata.apps.logger.models.instance import clear_merged_dataset_caches_on_commit
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
@@ -28,6 +33,8 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_get,
     safe_cache_set,
 )
+from onadata.libs.utils.csv_import import submit_csv
+from onadata.libs.utils.logger_tools import delete_xform_submissions
 
 
 def _fruits(response):
@@ -53,14 +60,28 @@ class MergedXFormSourceFormsTestCase(TestBase):
         self.form_b.save(update_fields=["last_submission_time"])
         self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
 
+    def _merged_cache_keys(self):
+        return [
+            f"{prefix}{self.merged_xform.pk}"
+            for prefix in (
+                XFORM_COUNT,
+                DATAVIEW_COUNT,
+                DATAVIEW_LAST_SUBMISSION_TIME,
+                MERGED_XFORM_BBOX_CACHE,
+            )
+        ]
+
     def _clear_merged_dataset_caches(self):
-        for key in (
-            XFORM_COUNT,
-            DATAVIEW_COUNT,
-            DATAVIEW_LAST_SUBMISSION_TIME,
-            MERGED_XFORM_BBOX_CACHE,
-        ):
-            safe_cache_delete(f"{key}{self.merged_xform.pk}")
+        for key in self._merged_cache_keys():
+            safe_cache_delete(key)
+
+    def _submit(self, xform, fruit):
+        xml = f'<data id="{xform.id_string}"><fruit>{fruit}</fruit></data>'
+        submission = Instance(xform=xform, xml=xml)
+        submission.save()
+        # set_deleted saves the submission's parsed instance
+        ParsedInstance.objects.create(instance=submission)
+        return submission
 
     def _delete_form_b(self):
         """Deleting either source form deletes the merged dataset, and restoring
@@ -182,15 +203,7 @@ class MergedXFormSourceFormsTestCase(TestBase):
     def test_source_form_change_clears_merged_dataset_caches_after_commit(self):
         """A read before the commit refills these caches from the old source forms"""
         self._delete_form_b()
-        keys = [
-            f"{prefix}{self.merged_xform.pk}"
-            for prefix in (
-                XFORM_COUNT,
-                DATAVIEW_COUNT,
-                DATAVIEW_LAST_SUBMISSION_TIME,
-                MERGED_XFORM_BBOX_CACHE,
-            )
-        ]
+        keys = self._merged_cache_keys()
         self.form_b.refresh_from_db()
 
         with transaction.atomic():
@@ -243,6 +256,79 @@ class MergedXFormSourceFormsTestCase(TestBase):
 
         save_project_mock.assert_called_once()
         self.assertIsNone(safe_cache_get(key))
+
+    def test_submission_changes_clear_merged_dataset_caches_after_commit(self):
+        """A read before the commit refills these caches with the old values"""
+        keys = self._merged_cache_keys()
+
+        @contextmanager
+        def clears_caches(expected_count):
+            with transaction.atomic():
+                yield
+                for key in keys:
+                    safe_cache_set(key, "stale")
+            for key in keys:
+                self.assertIsNone(safe_cache_get(key))
+            self.assertEqual(
+                self._retrieve_form()["num_of_submissions"], expected_count
+            )
+
+        with clears_caches(3):
+            kiwi = self._submit(self.form_a, "kiwi")
+        with clears_caches(2):
+            kiwi.set_deleted(timezone.now(), self.user)
+        with clears_caches(1):
+            delete_xform_submissions(self.form_b, self.user)
+        self._submit(self.form_a, "lime")
+        # A CSV with no rows overwrites without creating a submission
+        with clears_caches(0):
+            submit_csv(
+                self.user.username,
+                XForm.objects.get(pk=self.form_a.pk),
+                BytesIO(b"fruit\n"),
+                overwrite=True,
+            )
+
+    def test_soft_delete_clears_merged_dataset_caches_after_the_row_is_written(self):
+        """With no transaction, a read right after an early clear caches the old
+        count"""
+        self.assertFalse(connection.in_atomic_block)
+        kiwi = self._submit(self.form_a, "kiwi")
+        data_view = DataView.objects.create(
+            name="fruits",
+            xform=self.xform,
+            project=self.project,
+            columns=["fruit"],
+            query=[],
+        )
+        self.assertEqual(self._retrieve_data_view(data_view)["count"], 3)
+        count_key = f"{DATAVIEW_COUNT}{self.merged_xform.pk}"
+        reads = []
+
+        def clear_then_read(key):
+            safe_cache_delete(key)
+            if key == count_key:
+                reads.append(self._retrieve_data_view(data_view)["count"])
+
+        with patch(
+            "onadata.apps.logger.models.xform.safe_cache_delete",
+            side_effect=clear_then_read,
+        ):
+            kiwi.set_deleted(timezone.now(), self.user)
+
+        self.assertEqual(reads, [2])
+        self.assertEqual(self._retrieve_data_view(data_view)["count"], 2)
+
+    def test_failed_merged_cache_clearing_does_not_reach_the_caller(self):
+        """A failed clear after commit must not make a counted submission retry"""
+        with patch(
+            "onadata.apps.logger.models.instance.clear_merged_dataset_caches",
+            side_effect=OperationalError,
+        ) as clear_mock:
+            with transaction.atomic():
+                clear_merged_dataset_caches_on_commit(self.form_a.pk)
+
+        clear_mock.assert_called_once_with(self.merged_xform.pk)
 
     def test_source_form_change_locks_merged_datasets_before_summing(self):
         """Concurrent source form changes sum in turn and lock in the same order"""

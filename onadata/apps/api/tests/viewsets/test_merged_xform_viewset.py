@@ -7,16 +7,13 @@ import json
 import os
 import re
 import warnings
-from contextlib import contextmanager
 from datetime import timedelta
-from io import BytesIO, StringIO
-from unittest.mock import patch
+from io import StringIO
 
 from django.conf import settings
-from django.core.cache import cache
 from django.core.files.base import File
 from django.core.paginator import UnorderedObjectListWarning
-from django.db import OperationalError, connection
+from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
@@ -30,21 +27,14 @@ from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, Instance, MergedXForm, XForm
-from onadata.apps.logger.models.instance import (
-    FormIsMergedDatasetError,
-    clear_merged_dataset_counts_on_commit,
-)
+from onadata.apps.logger.models.instance import FormIsMergedDatasetError
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesViewSet
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.serializers.xform_serializer import XFormMixin
-from onadata.libs.utils.cache_tools import DATAVIEW_COUNT, XFORM_COUNT
-from onadata.libs.utils.csv_import import submit_csv
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
-from onadata.libs.utils.logger_tools import delete_xform_submissions
 from onadata.libs.utils.user_auth import get_user_default_project
 
 MD = """
@@ -318,72 +308,6 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             response.data["last_submission_time"],
             form_b.last_submission_time.isoformat(),
         )
-
-    def test_source_form_submission_changes_clear_cached_counts(self):
-        """Merged dataset counts update when a source form's submissions change"""
-        merged_dataset = self._create_merged_dataset()
-        merged_xform = XForm.objects.get(pk=merged_dataset["id"])
-        form_a = merged_xform.mergedxform.xforms.get(id_string="a")
-        count_key = f"{XFORM_COUNT}{merged_xform.pk}"
-        dataview_key = f"{DATAVIEW_COUNT}{merged_xform.pk}"
-        self.addCleanup(cache.delete_many, [count_key, dataview_key])
-
-        def submit(fruit):
-            instance = Instance(
-                xform=form_a, xml=f'<data id="a"><fruit>{fruit}</fruit></data>'
-            )
-            instance.save()
-            return instance
-
-        @contextmanager
-        def assert_count_after(expected):
-            with self.captureOnCommitCallbacks(execute=True):
-                yield
-                # These writes simulate a read before the commit.
-                cache.set(count_key, 99)
-                cache.set(dataview_key, {1: "stale"})
-            self.assertIsNone(cache.get(dataview_key))
-            merged_xform.refresh_from_db()
-            self.assertEqual(
-                XFormMixin().get_num_of_submissions(merged_xform), expected
-            )
-
-        with assert_count_after(1):
-            orange = submit("orange")
-        with assert_count_after(2):
-            submit("mango")
-        # set_deleted saves the submission's parsed instance.
-        ParsedInstance.objects.create(instance=orange)
-        with assert_count_after(1):
-            orange.set_deleted(timezone.now(), self.user)
-        with assert_count_after(0):
-            delete_xform_submissions(form_a, self.user)
-        with assert_count_after(1):
-            submit("kiwi")
-        # A CSV with no rows overwrites without creating a submission.
-        with assert_count_after(0):
-            submit_csv(
-                self.user.username,
-                XForm.objects.get(pk=form_a.pk),
-                BytesIO(b"fruit\n"),
-                overwrite=True,
-            )
-
-    def test_failed_count_clearing_does_not_reach_the_caller(self):
-        """A failed lookup after commit must not make a counted submission retry"""
-        merged_dataset = self._create_merged_dataset()
-        form_a = XForm.objects.get(pk=merged_dataset["id"]).mergedxform.xforms.get(
-            id_string="a"
-        )
-
-        with patch(
-            "onadata.apps.logger.models.instance._merged_dataset_ids",
-            side_effect=OperationalError,
-        ) as lookup_mock:
-            with self.captureOnCommitCallbacks(execute=True):
-                clear_merged_dataset_counts_on_commit(form_a.pk)
-
-        lookup_mock.assert_called_once_with(form_a.pk)
 
     def test_cached_zero_submission_count_is_ignored(self):
         """A submission to a source form does not clear the merged dataset's key"""
