@@ -23,7 +23,6 @@ from onadata.apps.api.tools import (
     get_org_profile_cache_key,
     invalidate_organization_cache,
 )
-from onadata.apps.logger.models import KMSKey
 from onadata.apps.messaging.constants import KMS_KEY, KMS_KEY_ROTATED
 from onadata.apps.messaging.serializers import send_message
 from onadata.libs.filters import (
@@ -188,10 +187,14 @@ class OrganizationProfileViewSet(
     @action(methods=["POST"], detail=True, url_path="rotate-key")
     def rotate_key(self, request, *args, **kwargs):
         """Manually rotate KMS key."""
-        self.get_object()  # Check if user has permission to rotate key
-        serializer = self.get_serializer(data=request.data)
+        # Checks if user has permission to rotate key
+        organization = self.get_object()
+        serializer = self.get_serializer(
+            data=request.data,
+            context={**self.get_serializer_context(), "organization": organization},
+        )
         serializer.is_valid(raise_exception=True)
-        old_key = KMSKey.objects.get(id=serializer.validated_data["id"])
+        old_key = serializer.validated_data["id"]
         new_key = serializer.save()
         # Capture audit log
         send_message(

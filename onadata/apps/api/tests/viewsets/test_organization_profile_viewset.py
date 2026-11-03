@@ -42,7 +42,7 @@ from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
 from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.libs.exceptions import EncryptionError
-from onadata.libs.permissions import ROLES, DataEntryRole, OwnerRole
+from onadata.libs.permissions import ROLES, DataEntryRole, ManagerRole, OwnerRole
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
@@ -1817,6 +1817,86 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("Key does not exist", str(response.data["id"]))
+
+    def test_another_org_key(self, mock_rotate_key):
+        """Rotation of another organization's key is not allowed."""
+        # A manager of the organization who is not a member of the other
+        # organization
+        john_data = {"username": "john", "email": "john@localhost.com"}
+        self._login_user_and_profile(extra_post_data=john_data)
+        ManagerRole.add(self.user, self.organization)
+
+        alice = self._create_user("alice", "alice1234", False)
+        other_org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=alice
+        )
+        other_key = KMSKey.objects.create(
+            key_id="other-key-id",
+            description="Key-2025-04-26",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=other_org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+
+        data = {"id": other_key.id, "rotation_reason": "Test rotation"}
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Key does not exist", str(response.data["id"]))
+        mock_rotate_key.assert_not_called()
+
+    def test_rotation_reason_too_long(self, mock_rotate_key):
+        """Rotation reason longer than the stored value is rejected."""
+        data = {"id": self.kms_key.id, "rotation_reason": "a" * 256}
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("rotation_reason", response.data)
+        mock_rotate_key.assert_not_called()
+
+    def test_rotation_reason_max_length(self, mock_rotate_key):
+        """A 255 character rotation reason is accepted."""
+        mock_rotate_key.return_value = KMSKey.objects.create(
+            key_id="new-key",
+            description="Key-2025-04-25",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.organization.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        data = {"id": self.kms_key.id, "rotation_reason": "a" * 255}
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        mock_rotate_key.assert_called_once_with(
+            self.kms_key,
+            rotated_by=self.user,
+            rotation_reason="a" * 255,
+        )
+
+    def test_key_for_another_content_type(self, mock_rotate_key):
+        """A key with the organization's object id under another content
+        type is rejected."""
+        other_key = KMSKey.objects.create(
+            key_id="other-type-key-id",
+            description="Key-2025-04-27",
+            public_key="fake-pub-key",
+            content_type=ContentType.objects.get_for_model(KMSKey),
+            object_id=self.organization.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+
+        data = {"id": other_key.id, "rotation_reason": "Test rotation"}
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Key does not exist", str(response.data["id"]))
+        mock_rotate_key.assert_not_called()
 
     def test_disabled_key(self, mock_rotate_key):
         """Rotatation for disabled key is not allowed."""
