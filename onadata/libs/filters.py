@@ -9,7 +9,7 @@ from uuid import UUID
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
+from django.db.models import Max, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
@@ -228,6 +228,27 @@ class ProjectStarredFilter(filters.BaseFilterBackend):
             return queryset.filter(user_stars=request.user)
 
         return queryset.exclude(user_stars=request.user)
+
+
+class ProjectOrderingFilter(filters.OrderingFilter):
+    """Project `ordering` filter that can sort by last submission date."""
+
+    def filter_queryset(self, request, queryset, view):
+        """Annotate `last_submission_date` only when it is requested for ordering.
+
+        Guardian embeds the queryset it filters as a subquery, so an annotation
+        added before the permission filters would group every project there.
+        The serializer still computes last_submission_date itself.
+        """
+        ordering = self.get_ordering(request, queryset, view) or []
+        if "last_submission_date" in {field.removeprefix("-") for field in ordering}:
+            queryset = queryset.annotate(
+                last_submission_date=Max(
+                    "xform__last_submission_time",
+                    filter=Q(xform__deleted_at__isnull=True),
+                )
+            )
+        return super().filter_queryset(request, queryset, view)
 
 
 # pylint: disable=too-few-public-methods

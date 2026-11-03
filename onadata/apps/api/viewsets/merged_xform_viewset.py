@@ -63,11 +63,11 @@ class MergedXFormViewSet(
     ]
 
     def get_queryset(self):
-        """Prefetch the active source forms for the actions that serialize them"""
+        """Limit the queries of the actions that serialize a merged dataset"""
         queryset = super().get_queryset()
         if self.action not in ("list", "retrieve"):
             return queryset
-        return queryset.prefetch_related(
+        return queryset.defer("json", "xml", "xls").prefetch_related(
             Prefetch(
                 "xforms",
                 queryset=XForm.objects.filter(deleted_at__isnull=True)
@@ -153,7 +153,8 @@ class MergedXFormViewSet(
         Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] | null}``.
         Matches the xform set `form_tiles()` serves when called with
         ``merged_dataset_id``. Cached and busted whenever a submission to any
-        member xform is created, edited, or deleted.
+        member xform is created, edited, or deleted, and whenever a member xform
+        is soft deleted or restored.
         """
         merged_xform = self.get_object()
         cache_key = f"{MERGED_XFORM_BBOX_CACHE}{merged_xform.pk}"
