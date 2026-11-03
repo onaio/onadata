@@ -8,6 +8,7 @@ from guardian.shortcuts import assign_perm
 from rest_framework import exceptions, serializers
 
 from onadata.apps.logger.models import Note
+from onadata.libs.permissions import can_view_submission
 
 
 class NoteSerializer(serializers.ModelSerializer):
@@ -59,6 +60,25 @@ class NoteSerializer(serializers.ModelSerializer):
 
         return obj
 
+    def validate_instance(self, value):
+        """
+        Hide submissions the requester cannot view.
+
+        A submission is viewable when the requester holds ``view_xform`` on
+        its form and the form's meta permissions do not exclude it from the
+        requester's data reads.
+        """
+        request = self.context.get("request")
+
+        if request and not can_view_submission(request.user, value):
+            # echo the submitted value, not the resolved pk, so a padded id
+            # of a hidden submission reads the same as an unknown id
+            self.fields["instance"].fail(
+                "does_not_exist", pk_value=self.initial_data.get("instance")
+            )
+
+        return value
+
     def validate(self, attrs):
         instance = attrs.get("instance")
         request = self.context.get("request")
@@ -69,6 +89,18 @@ class NoteSerializer(serializers.ModelSerializer):
             )
 
         attrs["created_by"] = request.user
+
+        if instance is None and self.instance is not None:
+            instance = self.instance.instance
+
+            # validate_instance only runs when the payload carries
+            # "instance"; an update must also be refused once the note's
+            # current submission is on a form the author cannot view
+            if request and not can_view_submission(request.user, instance):
+                message = self.fields["instance"].error_messages[
+                    "does_not_exist"
+                ].format(pk_value=instance.pk)
+                raise exceptions.ValidationError({"instance": [message]})
 
         field = attrs.get("instance_field")
 

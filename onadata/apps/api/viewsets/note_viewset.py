@@ -39,13 +39,17 @@ class NoteViewSet(
     ]
 
     def get_object(self):
-        obj = []
-        queryset = self.filter_queryset(self.get_queryset())
+        """
+        Returns [] for a retrieve with no visible notes; otherwise the
+        default lookup applies, including its 404 for a missing note.
+        """
+        if self.action == "retrieve":
+            queryset = self.filter_queryset(self.get_queryset())
 
-        if queryset:
-            obj = super().get_object()
+            if not queryset.exists():
+                return []
 
-        return obj
+        return super().get_object()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

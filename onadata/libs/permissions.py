@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.db.models.base import ModelBase
 
 import six
+from guardian.core import ObjectPermissionChecker
 from guardian.shortcuts import assign_perm, get_perms, get_users_with_perms, remove_perm
 
 from onadata.apps.logger.models.project import (
@@ -697,6 +698,32 @@ def _check_meta_perms_enabled(xform):
     :return: bool
     """
     return xform.metadata_set.filter(data_type=XFORM_META_PERMS).count() > 0
+
+
+def can_view_submission(user, instance):
+    """
+    Return True if ``user`` may view the submission ``instance``.
+
+    The user needs ``view_xform`` on the submission's form. When the form's
+    meta permissions are enabled and the form's data is not public, a user
+    without ``view_xform_all`` may only view their own submissions, and only
+    with ``view_xform_data`` — the same rules the queryset filters apply to
+    data reads.
+    """
+    xform = instance.xform
+    perms = set(ObjectPermissionChecker(user).get_perms(xform))
+
+    if CAN_VIEW_XFORM not in perms:
+        return False
+
+    if (
+        CAN_VIEW_XFORM_ALL in perms
+        or xform.shared_data
+        or not _check_meta_perms_enabled(xform)
+    ):
+        return True
+
+    return CAN_VIEW_XFORM_DATA in perms and instance.user_id == user.pk
 
 
 # pylint: disable=invalid-name
