@@ -176,8 +176,11 @@ def clear_project_owner_cache(project_id):
         safe_cache_delete(cache_key)
 
 
-def is_public_project_access(request, project=None):
-    """Return True when the request should receive the public project shape."""
+def is_public_project_access(request, project=None, perms=None):
+    """Return True when the request should receive the public project shape.
+
+    Pass ``perms`` when the user's permissions on ``project`` are already loaded.
+    """
     user = getattr(request, "user", None)
 
     if user is None:
@@ -188,6 +191,9 @@ def is_public_project_access(request, project=None):
 
     if project is None:
         return False
+
+    if perms is not None:
+        return "view_project" not in perms
 
     return not user.has_perm("view_project", project)
 
@@ -274,6 +280,18 @@ def safe_cache_get(key, default=None):
     :return: The value from the cache or the default value.
     """
     return _safe_cache_operation(lambda: cache.get(key, default), default)
+
+
+def safe_cache_get_many(keys):
+    """
+    Safely get several values from the cache.
+
+    If the cache is not reachable, the operation silently fails.
+
+    :param keys: The cache keys to get.
+    :return: A dict of the keys that were found and their values.
+    """
+    return _safe_cache_operation(lambda: cache.get_many(keys), {})
 
 
 def safe_cache_add(key, value, timeout=DEFAULT_TIMEOUT):
