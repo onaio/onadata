@@ -757,7 +757,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         cache_key = f"{USER_PROFILE_PREFIX}{self.user.username}{self.user.username}"
         self.assertIsNotNone(cache.get(cache_key))
 
-        data = {"metadata": '{"zebra": {"key1": "value1"}}', "overwrite": "false"}
+        data = {"metadata": '{"a": {"key1": "value1"}}', "overwrite": "false"}
         request = self.factory.patch("/", data=data, **self.extra)
         response = self.view(request, user=self.user.username)
         self.assertEqual(response.status_code, 200)
@@ -767,7 +767,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = retrieve_view(request, user=self.user.username)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["metadata"], {"zebra": {"key1": "value1"}})
+        self.assertEqual(response.data["metadata"], {"a": {"key1": "value1"}})
 
     def test_put_update(self):
         data = _profile_data()
