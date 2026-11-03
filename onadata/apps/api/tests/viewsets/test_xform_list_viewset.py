@@ -1119,6 +1119,49 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertEqual(first_line, expected_headers)
 
+    def test_retrieve_xform_media_linked_xform_no_permission(self):
+        """Linked dataset is named when user lacks access to the linked form"""
+        linked_xform = self.xform
+        self._project_create({"name": "Linking project"})
+        self._publish_xls_form_to_project(
+            xlsform_path=os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_1.xlsx",
+            )
+        )
+        self._add_form_metadata(
+            self.xform, "media", f"xform {linked_xform.pk} transportation"
+        )
+        self._create_user_profile(
+            {
+                "username": "alice",
+                "email": "alice@localhost.com",
+                "password1": "alice",
+                "password2": "alice",
+            }
+        )
+        ShareProject(self.project, "alice", "readonly").save()
+        client = DigestClient()
+        client.set_authorization("alice", "alice", "Digest")
+
+        response = client.get(
+            f"/bob/xformsMedia/{self.xform.pk}/{self.metadata.pk}.csv"
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(
+            response.json(),
+            {
+                "details": "You don't have permission to access the linked "
+                'dataset "transportation".'
+            },
+        )
+
     def test_retrieve_xform_media_entity_list_dataset(self):
         """EntityList dataset is returned"""
         # Publish registration form and create "trees" Entitylist dataset

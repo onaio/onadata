@@ -180,6 +180,7 @@ Before you install dependencies from the requirements directory files, ensure yo
 
 .. code-block:: sh
 
+    python -m pip install --upgrade "pip>=26.2.2"
     pip install numpy  --use-mirrors
     pip install -r requirements/base.pip --allow-all-external
     pip install -r requirements/dev.pip

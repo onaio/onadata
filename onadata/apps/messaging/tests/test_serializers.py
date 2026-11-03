@@ -9,6 +9,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase
 
+from actstream.models import Action
+
 from onadata.apps.messaging.constants import EXPORT_CREATED, SUBMISSION_CREATED, XFORM
 from onadata.apps.messaging.serializers import send_message
 
@@ -101,6 +103,35 @@ class TestSendMessage(TestCase):
             call_args = mock_serializer.call_args
             self.assertEqual(call_args[1]["data"]["message"], '{"id": [1, 2, 3]}')
             mock_instance.save.assert_called_once()
+
+    def test_internal_system_event_without_change_permission(self):
+        """Internal send_message still creates real system events."""
+        self.assertFalse(self.user.has_perm("auth.change_user", self.user))
+        send_message(
+            instance_id=1,
+            target_id=self.user.pk,
+            target_type="user",
+            user=self.user,
+            message_verb=SUBMISSION_CREATED,
+        )
+        event = Action.objects.get(verb=SUBMISSION_CREATED)
+        self.assertEqual(event.target, self.user)
+        self.assertEqual(event.description, '{"id": [1]}')
+
+    def test_internal_system_event_for_inactive_target(self):
+        """Internal events remain writable after their target becomes unavailable."""
+        self.user.is_active = False
+        self.user.save(update_fields=["is_active"])
+        send_message(
+            instance_id=1,
+            target_id=self.user.pk,
+            target_type="user",
+            user=self.user,
+            message_verb=SUBMISSION_CREATED,
+        )
+        event = Action.objects.get(verb=SUBMISSION_CREATED)
+        self.assertEqual(event.target, self.user)
+        self.assertEqual(event.description, '{"id": [1]}')
 
     def test_send_message_with_anonymous_user(self):
         """

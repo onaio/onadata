@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Test /orgs API endpoint implementation.
 """
@@ -33,11 +32,11 @@ from onadata.apps.api.tools import (
 from onadata.apps.api.viewsets.organization_profile_viewset import (
     OrganizationProfileViewSet,
 )
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.api.viewsets.v2.organization_profile_viewset import (
     OrganizationProfileViewSet as OrganizationProfileViewSetV2,
 )
-from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
@@ -71,7 +70,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         """
         Specific to clear cache between tests
         """
-        super(TestOrganizationProfileViewSet, self).tearDown()
+        super().tearDown()
         cache.clear()
 
     def test_partial_updates(self):
@@ -421,7 +420,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        self.assertEqual(set(response.data), {"denoinc", "aboy"})
         team = Team.objects.get(name=f"{self.organization.user.username}#members")
         self.assertTrue(team.user_set.filter(username="aboy").exists())
 
@@ -438,7 +437,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        self.assertEqual(set(response.data), {"denoinc", "aboy"})
 
         # Ensure inactive/soft-deleted users are not present in the list
         user = User.objects.get(username="aboy")
@@ -497,7 +496,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        self.assertEqual(set(response.data), {"denoinc", "aboy"})
 
         self.profile_data["username"] = member
         self._login_user_and_profile()
@@ -568,7 +567,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         # get profile as a anonymous user
         request = self.factory.get("/", **self.extra)
         request.user = AnonymousUser()
-        request.headers = None
         request.META["HTTP_AUTHORIZATION"] = ""
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
@@ -586,7 +584,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 401)
-        self.assertNotEqual(set(response.data), set(["denoinc", "aboy"]))
+        self.assertNotEqual(set(response.data), {"denoinc", "aboy"})
 
     def test_add_members_to_org_with_non_member_user(self):
         self._org_create()
@@ -605,7 +603,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 404)
-        self.assertNotEqual(set(response.data), set(["denoinc", "aboy"]))
+        self.assertNotEqual(set(response.data), {"denoinc", "aboy"})
 
     def test_remove_members_from_org(self):
         self._org_create()
@@ -623,7 +621,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(set(response.data), set(["denoinc", newname]))
+        self.assertEqual(set(response.data), {"denoinc", newname})
 
         request = self.factory.delete(
             "/", json.dumps(data), content_type="application/json", **self.extra
@@ -643,9 +641,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(set(response.data), set(["denoinc", newname]))
+        self.assertEqual(set(response.data), {"denoinc", newname})
 
-        request = self.factory.delete("/?username={}".format(newname), **self.extra)
+        request = self.factory.delete(f"/?username={newname}", **self.extra)
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
@@ -679,7 +677,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertIn(alice, users_in_users)
 
         # remove alice from org
-        request = self.factory.delete("/?username={}".format(alice), **self.extra)
+        request = self.factory.delete(f"/?username={alice}", **self.extra)
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
@@ -721,7 +719,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
         self.assertIn(
-            "Organization %s already exists." % data["org"], response.data["org"]
+            f"Organization {data['org']} already exists.", response.data["org"]
         )
 
     def test_orgs_create_with_hyphen_allowed(self):
@@ -860,7 +858,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(set(response.data), set(["denoinc", newname]))
+        self.assertEqual(set(response.data), {"denoinc", newname})
 
         data = {"username": newname}
         request = self.factory.put(
@@ -886,7 +884,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(set(response.data), set(["denoinc", newname]))
+        self.assertEqual(set(response.data), {"denoinc", newname})
 
         data = {"username": newname, "role": 42}
         request = self.factory.put(
@@ -919,7 +917,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "noreply@ona.io",
             ("aboy@org.com",),
         )
-        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        self.assertEqual(set(response.data), {"denoinc", "aboy"})
 
     @override_settings(DEFAULT_FROM_EMAIL="noreply@ona.io")
     @patch("onadata.libs.serializers.organization_member_serializer.send_mail")
@@ -948,7 +946,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "noreply@ona.io",
             ("aboy@org.com",),
         )
-        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        self.assertEqual(set(response.data), {"denoinc", "aboy"})
 
     def test_add_members_to_org_with_role(self):
         self._org_create()
@@ -966,7 +964,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
 
-        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        self.assertEqual(set(response.data), {"denoinc", "aboy"})
 
         # getting profile
         request = self.factory.get("/", **self.extra)
@@ -997,7 +995,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
 
-        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        self.assertEqual(set(response.data), {"denoinc", "aboy"})
 
         # getting profile
         request = self.factory.get("/", **self.extra)
@@ -1131,7 +1129,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         project_view = ProjectViewSet.as_view({"get": "retrieve"})
         request = self.factory.get(
-            "/", **{"HTTP_AUTHORIZATION": f"Token {userprofile.user.auth_token}"}
+            "/", HTTP_AUTHORIZATION=f"Token {userprofile.user.auth_token}"
         )
 
         project_team_cache_key = f"{PROJ_TEAM_USERS_CACHE}{project_1.pk}"
@@ -1202,7 +1200,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertTrue(cache.get(project_perm_cache_key) is None)
 
         request = self.factory.get(
-            "/", **{"HTTP_AUTHORIZATION": f"Token {userprofile.user.auth_token}"}
+            "/", HTTP_AUTHORIZATION=f"Token {userprofile.user.auth_token}"
         )
         response = project_view(request, pk=project_2.pk)
         # User shouldn't have any permissions to view the project
@@ -1281,7 +1279,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(set(response.data), set(["denoinc", aboy.username]))
+        self.assertEqual(set(response.data), {"denoinc", aboy.username})
 
         self.profile_data["username"] = "aboy2"
         aboy2 = self._create_user_profile().user
@@ -1293,9 +1291,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(
-            set(response.data), set(["denoinc", aboy.username, aboy2.username])
-        )
+        self.assertEqual(set(response.data), {"denoinc", aboy.username, aboy2.username})
 
         data = {"username": aboy2.username}
         request = self.factory.delete(

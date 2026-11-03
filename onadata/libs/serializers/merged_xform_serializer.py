@@ -162,6 +162,17 @@ class CanMergeXForms:  # pylint: disable=too-few-public-methods
         return xforms
 
 
+# Model fields behind XFormSerializer's output; extend when its fields change
+SOURCE_XFORM_FIELDS = (
+    "id",
+    "id_string",
+    "title",
+    "num_of_submissions",
+    "user__username",
+    "project__name",
+)
+
+
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
     """XFormSerializer"""
 
@@ -259,7 +270,13 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         return value
 
     def get_last_submission_time(self, obj):
-        """Return datetime of last submission from all forms"""
+        """Return datetime of last submission from all forms, from the aggregate
+        'latest_submission_time' in the queryset when present.
+        """
+        if hasattr(obj, "latest_submission_time"):
+            latest = obj.latest_submission_time
+            return latest.isoformat() if latest else None
+
         values = [
             x.last_submission_time.isoformat()
             for x in obj.xforms.only("last_submission_time")

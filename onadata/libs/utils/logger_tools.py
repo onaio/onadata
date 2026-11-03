@@ -174,6 +174,10 @@ def _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml):
     instance.last_edited_by = submitted_by
     instance.uuid = new_uuid
     instance.checksum = checksum
+
+    if instance.xform.is_was_managed and is_encrypted_submission(xml):
+        instance.decryption_status = Instance.DecryptionStatus.PENDING
+
     instance.save()
 
     # call webhooks

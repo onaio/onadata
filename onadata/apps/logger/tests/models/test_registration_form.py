@@ -1,12 +1,10 @@
 """Tests for module onadata.apps.logger.models.registration_form"""
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from django.db.utils import IntegrityError
-
-import pytz
 
 from onadata.apps.logger.models import (
     EntityList,
@@ -24,7 +22,7 @@ class RegistrationFormTestCase(TestBase):
     def setUp(self):
         super().setUp()
 
-        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
+        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=timezone.utc)
         self.xform = self._publish_registration_form(self.user)
         self.entity_list = EntityList.objects.first()
         # Delete RegistrationForm and EntityListProperty created when form is published
