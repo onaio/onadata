@@ -32,6 +32,7 @@ from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesViewSet
 from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
+from onadata.libs.serializers.xform_serializer import XFormMixin
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -306,6 +307,17 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             response.data["last_submission_time"],
             form_b.last_submission_time.isoformat(),
         )
+
+    def test_cached_zero_submission_count_is_ignored(self):
+        """A submission to a source form does not clear the merged dataset's key"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = XForm.objects.get(pk=merged_dataset["id"])
+        mixin = XFormMixin()
+        self.assertEqual(mixin.get_num_of_submissions(merged_xform), 0)
+
+        form_b = merged_xform.mergedxform.xforms.all()[1]
+        Instance(xform=form_b, xml='<data id="b"><fruit>mango</fruit></data>').save()
+        self.assertEqual(mixin.get_num_of_submissions(merged_xform), 1)
 
     def _assert_permission_query_groups_once(self, view, request, **kwargs):
         """Call the view and assert its permission-filtered query groups once"""
