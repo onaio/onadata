@@ -4,6 +4,7 @@ OpenRosa Form List API - https://docs.getodk.org/openrosa-form-list/
 """
 
 from django.conf import settings
+from django.db.models import Exists, OuterRef
 from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 
@@ -34,6 +35,7 @@ from onadata.libs.renderers.renderers import (
 from onadata.libs.serializers.xform_serializer import (
     XFormListSerializer,
     XFormManifestSerializer,
+    media_metadata,
 )
 from onadata.libs.utils.cache_tools import (
     XFORM_MANIFEST_CACHE,
@@ -69,13 +71,23 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         filters.XFormListXFormPKFilter,
         django_filter_filters.DjangoFilterBackend,
     )
-    queryset = XForm.objects.filter(
-        downloadable=True,
-        deleted_at=None,
-        is_merged_dataset=False,
-        project__organization__is_active=True,
-    ).only(
-        "id_string", "title", "version", "uuid", "description", "user__username", "hash"
+    queryset = (
+        XForm.objects.filter(
+            downloadable=True,
+            deleted_at=None,
+            is_merged_dataset=False,
+            project__organization__is_active=True,
+        )
+        .select_related("user")
+        .only(
+            "id_string",
+            "title",
+            "version",
+            "uuid",
+            "description",
+            "user__username",
+            "hash",
+        )
     )
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (XFormListRenderer,)
@@ -176,7 +188,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             deleted_at=None,
             is_merged_dataset=False,
             project__organization__is_active=True,
-        )
+        ).annotate(has_media=Exists(media_metadata(OuterRef("pk"))))
 
     def _get_xform_list_cache_key(self):
         xform_pk = self.kwargs.get("xform_pk")

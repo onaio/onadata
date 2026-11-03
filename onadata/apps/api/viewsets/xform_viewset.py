@@ -260,6 +260,8 @@ def _try_update_xlsform(request, xform, owner):
     survey = utils.publish_xlsform(request, owner, xform.id_string, xform.project)
 
     if isinstance(survey, XForm):
+        # Publishing changes relations that were prefetched before it ran.
+        xform.refresh_from_db()
         serializer = XFormSerializer(xform, context={"request": request})
 
         # send form update notification
@@ -466,8 +468,10 @@ class XFormViewSet(
             Prefetch("metadata_set"),
             Prefetch("tags"),
             Prefetch("dataview_set"),
+            Prefetch("registration_forms__entity_list"),
+            Prefetch("follow_up_forms__entity_list"),
         )
-        .defer("xml", "json", "xls")
+        .defer("xml", "json")
         .order_by("pk")
     )
     serializer_class = XFormSerializer
