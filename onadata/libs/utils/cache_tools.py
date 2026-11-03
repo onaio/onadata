@@ -77,7 +77,8 @@ XFORM_LINKED_DATAVIEWS = "xfs-linked_dataviews"
 PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 
 # Bbox endpoint caches (forms, dataviews, merged datasets). Busted on every
-# submission create/edit/delete via invalidate_bbox_cache; the TTL is only a
+# submission create/edit/delete via invalidate_bbox_cache, and for merged
+# datasets when a source form is soft deleted or restored; the TTL is only a
 # safety net for entries that outlive their xform's submission activity.
 XFORM_BBOX_CACHE = "xfs-bbox-"
 DATAVIEW_BBOX_CACHE = "dvs-bbox-"
