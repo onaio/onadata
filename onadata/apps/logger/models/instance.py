@@ -9,6 +9,7 @@ import importlib
 import logging
 import math
 from datetime import datetime
+from functools import partial
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -276,7 +277,10 @@ def update_xform_submission_count(instance):
 
     safe_cache_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
     safe_cache_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
-    safe_cache_delete(f"{XFORM_COUNT}{instance.xform_id}")
+    # A read before the commit would cache the old count, and a cached 0 is trusted.
+    transaction.on_commit(
+        partial(safe_cache_delete, f"{XFORM_COUNT}{instance.xform_id}")
+    )
     # Clear project cache
     # pylint: disable=import-outside-toplevel
     from onadata.apps.logger.models.xform import clear_project_cache

@@ -4,6 +4,7 @@
 import csv
 import json
 import os
+import warnings
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ from django.conf import settings
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
 from django.core.files.storage import default_storage
+from django.core.paginator import UnorderedObjectListWarning
 from django.test.utils import override_settings
 
 from flaky import flaky
@@ -869,7 +871,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         )
 
         request = self.factory.get("/", **self.extra)
-        response = view(request)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UnorderedObjectListWarning)
+            response = view(request)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
@@ -2021,7 +2025,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         request = self.factory.get(
             "/?geofield=_geolocation&page=1&page_size=1&fields=name", **self.extra
         )
-        response = view(request, pk=self.data_view.pk, format="geojson")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UnorderedObjectListWarning)
+            response = view(request, pk=self.data_view.pk, format="geojson")
         # we get correct content type
         headers = dict(response.items())
         self.assertEqual(headers["Content-Type"], "application/geo+json")
