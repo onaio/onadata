@@ -259,12 +259,7 @@ class ProjectViewSet(
         """
         user = request.user
         # pylint: disable=attribute-defined-outside-init
-        self.object = project = get_object_or_404(
-            Project,
-            pk=kwargs.get("pk"),
-            deleted_at__isnull=True,
-            organization__is_active=True,
-        )
+        self.object = project = self.get_object()
 
         if request.method == "DELETE":
             project.user_stars.remove(user)

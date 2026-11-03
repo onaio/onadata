@@ -283,6 +283,11 @@ class ProjectPermissions(DjangoObjectPermissions):
         return super().has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
+        if view.action == "star":
+            # get_object() already scopes the lookup to projects the caller
+            # may view; starring only alters the caller's own star.
+            return True
+
         if view.action == "share" and request.method == "PUT":
             remove = request.data.get("remove")
             username = request.data.get("username", "")
@@ -401,6 +406,14 @@ class ConnectViewsetPermissions(IsAuthenticated):
     """
     ConnectViewsetPermissions - requires an authenticated user.
     """
+
+    def has_object_permission(self, request, view, obj):
+        if view.action == "starred" and obj.user_id != request.user.pk:
+            # another user's profile gets the same response as an
+            # unknown one
+            raise Http404
+
+        return super().has_object_permission(request, view, obj)
 
 
 class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):

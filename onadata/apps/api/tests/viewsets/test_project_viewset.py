@@ -2036,6 +2036,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._login_user_and_profile(alice_data)
+        ShareProject(self.project, "alice", "readonly").save()
 
         # add star as alice
         request = self.factory.post("/", **self.extra)
@@ -2051,6 +2052,103 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_profile, bob_profile = sorted(response.data, key=itemgetter("username"))
         self.assertEqual(sorted(bob_profile.items()), sorted(user_profile_data.items()))
         self.assertEqual(alice_profile["username"], "alice")
+
+    def test_star_private_project_requires_view_access(self):
+        """A user without view access cannot star a private project."""
+        self._project_create()
+
+        view = ProjectViewSet.as_view({"post": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        request = self.factory.post("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.user_stars.count(), 0)
+
+    # pylint: disable=invalid-name
+    def test_read_stars_of_private_project_requires_view_access(self):
+        """A user without view access cannot read a private project's stars."""
+        self._project_create()
+        self.project.user_stars.add(self.user)
+
+        view = ProjectViewSet.as_view({"get": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+        # anonymous users cannot read them either
+        request = self.factory.get("/")
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_unstar_private_project_requires_view_access(self):
+        """A user without view access cannot unstar a private project."""
+        self._project_create()
+        self.project.user_stars.add(self.user)
+
+        view = ProjectViewSet.as_view({"delete": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        request = self.factory.delete("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.user_stars.count(), 1)
+
+    def test_cannot_star_soft_deleted_project(self):
+        """A soft-deleted project cannot be starred, even by a collaborator."""
+        self._project_create()
+
+        view = ProjectViewSet.as_view({"post": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        ShareProject(self.project, "alice", "readonly").save()
+        self.project.soft_delete()
+
+        request = self.factory.post("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    # pylint: disable=invalid-name
+    def test_cannot_star_project_of_deactivated_account(self):
+        """A project owned by a deactivated account cannot be starred."""
+        self._project_create()
+        bob = self.user
+
+        view = ProjectViewSet.as_view({"post": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        ShareProject(self.project, "alice", "readonly").save()
+        bob.is_active = False
+        bob.save()
+
+        request = self.factory.post("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_can_read_public_project_stars(self):
+        """Anonymous users can read a public project's stars."""
+        self._project_create()
+        self.project.shared = True
+        self.project.save()
+        self.project.user_stars.add(self.user)
+
+        view = ProjectViewSet.as_view({"get": "star"})
+        request = self.factory.get("/")
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["username"], self.user.username)
 
     def test_user_can_view_public_projects(self):
         public_project = Project(

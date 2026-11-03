@@ -6,9 +6,11 @@ User authentication API support to access API tokens.
 """
 
 from django.core.exceptions import MultipleObjectsReturned
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from guardian.shortcuts import get_objects_for_user
 from multidb.pinning import use_master
 from rest_framework import mixins, status, viewsets
 from rest_framework.authtoken.models import Token
@@ -99,7 +101,25 @@ class ConnectViewSet(
         """Return projects starred for this user."""
         user_profile = self.get_object()
         user = user_profile.user
-        projects = user.project_stars.all()
+        # mirror the project endpoints' visibility rules: no soft-deleted
+        # projects, active organizations only, and the project is public
+        # or the caller holds view_project
+        starred_projects = user.project_stars.filter(
+            deleted_at__isnull=True, organization__is_active=True
+        )
+        projects = starred_projects.filter(
+            Q(shared=True)
+            | Q(
+                pk__in=get_objects_for_user(
+                    request.user,
+                    "view_project",
+                    starred_projects,
+                    # a global grant alone must not expose a project,
+                    # like the project list filter
+                    accept_global_perms=False,
+                )
+            )
+        )
         serializer = ProjectSerializer(
             projects, context={"request": request}, many=True
         )
