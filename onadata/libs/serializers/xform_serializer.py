@@ -673,7 +673,9 @@ class XFormCreateSerializer(XFormSerializer):
 
 def media_metadata(xform_id):
     """Returns the media files attached to the form with id ``xform_id``."""
-    return MetaData.objects.filter(data_type="media", object_id=xform_id)
+    return MetaData.objects.filter(
+        data_type="media", deleted_at__isnull=True, object_id=xform_id
+    )
 
 
 # pylint: disable=abstract-method
