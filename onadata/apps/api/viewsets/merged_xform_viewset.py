@@ -153,7 +153,8 @@ class MergedXFormViewSet(
         Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] | null}``.
         Matches the xform set `form_tiles()` serves when called with
         ``merged_dataset_id``. Cached and busted whenever a submission to any
-        member xform is created, edited, or deleted.
+        member xform is created, edited, or deleted, and whenever a member xform
+        is soft deleted or restored.
         """
         merged_xform = self.get_object()
         cache_key = f"{MERGED_XFORM_BBOX_CACHE}{merged_xform.pk}"
