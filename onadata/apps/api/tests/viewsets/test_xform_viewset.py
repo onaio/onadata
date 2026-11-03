@@ -10,6 +10,7 @@ import csv
 import json
 import os
 import re
+import warnings
 from builtins import open
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
@@ -23,6 +24,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.paginator import UnorderedObjectListWarning
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
@@ -900,7 +902,9 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             request = self.factory.get("/", **self.extra)
-            response = self.view(request)
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", UnorderedObjectListWarning)
+                response = self.view(request)
             self.assertNotEqual(response.get("Cache-Control"), None)
 
     @override_settings(STREAM_DATA=True)
@@ -1010,7 +1014,9 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             request = self.factory.get("/")
-            response = self.view(request)
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", UnorderedObjectListWarning)
+                response = self.view(request)
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get("Cache-Control"), None)
             self.assertEqual(response.data, [])
