@@ -6,6 +6,7 @@ The /projects API endpoint implementation.
 import logging
 
 from django.core.mail import send_mail
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
@@ -311,10 +312,14 @@ class ProjectViewSet(
 
         if method == "PUT":
             invitation_id = request.data.get("invitation_id")
-            invitation = get_object_or_404(
-                ProjectInvitation,
-                pk=invitation_id,
-            )
+            try:
+                invitation = get_object_or_404(
+                    ProjectInvitation,
+                    pk=invitation_id,
+                    project=project,
+                )
+            except (ValueError, TypeError, OverflowError) as error:
+                raise Http404 from error
             draft_request_data = self.request.data.copy()
             draft_request_data["project"] = project.pk
             data = draft_request_data
@@ -331,8 +336,11 @@ class ProjectViewSet(
     @action(detail=True, methods=["POST"], url_path="revoke-invitation")
     def revoke_invitation(self, request, *args, **kwargs):
         """Revoke a project  invitation object"""
-        self.get_object()
-        serializer = self.get_serializer(data=request.data)
+        project = self.get_object()
+        serializer = self.get_serializer(
+            data=request.data,
+            context={**self.get_serializer_context(), "project": project},
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": _("Success")})
@@ -340,8 +348,11 @@ class ProjectViewSet(
     @action(detail=True, methods=["POST"], url_path="resend-invitation")
     def resend_invitation(self, request, *args, **kwargs):
         """Resend a project  invitation object"""
-        self.get_object()
-        serializer = self.get_serializer(data=request.data)
+        project = self.get_object()
+        serializer = self.get_serializer(
+            data=request.data,
+            context={**self.get_serializer_context(), "project": project},
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": _("Success")})

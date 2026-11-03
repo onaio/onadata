@@ -3950,6 +3950,71 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
         # invitation email not updated
         self.assertEqual(self.invitation.email, "janedoe@example.com")
 
+    def test_malformed_invitation_id(self, mock_send_mail):
+        """A malformed invitation_id is handled"""
+        for invitation_id in ["abc", ["abc"], {"a": 1}]:
+            payload = {
+                "email": "rihanna@example.com",
+                "role": "readonly",
+                "invitation_id": invitation_id,
+            }
+            request = self.factory.put(
+                "/",
+                data=json.dumps(payload),
+                content_type="application/json",
+                **self.extra,
+            )
+            response = self.view(request, pk=self.project.pk)
+            self.assertEqual(response.status_code, 404)
+        # 1e999 cannot be produced by json.dumps; as a raw JSON literal it
+        # parses to float infinity rather than failing JSON validation
+        request = self.factory.put(
+            "/",
+            data=(
+                '{"email": "rihanna@example.com", "role": "readonly", '
+                '"invitation_id": 1e999}'
+            ),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 404)
+        mock_send_mail.assert_not_called()
+
+    def test_another_project_invitation(self, mock_send_mail):
+        """An invitation belonging to another project cannot be updated"""
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        alice_project = Project.objects.create(
+            name="Alice project",
+            organization=alice_profile.user,
+            created_by=alice_profile.user,
+            metadata="{}",
+        )
+        alice_invitation = alice_project.invitations.create(
+            email="johndoe@example.com",
+            role="editor",
+            status=ProjectInvitation.Status.PENDING,
+        )
+        payload = {
+            "email": "rihanna@example.com",
+            "role": "readonly",
+            "invitation_id": alice_invitation.id,
+        }
+        request = self.factory.put(
+            "/",
+            data=json.dumps(payload),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 404)
+        alice_invitation.refresh_from_db()
+        self.assertEqual(alice_invitation.project, alice_project)
+        self.assertEqual(alice_invitation.email, "johndoe@example.com")
+        self.assertEqual(alice_invitation.role, "editor")
+        mock_send_mail.assert_not_called()
+
 
 class RevokeInvitationTestCase(TestAbstractViewSet):
     """Tests for revoke invitation"""
@@ -4045,6 +4110,27 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
 
             else:
                 self.assertEqual(response.status_code, 400)
+
+    def test_another_project_invitation(self):
+        """An invitation belonging to another project cannot be revoked"""
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        alice_project = Project.objects.create(
+            name="Alice project",
+            organization=alice_profile.user,
+            created_by=alice_profile.user,
+            metadata="{}",
+        )
+        alice_invitation = alice_project.invitations.create(
+            email="johndoe@example.com", role="editor"
+        )
+        post_data = {"invitation_id": alice_invitation.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"invitation_id": ["Invalid invitation_id."]})
+        alice_invitation.refresh_from_db()
+        self.assertEqual(alice_invitation.status, ProjectInvitation.Status.PENDING)
 
 
 @patch(
@@ -4158,3 +4244,25 @@ class ResendInvitationTestCase(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 400)
 
         mock_send_mail.assert_called_once()
+
+    def test_another_project_invitation(self, mock_send_mail):
+        """An invitation belonging to another project is not resent"""
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        alice_project = Project.objects.create(
+            name="Alice project",
+            organization=alice_profile.user,
+            created_by=alice_profile.user,
+            metadata="{}",
+        )
+        alice_invitation = alice_project.invitations.create(
+            email="johndoe@example.com", role="editor"
+        )
+        post_data = {"invitation_id": alice_invitation.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"invitation_id": ["Invalid invitation_id."]})
+        alice_invitation.refresh_from_db()
+        self.assertIsNone(alice_invitation.resent_at)
+        mock_send_mail.assert_not_called()
