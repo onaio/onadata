@@ -757,13 +757,15 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         view = OrganizationProfileViewSet.as_view({"delete": "members"})
 
         aboy = self._create_user_profile(extra_post_data={"username": "aboy"}).user
-        alice_data = {"username": "alice", "email": "alice@localhost.com"}
-        self._login_user_and_profile(extra_post_data=alice_data)
+        alice = self._create_user_profile(
+            extra_post_data={"username": "alice", "email": "alice@localhost.com"}
+        ).user
         self._add_user_to_organization(self.organization, aboy)
-        self._add_user_to_organization(self.organization, self.user)
+        self._add_user_to_organization(self.organization, alice)
 
-        # a member's self-removal naming another member in the query string
-        # removes the caller, not the other member
+        # run as the organization owner: a member's own request with
+        # conflicting usernames is refused by the self-removal exception
+        # (test_member_cannot_remove_another_member)
         request = self.factory.delete(
             "/?username=aboy",
             data=json.dumps({"username": "alice"}),
@@ -1425,6 +1427,91 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             0, OrganizationProfile.objects.filter(user__username="denoinc").count()
         )
         self.assertEqual(0, User.objects.filter(username="denoinc").count())
+
+    def test_member_cannot_delete_org(self):
+        """A non-owner member cannot delete the organization."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "destroy"})
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        request = self.factory.delete(
+            "/",
+            data=json.dumps({"username": "alice"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(
+            OrganizationProfile.objects.filter(user__username="denoinc").exists()
+        )
+
+    def test_member_cannot_remove_another_member(self):
+        """A member cannot remove another member from the organization."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "members"})
+
+        carol_data = {"username": "carol", "email": "carol@localhost.com"}
+        carol_profile = self._create_user_profile(extra_post_data=carol_data)
+        self._add_user_to_organization(self.organization, carol_profile.user)
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        # the members action reads the username from the body and the query
+        # string, so the self-removal exception must hold for both
+        request = self.factory.delete(
+            "/?username=carol",
+            data=json.dumps({"username": "alice"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 403)
+        team = Team.objects.get(name=f"{self.organization.user.username}#members")
+        self.assertTrue(team.user_set.filter(username="carol").exists())
+        self.assertTrue(team.user_set.filter(username="alice").exists())
+
+    def test_member_removes_self(self):
+        """A member can remove themselves from the organization."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "members"})
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        request = self.factory.delete(
+            "/",
+            data=json.dumps({"username": "alice"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, ["denoinc"])
+
+    def test_member_removes_self_via_query_param(self):
+        """A member can remove themselves using only the query string."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "members"})
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        request = self.factory.delete("/?username=alice", **self.extra)
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, ["denoinc"])
 
     def test_orgs_non_creator_delete(self):
         self._org_create()

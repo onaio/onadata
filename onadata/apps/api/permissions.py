@@ -524,7 +524,9 @@ __permissions__ = [DjangoObjectPermissions, IsAuthenticated]
 
 class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
     """
-    OrganizationProfilePermissions - allow authenticated users to delete an org
+    Object permissions for organizations: members may remove themselves
+    from the members list, key rotation is for owners and managers, and
+    everything else requires the standard Django object permissions.
     """
 
     def _check_is_admin_or_manager(self, user, obj):
@@ -532,13 +534,32 @@ class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
             user, obj
         )
 
-    def has_object_permission(self, request, view, obj):
-        is_authenticated = (
+    @staticmethod
+    def _is_self_removal(request, view):
+        # the members action reads the target username from both the body
+        # and the query string, so the exception holds only when every
+        # username supplied names the requester
+        if not (
             request
+            and request.method == "DELETE"
+            and view.action == "members"
             and request.user.is_authenticated
-            and request.user.username == request.data.get("username")
-        )
-        if is_authenticated and request.method == "DELETE":
+        ):
+            return False
+
+        supplied_usernames = {
+            username
+            for username in (
+                request.data.get("username"),
+                request.query_params.get("username"),
+            )
+            if username is not None
+        }
+        return supplied_usernames == {request.user.username}
+
+    def has_object_permission(self, request, view, obj):
+        # a member may remove themselves from an organization
+        if self._is_self_removal(request, view):
             return True
 
         if view.action == "rotate_key":
