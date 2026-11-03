@@ -5,6 +5,7 @@ Test merged dataset functionality.
 import csv
 import json
 import os
+import re
 import warnings
 from datetime import timedelta
 from io import StringIO
@@ -424,6 +425,30 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             {xform["owner"] for xform in data["xforms"]}, {self.user.username}
         )
         self.assertEqual(three_forms_count, two_forms_count)
+
+    def test_list_and_retrieve_do_not_load_form_definitions(self):
+        """No form definition is rendered, so none should be fetched."""
+        merged_dataset = self._create_merged_dataset()
+        request = self.factory.get("/", **self.extra)
+
+        for action, kwargs in (
+            ("list", {}),
+            ("retrieve", {"pk": merged_dataset["id"]}),
+        ):
+            view = MergedXFormViewSet.as_view({"get": action})
+            with self.subTest(action=action):
+                with CaptureQueriesContext(connection) as context:
+                    response = view(request, **kwargs)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    [
+                        query["sql"]
+                        for query in context.captured_queries
+                        if re.search(r'"logger_xform"\."(json|xml|xls)"', query["sql"])
+                    ],
+                    [],
+                )
 
     def test_merged_datasets_form_json(self):
         """Test retrieving the XLSForm JSON of a merged dataset"""
