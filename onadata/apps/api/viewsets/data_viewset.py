@@ -266,13 +266,15 @@ class DataViewSet(
 
     def _filtered_or_shared_queryset(self, queryset, form_pk):
         filter_kwargs = {self.lookup_field: form_pk}
-        queryset = queryset.filter(**filter_kwargs).only("id", "shared")
+        queryset = queryset.filter(**filter_kwargs).only("id", "shared", "shared_data")
 
         if not queryset:
             filter_kwargs["shared_data"] = True
             filter_kwargs["deleted_at__isnull"] = True
             filter_kwargs["project__organization__is_active"] = True
-            queryset = XForm.objects.filter(**filter_kwargs).only("id", "shared")
+            queryset = XForm.objects.filter(**filter_kwargs).only(
+                "id", "shared", "shared_data"
+            )
 
             if not queryset:
                 raise Http404(_("No data matches with given query."))
@@ -282,7 +284,7 @@ class DataViewSet(
     # pylint: disable=unused-argument
     def filter_queryset(self, queryset, view=None):
         """Returns and filters queryset based on context and query params."""
-        queryset = super().filter_queryset(queryset.only("id", "shared"))
+        queryset = super().filter_queryset(queryset.only("id", "shared", "shared_data"))
         form_pk = self.kwargs.get(self.lookup_field)
 
         if form_pk:

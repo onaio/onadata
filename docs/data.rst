@@ -13,6 +13,8 @@ GET JSON List of data end points
 
 Lists the data endpoints accessible to requesting user, for anonymous access a list of public data endpoints is returned.
 
+Reading this data needs ``public_data`` or a role on the form. See :ref:`access to submissions <submission-access>`.
+
 .. raw:: html
 
   <pre class="prettyprint">

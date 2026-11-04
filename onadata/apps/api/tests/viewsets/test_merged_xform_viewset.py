@@ -34,6 +34,7 @@ from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesV
 from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.serializers.xform_serializer import XFormMixin
+from onadata.libs.utils.cache_tools import MERGED_XFORM_BBOX_CACHE, safe_cache_get
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -558,6 +559,22 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             response.data["last_submission_time"],
             last_submission.date_created.isoformat(),
         )
+
+        merged_xform.shared = True
+        merged_xform.shared_data = False
+        merged_xform.save()
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        alice_request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=f"Token {alice.auth_token}"
+        )
+        self.assertEqual(view(alice_request, pk=merged_dataset["id"]).status_code, 404)
+        self.assertEqual(len(view(request, pk=merged_dataset["id"]).data), 2)
+
+        merged_xform.shared_data = True
+        merged_xform.save()
+        self.assertEqual(len(view(alice_request, pk=merged_dataset["id"]).data), 2)
 
     def test_md_data_viewset(self):
         """Test retrieving data of a merged dataset at the /data endpoint"""
@@ -1337,3 +1354,24 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.data["bbox"])
+        self.assertEqual(
+            safe_cache_get(f"{MERGED_XFORM_BBOX_CACHE}{merged_dataset['id']}"),
+            response.data,
+        )
+
+        # Refused even with a warm cache.
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
+        merged_xform.shared = True
+        merged_xform.shared_data = False
+        merged_xform.save()
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        alice_request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=f"Token {alice.auth_token}"
+        )
+        self.assertEqual(view(alice_request, pk=merged_dataset["id"]).status_code, 404)
+
+        merged_xform.shared_data = True
+        merged_xform.save()
+        self.assertEqual(view(alice_request, pk=merged_dataset["id"]).status_code, 200)

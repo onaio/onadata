@@ -117,9 +117,15 @@ class ExportDjangoObjectPermission(
     def has_object_permission(self, request, view, obj):
         model_cls = XForm
         user = request.user
+        # ExportFilter returns no exports for a dataview the user may not view.
+        dataview = getattr(view, "dataview", None)
+        is_dataview_export = (
+            dataview is not None and obj.options.get("dataview_pk") == dataview.pk
+        )
         return (
-            obj.xform.deleted_at is None
-            and (obj.xform.shared_data or obj.xform.shared or obj.xform.project.shared)
+            request.method in SAFE_METHODS
+            and obj.xform.deleted_at is None
+            and (obj.xform.shared_data or is_dataview_export)
         ) or self._has_object_permission(request, model_cls, user, obj.xform)
 
 

@@ -66,7 +66,7 @@ def _public_xform_id_or_none(export_id: int):
         export
         and export.xform.deleted_at is None
         and export.xform.project.organization.is_active
-        and (export.xform.shared_data or export.xform.shared)
+        and export.xform.shared_data
     ):
         return export.xform_id
 
@@ -76,6 +76,10 @@ def _public_xform_id_or_none(export_id: int):
 # pylint: disable=too-few-public-methods
 class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
     """Anonymous user permission filter class."""
+
+    def is_public(self, form):
+        """Returns whether logged-in users with no role on ``form`` may read it."""
+        return form.shared
 
     def filter_queryset(self, request, queryset, view):
         """
@@ -107,7 +111,7 @@ class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
                 raise Http404 from non_existent_object
 
             # Check if form is public and return it
-            if form.shared:
+            if self.is_public(form):
                 if lookup_field == "uuid":
                     return queryset.filter(Q(uuid=form_id.hex) | Q(uuid=str(form_id)))
                 return queryset.filter(Q(**xform_kwargs))
@@ -350,7 +354,16 @@ class DataFilter(ObjectPermissionsFilter):
 
 
 class DataAnonDjangoObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
+    """Limits forms to those whose submissions the user may read."""
+
     perm_format = "%(app_label)s.view_%(model_name)s_data"
+
+    def is_public(self, form):
+        return form.shared and form.shared_data
+
+    def filter_queryset(self, request, queryset, view):
+        queryset = DataFilter().filter_queryset(request, queryset, view)
+        return super().filter_queryset(request, queryset, view)
 
 
 class InstanceFilter(django_filter_filters.FilterSet):
@@ -1063,8 +1076,21 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
     querysets. Also filters submitted_by a specific user.
     """
 
+    def _xform_filter_queryset(self, request, queryset, view, keyword):
+        # Drops the dataview's submission filters, because exports have no submissions.
+        xforms = self._xform_filter(request, view, keyword, queryset)[f"{keyword}__in"]
+        return queryset.filter(**{f"{keyword}__in": xforms})
+
     def filter_queryset(self, request, queryset, view):
         """Filter by xform permissions and submitted by user."""
+        dataview = request.query_params.get("dataview")
+        if dataview:
+            int_or_parse_error(
+                dataview,
+                "Invalid value for dataview ID. It must be a positive integer.",
+            )
+            queryset = queryset.filter(options__dataview_pk=int(dataview))
+
         has_submitted_by_key = (
             Q(options__has_key="query") & Q(options__query__has_key="_submitted_by"),
         )
