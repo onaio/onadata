@@ -1057,14 +1057,15 @@ class XFormMixin:
         ]
 
 
-def _clear_merged_dataset_caches(merged_dataset):
+def clear_merged_dataset_caches(merged_dataset_id):
+    """Clears the caches a merged dataset fills from its source forms."""
     for prefix in (
         XFORM_COUNT,
         DATAVIEW_COUNT,
         DATAVIEW_LAST_SUBMISSION_TIME,
         MERGED_XFORM_BBOX_CACHE,
     ):
-        safe_cache_delete(f"{prefix}{merged_dataset.pk}")
+        safe_cache_delete(f"{prefix}{merged_dataset_id}")
 
 
 # pylint: disable=too-many-instance-attributes
@@ -1477,7 +1478,9 @@ class XForm(XFormMixin, BaseModel):
             merged_dataset.submission_count(force_update=True)
             # A read before the commit would refill these caches from the old
             # source forms.
-            transaction.on_commit(partial(_clear_merged_dataset_caches, merged_dataset))
+            transaction.on_commit(
+                partial(clear_merged_dataset_caches, merged_dataset.pk)
+            )
             # Saving a MergedXForm does not fire this XForm pre_save receiver. It
             # runs after commit so this transaction never locks a second project,
             # and a failure is only logged because the change is already committed.

@@ -30,7 +30,11 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
-from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
+from onadata.apps.logger.models.xform import (
+    XFORM_TITLE_LENGTH,
+    XForm,
+    clear_merged_dataset_caches,
+)
 from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
     clean_and_parse_xml,
@@ -42,7 +46,6 @@ from onadata.libs.utils.cache_tools import (
     DATAVIEW_BBOX_CACHE,
     DATAVIEW_COUNT,
     IS_ORG,
-    MERGED_XFORM_BBOX_CACHE,
     PROJ_NUM_DATASET_CACHE,
     PROJ_SUB_DATE_CACHE,
     PROJECT_DATE_MODIFIED_CACHE,
@@ -227,13 +230,12 @@ def _update_submission_count_for_today(
 def invalidate_bbox_cache(xform_id):
     """Bust cached bbox responses affected by a change to ``xform_id``.
 
-    Clears the form's own bbox plus every DataView and MergedXForm whose extent
-    includes this xform, so the next request recomputes from current rows. Run
-    from the Instance signals on submission create, edit, and delete.
+    Clears the form's own bbox plus every DataView whose extent includes this
+    xform, so the next request recomputes from current rows. Run from the Instance
+    signals on submission create, edit, and delete.
     """
     # pylint: disable=import-outside-toplevel
     from onadata.apps.logger.models.data_view import DataView
-    from onadata.apps.logger.models.merged_xform import MergedXForm
 
     safe_cache_delete(f"{XFORM_BBOX_CACHE}{xform_id}")
 
@@ -243,11 +245,25 @@ def invalidate_bbox_cache(xform_id):
     for dataview_id in dataview_ids:
         safe_cache_delete(f"{DATAVIEW_BBOX_CACHE}{dataview_id}")
 
-    merged_ids = MergedXForm.objects.filter(xforms__pk=xform_id).values_list(
-        "pk", flat=True
-    )
-    for merged_id in merged_ids:
-        safe_cache_delete(f"{MERGED_XFORM_BBOX_CACHE}{merged_id}")
+
+def clear_merged_dataset_caches_on_commit(xform_id):
+    """Clears the caches of the merged datasets that include ``xform_id``.
+
+    Waits for the commit because a read before it would cache the old values. A
+    failed clear is logged rather than raised, because a task retried after the
+    commit would count its submission again.
+    """
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.models.merged_xform import MergedXForm
+
+    def clear_caches():
+        merged_ids = MergedXForm.objects.filter(xforms__pk=xform_id).values_list(
+            "pk", flat=True
+        )
+        for merged_id in merged_ids:
+            clear_merged_dataset_caches(merged_id)
+
+    transaction.on_commit(clear_caches, robust=True)
 
 
 def update_xform_submission_count(instance):
@@ -281,6 +297,7 @@ def update_xform_submission_count(instance):
     transaction.on_commit(
         partial(safe_cache_delete, f"{XFORM_COUNT}{instance.xform_id}")
     )
+    clear_merged_dataset_caches_on_commit(instance.xform_id)
     # Clear project cache
     # pylint: disable=import-outside-toplevel
     from onadata.apps.logger.models.xform import clear_project_cache
@@ -977,6 +994,11 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
     # Bust bbox caches so the next map-fit request reflects this submission's
     # geom, whether it was just created or edited.
     invalidate_bbox_cache(instance.xform_id)
+    if not created:
+        # Here rather than in the soft delete pre_save receiver, which with no
+        # transaction would clear before the row is written. A new submission
+        # clears these once its count is updated.
+        clear_merged_dataset_caches_on_commit(instance.xform_id)
 
 
 # pylint: disable=unused-argument
