@@ -97,10 +97,10 @@ Ona Data is a modular Django project composed of several apps, each handling a s
 
 New packages are added via `pip-compile` provided by the [pip-tools](https://pypi.org/project/pip-tools/) package. Install this package in your environment.
 
-Use pip-tools 7.6.2 or newer with pip 26.2.2:
+Use Python 3.13 with pip-tools 7.6.2 or newer and pip 26.2.2 or newer:
 
 ```sh
-python -m pip install "pip-tools>=7.6.2"
+python -m pip install --upgrade "pip>=26.2.2" "pip-tools>=7.6.2"
 ```
 
 To add a new package, update the corresponding `requirements/<environment>.in` depending on the package's purpose.
@@ -120,7 +120,7 @@ Compile the corresponding `<environment>.pip` by running the command
 pip-compile --output-file=requirements/<environment>.pip requirements/<environment>.in
 ```
 
-e.g `pip-compile --output-file=requirements/base.pip requirements/base.in`
+e.g `pip-compile --allow-unsafe --output-file=requirements/base.pip requirements/base.in`
 
 After making these changes, rebuild your Docker image:
 

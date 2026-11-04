@@ -27,6 +27,15 @@ from onadata.settings.common import SHARE_ORG_SUBJECT
 User = get_user_model()
 
 
+# pylint: disable=abstract-method
+class OrganizationMemberListSerializer(serializers.BaseSerializer):
+    """Serialize an organization's members as a list of usernames."""
+
+    def to_representation(self, instance):
+        members = get_organization_members(instance)
+        return [user.username for user in members]
+
+
 class OrganizationMemberSerializer(serializers.Serializer):
     """
     The OrganizationMemberSerializer - manages a users access in an organization

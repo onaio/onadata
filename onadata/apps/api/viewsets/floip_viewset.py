@@ -19,6 +19,7 @@ from rest_framework_json_api.renderers import JSONRenderer
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs import filters
+from onadata.libs.permissions import require_xform_data_access
 from onadata.libs.renderers.renderers import floip_list
 from onadata.libs.serializers.floip_serializer import (
     FloipListSerializer,
@@ -147,6 +148,8 @@ class FloipViewSet(
             else:
                 status_code = status.HTTP_201_CREATED
         else:
+            require_xform_data_access(request.user, xform)
+
             if xform.is_merged_dataset:
                 pks = xform.mergedxform.xforms.filter(
                     deleted_at__isnull=True

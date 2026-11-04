@@ -19,6 +19,7 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import Instance, MergedXForm, XForm
 from onadata.libs import filters
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.permissions import require_xform_data_access
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.serializers.merged_xform_serializer import (
@@ -157,6 +158,8 @@ class MergedXFormViewSet(
         is soft deleted or restored.
         """
         merged_xform = self.get_object()
+        require_xform_data_access(request.user, merged_xform.xform_ptr)
+
         cache_key = f"{MERGED_XFORM_BBOX_CACHE}{merged_xform.pk}"
         cached = safe_cache_get(cache_key)
         if cached is not None:
@@ -177,6 +180,8 @@ class MergedXFormViewSet(
     def data(self, request, *args, **kwargs):
         """Return data from the merged xforms"""
         merged_xform = self.get_object()
+        require_xform_data_access(request.user, merged_xform.xform_ptr)
+
         export_type = self.kwargs.get("format", request.GET.get("format"))
         queryset = (
             Instance.objects.filter(

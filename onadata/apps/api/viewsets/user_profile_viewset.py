@@ -314,6 +314,9 @@ class UserProfileViewSet(
 
             profile.metadata = metadata
             profile.save()
+            username = kwargs.get("user")
+            request_username = request.user.username if request.user else ""
+            safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
             return Response(data=profile.metadata, status=status.HTTP_200_OK)
 
         return super().partial_update(request, *args, **kwargs)

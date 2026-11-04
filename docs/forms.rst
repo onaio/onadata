@@ -1146,6 +1146,28 @@ Response
 
     HTTP 200 OK
 
+.. _submission-access:
+
+Access to submissions
+---------------------
+
+Two fields of a form control who can read it, as returned by ``GET /api/v1/forms/{pk}`` and set with ``PATCH``. ``public`` makes a form's details readable by anyone. ``public_data`` opens its submissions, and a form with ``public`` alone keeps them private. A form needs both flags for every route below to be open to a user with no role.
+
+Otherwise, these routes need a role on the form that includes its data:
+
+- ``/api/v1/data/{pk}`` and ``/api/v1/data/{pk}/{dataid}``
+- ``/api/v1/forms/{pk}.csv`` and the other data export formats, ``/api/v1/forms/{pk}/export_async`` and ``/api/v1/forms/{pk}/bbox``
+- ``/api/v1/export/{pk}``
+- ``/api/v1/charts/{pk}``, ``/api/v1/stats/{pk}`` and ``/api/v1/stats/submissions/{pk}``
+- ``/api/v1/flow-results/packages/{uuid}/responses``
+- ``/api/v1/merged-datasets/{pk}/data`` and ``/api/v1/merged-datasets/{pk}/bbox``
+
+A user with no role gets a 404. On the form export, bbox, flow results and merged dataset routes, a user whose role shows the form but not its data gets a 403.
+
+Deleting an export always needs delete permission on the form, even with ``public_data``.
+
+A viewer of a dataview's project can read that dataview's exports without a role on the form. The ``export_url`` of such an export ends in ``?dataview={pk}`` for a user who needs it.
+
 Get list of public forms
 --------------------------
 .. raw:: html

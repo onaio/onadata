@@ -27,7 +27,7 @@ class ProfilerMixin:
     def get_serializer(self, instance=None, data=empty, **kwargs):
         """Override the get_serializer() method."""
         serializer_class = self.get_serializer_class()
-        kwargs["context"] = self.get_serializer_context()
+        kwargs.setdefault("context", self.get_serializer_context())
 
         if settings.PROFILE_API_ACTION_FUNCTION:
             global SERIALIZER_TIME  # pylint: disable=global-statement

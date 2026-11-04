@@ -3,6 +3,7 @@ import os
 from django.utils import timezone
 from django.core.files.base import ContentFile
 from django.test import RequestFactory
+from rest_framework.test import force_authenticate
 from builtins import open
 
 from onadata.apps.main.tests.test_base import TestBase
@@ -58,6 +59,21 @@ class TestStatsViewSet(TestBase):
         data = {"count": 4}
 
         self.assertLessEqual(data.items(), response.data[0].items())
+
+        self.xform.shared = True
+        self.xform.save()
+        self.assertFalse(self.xform.shared_data)
+        alice = self._create_user("alice", "alice")
+        request = self.factory.get("/?group=_submitted_by")
+        force_authenticate(request, user=alice)
+        anonymous_request = self.factory.get("/?group=_submitted_by")
+        self.assertEqual(view(request, pk=formid).status_code, 404)
+        self.assertEqual(view(anonymous_request, pk=formid).status_code, 404)
+
+        self.xform.shared_data = True
+        self.xform.save()
+        self.assertEqual(view(request, pk=formid).data[0]["count"], 4)
+        self.assertEqual(view(anonymous_request, pk=formid).data[0]["count"], 4)
 
     def test_submissions_stats_with_xform_in_delete_async_queue(self):
         self._publish_transportation_form()
@@ -248,6 +264,25 @@ class TestStatsViewSet(TestBase):
             "range": 2770,
         }
         self.assertLessEqual(data.items(), response.data.items())
+
+        self.xform.shared = True
+        self.xform.save()
+        self.assertFalse(self.xform.shared_data)
+        alice = self._create_user("alice", "alice")
+        no_role_request = self.factory.get("/")
+        force_authenticate(no_role_request, user=alice)
+        anonymous_request = self.factory.get("/")
+        self.assertEqual(view(no_role_request, pk=formid).status_code, 404)
+        self.assertEqual(view(anonymous_request, pk=formid).status_code, 404)
+
+        self.xform.shared_data = True
+        self.xform.save()
+        self.assertLessEqual(
+            data.items(), view(no_role_request, pk=formid).data.items()
+        )
+        self.assertLessEqual(
+            data.items(), view(anonymous_request, pk=formid).data.items()
+        )
 
     def test_wrong_stat_function_api(self):
         self._contributions_form_submissions()

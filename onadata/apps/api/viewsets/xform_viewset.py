@@ -68,6 +68,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.permissions import require_xform_data_access
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import ShareXFormSerializer
@@ -755,6 +756,8 @@ class XFormViewSet(
             # perform default viewset retrieve, no data export
             return super().retrieve(request, *args, **kwargs)
 
+        require_xform_data_access(request.user, xform)
+
         return custom_response_handler(
             request,
             xform,
@@ -1082,6 +1085,8 @@ class XFormViewSet(
         full submission set. Cached and busted on submission create/edit/delete.
         """
         xform = self.get_object()
+        require_xform_data_access(request.user, xform)
+
         cache_key = f"{XFORM_BBOX_CACHE}{xform.pk}"
         cached = safe_cache_get(cache_key)
         if cached is not None:
@@ -1095,6 +1100,8 @@ class XFormViewSet(
     def export_async(self, request, *args, **kwargs):
         """Returns the status of an async export."""
         xform = self.get_object()
+        require_xform_data_access(request.user, xform)
+
         export_type = request.query_params.get("format")
 
         if export_type:

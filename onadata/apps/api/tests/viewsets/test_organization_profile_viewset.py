@@ -42,7 +42,7 @@ from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
 from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.libs.exceptions import EncryptionError
-from onadata.libs.permissions import ROLES, DataEntryRole, OwnerRole
+from onadata.libs.permissions import ROLES, DataEntryRole, ManagerRole, OwnerRole
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
@@ -691,6 +691,93 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         users_in_users = [user["user"] for user in project_users]
 
         self.assertNotIn(alice, users_in_users)
+
+    def test_members_get_is_read_only(self):
+        """GET members ignores write parameters in the query string."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"get": "members"})
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        # a member requests a role escalation through GET
+        request = self.factory.get(
+            "/", data={"username": "alice", "role": "owner"}, **self.extra
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.data), set(["denoinc", "alice"]))
+        owners_team = Team.objects.get(name="denoinc#Owners")
+        self.assertFalse(owners_team.user_set.filter(username="alice").exists())
+
+        # a member requests a member removal through GET
+        request = self.factory.get(
+            "/", data={"username": "alice", "remove": "true"}, **self.extra
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.data), set(["denoinc", "alice"]))
+
+    def test_members_write_params_body_only(self):
+        """POST and PUT members read write parameters from the body only."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view(
+            {"post": "members", "put": "members"}
+        )
+
+        aboy = self._create_user_profile(extra_post_data={"username": "aboy"}).user
+
+        # username in the query string is not an add request
+        request = self.factory.post("/?username=aboy", data={}, **self.extra)
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"username": ["This field may not be null."]})
+        members_team = Team.objects.get(name="denoinc#members")
+        self.assertFalse(members_team.user_set.filter(username="aboy").exists())
+
+        self._add_user_to_organization(self.organization, aboy)
+
+        # role in the query string is not a role change
+        request = self.factory.put(
+            "/?role=owner",
+            data=json.dumps({"username": "aboy"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"role": ["This field may not be null."]})
+        owners_team = Team.objects.get(name="denoinc#Owners")
+        self.assertFalse(owners_team.user_set.filter(username="aboy").exists())
+
+    def test_members_delete_acts_on_body_username(self):
+        """DELETE members removes the username in the body, not the query string."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "members"})
+
+        aboy = self._create_user_profile(extra_post_data={"username": "aboy"}).user
+        alice = self._create_user_profile(
+            extra_post_data={"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        self._add_user_to_organization(self.organization, aboy)
+        self._add_user_to_organization(self.organization, alice)
+
+        # run as the organization owner: a member's own request with
+        # conflicting usernames is refused by the self-removal exception
+        # (test_member_cannot_remove_another_member)
+        request = self.factory.delete(
+            "/?username=aboy",
+            data=json.dumps({"username": "alice"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        members_team = Team.objects.get(name="denoinc#members")
+        self.assertTrue(members_team.user_set.filter(username="aboy").exists())
+        self.assertFalse(members_team.user_set.filter(username="alice").exists())
 
     def test_orgs_create_with_mixed_case(self):
         data = {
@@ -1341,6 +1428,91 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
         self.assertEqual(0, User.objects.filter(username="denoinc").count())
 
+    def test_member_cannot_delete_org(self):
+        """A non-owner member cannot delete the organization."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "destroy"})
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        request = self.factory.delete(
+            "/",
+            data=json.dumps({"username": "alice"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(
+            OrganizationProfile.objects.filter(user__username="denoinc").exists()
+        )
+
+    def test_member_cannot_remove_another_member(self):
+        """A member cannot remove another member from the organization."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "members"})
+
+        carol_data = {"username": "carol", "email": "carol@localhost.com"}
+        carol_profile = self._create_user_profile(extra_post_data=carol_data)
+        self._add_user_to_organization(self.organization, carol_profile.user)
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        # the members action reads the username from the body and the query
+        # string, so the self-removal exception must hold for both
+        request = self.factory.delete(
+            "/?username=carol",
+            data=json.dumps({"username": "alice"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 403)
+        team = Team.objects.get(name=f"{self.organization.user.username}#members")
+        self.assertTrue(team.user_set.filter(username="carol").exists())
+        self.assertTrue(team.user_set.filter(username="alice").exists())
+
+    def test_member_removes_self(self):
+        """A member can remove themselves from the organization."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "members"})
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        request = self.factory.delete(
+            "/",
+            data=json.dumps({"username": "alice"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, ["denoinc"])
+
+    def test_member_removes_self_via_query_param(self):
+        """A member can remove themselves using only the query string."""
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"delete": "members"})
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self._add_user_to_organization(self.organization, self.user)
+
+        request = self.factory.delete("/?username=alice", **self.extra)
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, ["denoinc"])
+
     def test_orgs_non_creator_delete(self):
         self._org_create()
 
@@ -1645,6 +1817,86 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("Key does not exist", str(response.data["id"]))
+
+    def test_another_org_key(self, mock_rotate_key):
+        """Rotation of another organization's key is not allowed."""
+        # A manager of the organization who is not a member of the other
+        # organization
+        john_data = {"username": "john", "email": "john@localhost.com"}
+        self._login_user_and_profile(extra_post_data=john_data)
+        ManagerRole.add(self.user, self.organization)
+
+        alice = self._create_user("alice", "alice1234", False)
+        other_org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=alice
+        )
+        other_key = KMSKey.objects.create(
+            key_id="other-key-id",
+            description="Key-2025-04-26",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=other_org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+
+        data = {"id": other_key.id, "rotation_reason": "Test rotation"}
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Key does not exist", str(response.data["id"]))
+        mock_rotate_key.assert_not_called()
+
+    def test_rotation_reason_too_long(self, mock_rotate_key):
+        """Rotation reason longer than the stored value is rejected."""
+        data = {"id": self.kms_key.id, "rotation_reason": "a" * 256}
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("rotation_reason", response.data)
+        mock_rotate_key.assert_not_called()
+
+    def test_rotation_reason_max_length(self, mock_rotate_key):
+        """A 255 character rotation reason is accepted."""
+        mock_rotate_key.return_value = KMSKey.objects.create(
+            key_id="new-key",
+            description="Key-2025-04-25",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.organization.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        data = {"id": self.kms_key.id, "rotation_reason": "a" * 255}
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        mock_rotate_key.assert_called_once_with(
+            self.kms_key,
+            rotated_by=self.user,
+            rotation_reason="a" * 255,
+        )
+
+    def test_key_for_another_content_type(self, mock_rotate_key):
+        """A key with the organization's object id under another content
+        type is rejected."""
+        other_key = KMSKey.objects.create(
+            key_id="other-type-key-id",
+            description="Key-2025-04-27",
+            public_key="fake-pub-key",
+            content_type=ContentType.objects.get_for_model(KMSKey),
+            object_id=self.organization.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+
+        data = {"id": other_key.id, "rotation_reason": "Test rotation"}
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Key does not exist", str(response.data["id"]))
+        mock_rotate_key.assert_not_called()
 
     def test_disabled_key(self, mock_rotate_key):
         """Rotatation for disabled key is not allowed."""

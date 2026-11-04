@@ -2,13 +2,14 @@
 -e .
 
 # Security minimums for transitive runtime dependencies.
+pyasn1>=0.6.5
 certifi>=2026.10.19
 idna>=3.20
-urllib3>=2.7.0
+urllib3>=2.8.0
 # Not used by onadata itself, but optional_packages installs them into the
 # image's venv first; these floors upgrade them past known CVEs.
 msgpack>=1.2.1
-setuptools>=78.1.1
+setuptools>=84.2.1
 
 # Two-factor authentication. Bounded below 2 because this is the login path:
 # a major release should be adopted deliberately, not by the next re-compile.
