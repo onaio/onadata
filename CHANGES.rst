@@ -71,6 +71,9 @@ v5.31.4(2026-11-04)
 - fix: require data access to read submissions of public forms
   [@FrankApiyo]
   `Commit c62a382e4 https://github.com/onaio/onadata/commit/c62a382e4adbdfbf47878340f052fe74889c0da7`
+- fix: clear merged dataset caches when source form submissions change
+  [@FrankApiyo]
+  `PR #3313 https://github.com/onaio/onadata/pull/3313`
 
 v5.31.3(2026-10-26)*
 --------------------
