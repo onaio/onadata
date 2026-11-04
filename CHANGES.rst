@@ -3,6 +3,78 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.31.4(2026-11-04)
+--------------------
+- perf: annotate merged dataset submissions after permission filtering
+  [@FrankApiyo]
+  `PR #3300 https://github.com/onaio/onadata/pull/3300`
+- perf: avoid per-form queries when listing and retrieving merged datasets
+  [@FrankApiyo]
+  `PR #3301 https://github.com/onaio/onadata/pull/3301`
+- fix: exclude deleted parent forms from merged dataset totals and report zero
+  [@FrankApiyo]
+  `PR #3302 https://github.com/onaio/onadata/pull/3302`
+- fix: order merged dataset list so pagination is stable
+  [@FrankApiyo]
+  `PR #3304 https://github.com/onaio/onadata/pull/3304`
+- perf: scope merged dataset permission check to the requested dataset
+  [@FrankApiyo]
+  `PR #3303 https://github.com/onaio/onadata/pull/3303`
+- fix: exclude deleted source forms from merged dataset reads
+  [@FrankApiyo]
+  `PR #3305 https://github.com/onaio/onadata/pull/3305`
+- perf: cache a submission count of zero for forms
+  [@FrankApiyo]
+  `PR #3311 https://github.com/onaio/onadata/pull/3311`
+- perf: batch v2 project list permission, star and cache lookups
+  [@FrankApiyo]
+  `PR #3309 https://github.com/onaio/onadata/pull/3309`
+- fix: order form and dataview lists so pagination is stable
+  [@FrankApiyo]
+  `PR #3306 https://github.com/onaio/onadata/pull/3306`
+- perf: annotate v2 project last submission date after permission filtering
+  [@FrankApiyo]
+  `PR #3307 https://github.com/onaio/onadata/pull/3307`
+- perf: defer form definitions on merged dataset list and retrieve
+  [@FrankApiyo]
+  `PR #3279 https://github.com/onaio/onadata/pull/3279`
+- perf: avoid per-form queries when listing forms
+  [@FrankApiyo]
+  `PR #3310 https://github.com/onaio/onadata/pull/3310`
+- fix: clear the cached profile after a metadata-only update
+  [@kelvin-muchiri]
+  `PR #3312 https://github.com/onaio/onadata/pull/3312`
+- fix: require form access to read submission reviews
+  [@kelvin-muchiri]
+  `Commit 2bbe395f6 https://github.com/onaio/onadata/commit/2bbe395f6fe7a0fcc49261247f4dd642ddda6b63`
+- fix: make organization members GET read-only
+  [@kelvin-muchiri]
+  `Commit 49fc6a5ba https://github.com/onaio/onadata/commit/49fc6a5bade651e1a910dc50e4e6c494dc6226a0`
+- fix: reject invitation actions for another project's invitation
+  [@kelvin-muchiri]
+  `Commit 6f0548297 https://github.com/onaio/onadata/commit/6f0548297aeda0602af518f97018d7ec696bb692`
+- fix: require delete permission to delete an organization
+  [@kelvin-muchiri]
+  `Commit 5aa13648f https://github.com/onaio/onadata/commit/5aa13648f89e9c5b3fcfec88c9c3b3fa2ef63343`
+- fix: reject key rotation for another organization's key
+  [@kelvin-muchiri]
+  `Commit 16c8bfaa2 https://github.com/onaio/onadata/commit/16c8bfaa2f4bd1ebc5738ab4069b8ea7fb20edbc`
+- fix: require project view access for star actions and starred lists
+  [@kelvin-muchiri]
+  `Commit 0c1a3bdf7 https://github.com/onaio/onadata/commit/0c1a3bdf7da549caa86ec14678dd28fa126b595c`
+- fix: require form view access to add or move submission notes
+  [@kelvin-muchiri]
+  `Commit 91970bb7d https://github.com/onaio/onadata/commit/91970bb7d2649bddfcdb89f300152ba649e6890a`
+- Raise dependency security minimums
+  [@ukanga]
+  `Commit 8217429a8 https://github.com/onaio/onadata/commit/8217429a84ee686b4f99e2b82e3ed6c99c70323b`
+- fix: require data access to read submissions of public forms
+  [@FrankApiyo]
+  `Commit c62a382e4 https://github.com/onaio/onadata/commit/c62a382e4adbdfbf47878340f052fe74889c0da7`
+- fix: clear merged dataset caches when source form submissions change
+  [@FrankApiyo]
+  `PR #3313 https://github.com/onaio/onadata/pull/3313`
+
 v5.31.3(2026-10-26)*
 --------------------
 - feat: name the linked dataset when access to it is denied
