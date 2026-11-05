@@ -3,6 +3,8 @@ Charts
 
 View chart for specific fields in a form or dataset.
 
+Reading this data needs ``public_data`` or a role on the form. See :ref:`access to submissions <submission-access>`.
+
 List of chart chart endpoints accessible to registered user
 -----------------------------------------------------------
 .. raw:: html

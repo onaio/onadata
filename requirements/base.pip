@@ -283,8 +283,11 @@ prompt-toolkit==3.0.53
     # via click-repl
 psycopg2-binary==2.9.13
     # via onadata
-pyasn1==0.6.4
-    # via pyasn1-modules
+pyasn1==0.6.5
+    # via
+    #   -r requirements/base.in
+    #   onadata
+    #   pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
 pycparser==3.12

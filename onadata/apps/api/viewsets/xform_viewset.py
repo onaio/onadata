@@ -68,6 +68,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.permissions import require_xform_data_access
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import ShareXFormSerializer
@@ -260,6 +261,8 @@ def _try_update_xlsform(request, xform, owner):
     survey = utils.publish_xlsform(request, owner, xform.id_string, xform.project)
 
     if isinstance(survey, XForm):
+        # Publishing changes relations that were prefetched before it ran.
+        xform.refresh_from_db()
         serializer = XFormSerializer(xform, context={"request": request})
 
         # send form update notification
@@ -466,8 +469,11 @@ class XFormViewSet(
             Prefetch("metadata_set"),
             Prefetch("tags"),
             Prefetch("dataview_set"),
+            Prefetch("registration_forms__entity_list"),
+            Prefetch("follow_up_forms__entity_list"),
         )
-        .defer("xml", "json", "xls")
+        .defer("xml", "json")
+        .order_by("pk")
     )
     serializer_class = XFormSerializer
     pagination_class = StandardPageNumberPagination
@@ -732,7 +738,7 @@ class XFormViewSet(
             # pylint: disable=attribute-defined-outside-init
             self.object_list = self._get_public_forms_queryset()
 
-            page = self.paginate_queryset(self.object_list.order_by("pk"))
+            page = self.paginate_queryset(self.object_list)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
             else:
@@ -749,6 +755,8 @@ class XFormViewSet(
         if export_type is None or export_type in ["json", "debug"]:
             # perform default viewset retrieve, no data export
             return super().retrieve(request, *args, **kwargs)
+
+        require_xform_data_access(request.user, xform)
 
         return custom_response_handler(
             request,
@@ -1077,6 +1085,8 @@ class XFormViewSet(
         full submission set. Cached and busted on submission create/edit/delete.
         """
         xform = self.get_object()
+        require_xform_data_access(request.user, xform)
+
         cache_key = f"{XFORM_BBOX_CACHE}{xform.pk}"
         cached = safe_cache_get(cache_key)
         if cached is not None:
@@ -1090,6 +1100,8 @@ class XFormViewSet(
     def export_async(self, request, *args, **kwargs):
         """Returns the status of an async export."""
         xform = self.get_object()
+        require_xform_data_access(request.user, xform)
+
         export_type = request.query_params.get("format")
 
         if export_type:

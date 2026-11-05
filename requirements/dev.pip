@@ -375,8 +375,11 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.4
     # via stack-data
-pyasn1==0.6.4
-    # via pyasn1-modules
+pyasn1==0.6.5
+    # via
+    #   -r requirements/base.in
+    #   onadata
+    #   pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
 pycodestyle==2.15.0
@@ -511,7 +514,6 @@ six==1.17.0
     #   dataflows-tabulator
     #   datapackage
     #   linear-tsv
-    #   pylint
     #   python-dateutil
     #   tableschema
 snowballstemmer==3.1.1

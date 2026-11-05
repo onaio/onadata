@@ -1073,8 +1073,22 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # access to a shared form but private data
         self.assertEqual(response.status_code, 404)
 
+        alice = self._create_user("alice", "alice")
+        alice_request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=f"Token {alice.auth_token}"
+        )
+        self.assertEqual(view(alice_request, pk=formid).status_code, 404)
+        detail_view = DataViewSet.as_view({"get": "retrieve"})
+        instance_pk = self.xform.instances.first().pk
+        self.assertEqual(
+            detail_view(alice_request, pk=formid, dataid=instance_pk).status_code, 404
+        )
+
         self.xform.shared_data = True
         self.xform.save()
+        self.assertEqual(
+            detail_view(alice_request, pk=formid, dataid=instance_pk).status_code, 200
+        )
         response = view(request, pk=formid)
         # access to a public data
         self.assertEqual(response.status_code, 200)

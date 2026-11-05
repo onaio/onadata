@@ -1,7 +1,7 @@
 FROM python:3.13-alpine3.23
 
 ENV PYTHONUNBUFFERED 1
-ENV DJANGO_SETTINGS_MODULE onadata.preset.docker
+ENV DJANGO_SETTINGS_MODULE onadata.settings.docker
 
 ARG optional_packages
 
@@ -32,7 +32,6 @@ RUN apk add --no-cache --virtual .build-deps\
         libxslt-dev\
         zlib-dev\
         ghostscript\
-        py3-sphinx\
         pkgconfig\
         gcc\
         automake\
@@ -71,6 +70,7 @@ RUN pip install --no-cache-dir -r requirements/base.pip
 RUN pip install --no-cache-dir -r requirements/s3.pip
 RUN pip install --no-cache-dir -r requirements/ses.pip
 RUN pip install --no-cache-dir -r requirements/azure.pip
+RUN pip install --no-cache-dir -r requirements/docs.pip
 RUN pip install --no-cache-dir pyyaml==6.0.3 uwsgitop==0.12
 
 # Install optional requirements
@@ -84,4 +84,4 @@ RUN make -C docs html
 
 USER onadata
 
-CMD ["/home/onadata/.local/bin/uwsgi", "--ini", "/uwsgi.ini"]
+CMD ["uwsgi", "--ini", "/srv/onadata/uwsgi.ini"]
