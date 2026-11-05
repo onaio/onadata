@@ -4,8 +4,10 @@ MergedXFormViewSet: API endpoint for /api/merged-datasets
 """
 
 import json
+from contextlib import suppress
 
-from django.db.models import Sum
+from django.db.models import Max, Prefetch, Q, Sum
+from django.db.models.functions import Coalesce
 from django.http import HttpResponseBadRequest
 
 from rest_framework import mixins, viewsets
@@ -14,12 +16,16 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.logger.models import Instance, MergedXForm
+from onadata.apps.logger.models import Instance, MergedXForm, XForm
 from onadata.libs import filters
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.permissions import require_xform_data_access
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
+from onadata.libs.serializers.merged_xform_serializer import (
+    SOURCE_XFORM_FIELDS,
+    MergedXFormSerializer,
+)
 from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.cache_tools import (
     MERGED_XFORM_BBOX_CACHE,
@@ -47,19 +53,56 @@ class MergedXFormViewSet(
         filters.ActiveXFormOrganizationFilter,
     )
     permission_classes = [XFormPermissions]
-    queryset = (
-        MergedXForm.objects.filter(
-            deleted_at__isnull=True, project__organization__is_active=True
-        )
-        .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
-        .all()
-    )
+    queryset = MergedXForm.objects.filter(
+        deleted_at__isnull=True, project__organization__is_active=True
+    ).order_by("pk")
     pagination_class = StandardPageNumberPagination
     serializer_class = MergedXFormSerializer
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.StaticXMLRenderer,
         renderers.GeoJsonRenderer,
     ]
+
+    def get_queryset(self):
+        """Limit the queries of the actions that serialize a merged dataset"""
+        queryset = super().get_queryset()
+        if self.action not in ("list", "retrieve"):
+            return queryset
+        return queryset.defer("json", "xml", "xls").prefetch_related(
+            Prefetch(
+                "xforms",
+                queryset=XForm.objects.filter(deleted_at__isnull=True)
+                .select_related("user", "project")
+                .only(*SOURCE_XFORM_FIELDS),
+            )
+        )
+
+    def filter_queryset(self, queryset):
+        """Scope and annotate the queryset around the filter backends.
+
+        Guardian embeds the filtered queryset as a subquery, and an annotated
+        one groups every merged dataset by all of its columns. On a detail
+        route, filtering on the requested pk first limits that subquery to one
+        dataset. A pk that can't convert to an integer is left for get_object to
+        reject.
+        """
+        lookup = self.kwargs.get(self.lookup_url_kwarg or self.lookup_field)
+        if str(lookup).isdecimal():
+            with suppress(ValueError):
+                queryset = queryset.filter(pk=lookup)
+        active_xforms = Q(xforms__deleted_at__isnull=True)
+        return (
+            super()
+            .filter_queryset(queryset)
+            .annotate(
+                number_of_submissions=Coalesce(
+                    Sum("xforms__num_of_submissions", filter=active_xforms), 0
+                ),
+                latest_submission_time=Max(
+                    "xforms__last_submission_time", filter=active_xforms
+                ),
+            )
+        )
 
     def get_serializer_class(self):
         """
@@ -111,9 +154,12 @@ class MergedXFormViewSet(
         Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] | null}``.
         Matches the xform set `form_tiles()` serves when called with
         ``merged_dataset_id``. Cached and busted whenever a submission to any
-        member xform is created, edited, or deleted.
+        member xform is created, edited, or deleted, and whenever a member xform
+        is soft deleted or restored.
         """
         merged_xform = self.get_object()
+        require_xform_data_access(request.user, merged_xform.xform_ptr)
+
         cache_key = f"{MERGED_XFORM_BBOX_CACHE}{merged_xform.pk}"
         cached = safe_cache_get(cache_key)
         if cached is not None:
@@ -134,6 +180,8 @@ class MergedXFormViewSet(
     def data(self, request, *args, **kwargs):
         """Return data from the merged xforms"""
         merged_xform = self.get_object()
+        require_xform_data_access(request.user, merged_xform.xform_ptr)
+
         export_type = self.kwargs.get("format", request.GET.get("format"))
         queryset = (
             Instance.objects.filter(

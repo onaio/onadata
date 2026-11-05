@@ -9,7 +9,7 @@ from uuid import UUID
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
+from django.db.models import Max, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
@@ -35,6 +35,7 @@ from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
     CAN_VIEW_PROJECT,
     ROLES,
+    MemberRole,
     exclude_items_from_queryset_using_xform_meta_perms,
 )
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
@@ -65,7 +66,7 @@ def _public_xform_id_or_none(export_id: int):
         export
         and export.xform.deleted_at is None
         and export.xform.project.organization.is_active
-        and (export.xform.shared_data or export.xform.shared)
+        and export.xform.shared_data
     ):
         return export.xform_id
 
@@ -75,6 +76,10 @@ def _public_xform_id_or_none(export_id: int):
 # pylint: disable=too-few-public-methods
 class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
     """Anonymous user permission filter class."""
+
+    def is_public(self, form):
+        """Returns whether logged-in users with no role on ``form`` may read it."""
+        return form.shared
 
     def filter_queryset(self, request, queryset, view):
         """
@@ -106,7 +111,7 @@ class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
                 raise Http404 from non_existent_object
 
             # Check if form is public and return it
-            if form.shared:
+            if self.is_public(form):
                 if lookup_field == "uuid":
                     return queryset.filter(Q(uuid=form_id.hex) | Q(uuid=str(form_id)))
                 return queryset.filter(Q(**xform_kwargs))
@@ -229,6 +234,27 @@ class ProjectStarredFilter(filters.BaseFilterBackend):
         return queryset.exclude(user_stars=request.user)
 
 
+class ProjectOrderingFilter(filters.OrderingFilter):
+    """Project `ordering` filter that can sort by last submission date."""
+
+    def filter_queryset(self, request, queryset, view):
+        """Annotate `last_submission_date` only when it is requested for ordering.
+
+        Guardian embeds the queryset it filters as a subquery, so an annotation
+        added before the permission filters would group every project there.
+        The serializer still computes last_submission_date itself.
+        """
+        ordering = self.get_ordering(request, queryset, view) or []
+        if "last_submission_date" in {field.removeprefix("-") for field in ordering}:
+            queryset = queryset.annotate(
+                last_submission_date=Max(
+                    "xform__last_submission_time",
+                    filter=Q(xform__deleted_at__isnull=True),
+                )
+            )
+        return super().filter_queryset(request, queryset, view)
+
+
 # pylint: disable=too-few-public-methods
 class ProjectRoleFilter(filters.BaseFilterBackend):
     """Project `role` filter using the `role` query parameter."""
@@ -251,7 +277,7 @@ class ProjectRoleFilter(filters.BaseFilterBackend):
 
         role = role.strip()
         if role not in ROLES:
-            raise ParseError(_(f"Unknown role: {role}"))
+            raise ParseError(_("Unknown role: %(role)s") % {"role": role})
         perms = [
             f"logger.{codename}"
             for codename in ROLES[role].class_to_permissions.get(Project, [])
@@ -283,12 +309,16 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
             return queryset.model.objects.all()
 
         filtered_queryset = super().filter_queryset(request, queryset, view)
-        org_users = set(
-            [group.team.organization for group in request.user.groups.all()]
-            + [o.user for o in filtered_queryset]
-        )
+        # The organizations of the teams the user is in, and the organizations
+        # the user has permissions on. Fetched as ids so that the number of
+        # queries does not grow with the number of organizations.
+        org_user_ids = set(
+            request.user.groups.filter(team__isnull=False).values_list(
+                "team__organization", flat=True
+            )
+        ) | set(filtered_queryset.values_list("user", flat=True))
 
-        return queryset.model.objects.filter(user__in=org_users, user__is_active=True)
+        return queryset.filter(user__in=org_user_ids, user__is_active=True)
 
 
 # pylint: disable=too-few-public-methods
@@ -324,7 +354,16 @@ class DataFilter(ObjectPermissionsFilter):
 
 
 class DataAnonDjangoObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
+    """Limits forms to those whose submissions the user may read."""
+
     perm_format = "%(app_label)s.view_%(model_name)s_data"
+
+    def is_public(self, form):
+        return form.shared and form.shared_data
+
+    def filter_queryset(self, request, queryset, view):
+        queryset = DataFilter().filter_queryset(request, queryset, view)
+        return super().filter_queryset(request, queryset, view)
 
 
 class InstanceFilter(django_filter_filters.FilterSet):
@@ -860,6 +899,59 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
         return queryset
 
 
+# `member` is the role of a user who was added to an organization without one,
+# so it is not in ROLES.
+ORGANIZATION_ROLES = {**ROLES, MemberRole.name: MemberRole}
+
+
+# pylint: disable=too-few-public-methods
+class OrganizationRoleFilter(filters.BaseFilterBackend):
+    """Organization `role` filter using the `role` query parameter."""
+
+    def filter_queryset(self, request, queryset, view):
+        """Filter by the requesting user's role (from object permissions).
+
+        ``?role=manager`` returns organizations where the user holds that
+        role **or any higher role**. We require the requested role's full
+        OrganizationProfile permission set, and higher roles hold a superset
+        of a lower role's permissions, so this yields "that role and above".
+
+        Only applies when listing: the members endpoint reads ``role`` as the
+        role to give a member.
+        """
+        role = request.query_params.get("role")
+
+        if not role or view.action != "list":
+            return queryset
+
+        role = role.strip()
+
+        if role not in ORGANIZATION_ROLES:
+            raise ParseError(_("Unknown role: %(role)s") % {"role": role})
+
+        perms = [
+            f"api.{codename}"
+            for codename in ORGANIZATION_ROLES[role].class_to_permissions.get(
+                OrganizationProfile, []
+            )
+        ]
+
+        if not perms:
+            # A role that grants no OrganizationProfile permissions is the
+            # lowest there is: a user holding it is reported as a member. So
+            # every organization the user can list is "that role and above".
+            return queryset
+
+        return get_objects_for_user(
+            request.user,
+            perms,
+            klass=queryset,
+            any_perm=False,
+            accept_global_perms=False,
+            with_superuser=False,
+        )
+
+
 # pylint: disable=too-few-public-methods
 class WidgetFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
     """Filter to return forms shared with user."""
@@ -958,14 +1050,47 @@ class NoteFilter(filters.BaseFilterBackend):
 
 
 # pylint: disable=too-few-public-methods
+class SubmissionReviewFilter(ObjectPermissionsFilter):
+    """Scope submission reviews to forms the user is permitted to view."""
+
+    def filter_queryset(self, request, queryset, view):
+        """Keep reviews whose form the user holds ``view_xform`` on."""
+        if request.user.is_anonymous:
+            return queryset.none()
+
+        xforms = super().filter_queryset(
+            request,
+            XForm.objects.filter(
+                deleted_at__isnull=True, project__organization__is_active=True
+            ),
+            view,
+        )
+
+        return queryset.filter(instance__xform__in=xforms)
+
+
+# pylint: disable=too-few-public-methods
 class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
     """
     ExportFilter class uses permissions on the related xform to filter Export
     querysets. Also filters submitted_by a specific user.
     """
 
+    def _xform_filter_queryset(self, request, queryset, view, keyword):
+        # Drops the dataview's submission filters, because exports have no submissions.
+        xforms = self._xform_filter(request, view, keyword, queryset)[f"{keyword}__in"]
+        return queryset.filter(**{f"{keyword}__in": xforms})
+
     def filter_queryset(self, request, queryset, view):
         """Filter by xform permissions and submitted by user."""
+        dataview = request.query_params.get("dataview")
+        if dataview:
+            int_or_parse_error(
+                dataview,
+                "Invalid value for dataview ID. It must be a positive integer.",
+            )
+            queryset = queryset.filter(options__dataview_pk=int(dataview))
+
         has_submitted_by_key = (
             Q(options__has_key="query") & Q(options__query__has_key="_submitted_by"),
         )

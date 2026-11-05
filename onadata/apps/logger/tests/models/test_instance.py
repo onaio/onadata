@@ -5,15 +5,19 @@ Test Instance model.
 
 import os
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 from unittest.mock import Mock, patch
 from xml.etree.ElementTree import ParseError
 
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.http.request import HttpRequest
-from django.test import override_settings
+from django.test import TestCase, override_settings
 
 from django_digest.test import DigestAuth
 
 from onadata.apps.logger.models import (
+    Attachment,
     Entity,
     EntityList,
     Instance,
@@ -25,6 +29,7 @@ from onadata.apps.logger.models import (
 from onadata.apps.logger.models.instance import (
     get_id_string_from_xml_str,
     numeric_checker,
+    save_full_json,
 )
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
@@ -76,6 +81,58 @@ class TestInstance(TestBase):
                 "transport/available_transportation_types_to_referral_facility": "none",
             },
         )
+
+    def test_save_full_json_skips_changed_xml(self):
+        """Json built from XML that has changed since does not overwrite newer json"""
+        self._publish_transportation_form_and_submit_instance()
+        stale_instance = Instance.objects.first()
+        instance = Instance.objects.get(pk=stale_instance.pk)
+        instance.xml = instance.xml.replace(">none<", ">ambulance<")
+        instance.checksum = sha256(instance.xml.encode("utf-8")).hexdigest()
+        instance.save()
+
+        save_full_json(stale_instance)
+
+        instance.refresh_from_db()
+        self.assertEqual(
+            instance.json[
+                "transport/available_transportation_types_to_referral_facility"
+            ],
+            "ambulance",
+        )
+
+    def test_soft_delete_attachments(self):
+        """Unreferenced attachments are deleted.
+
+        Earlier deleted attachments deleted_at unchanged.
+        """
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.first()
+        deleted_at = datetime.now(timezone.utc) - timedelta(days=1)
+
+        def create_attachment(name, **kwargs):
+            return Attachment.objects.create(
+                instance=instance,
+                name=name,
+                mimetype="image/jpeg",
+                media_file=SimpleUploadedFile(
+                    name, b"fake-content", content_type="image/jpeg"
+                ),
+                **kwargs,
+            )
+
+        referenced = create_attachment("1335783522563.jpg")
+        unreferenced = create_attachment("forest.jpg")
+        deleted = create_attachment("sunset.jpg", deleted_at=deleted_at)
+
+        instance.soft_delete_attachments()
+
+        referenced.refresh_from_db()
+        unreferenced.refresh_from_db()
+        deleted.refresh_from_db()
+        self.assertIsNone(referenced.deleted_at)
+        self.assertIsNotNone(unreferenced.deleted_at)
+        self.assertEqual(deleted.deleted_at, deleted_at)
 
     def test_updates_json_date_modified_on_save(self):
         """_date_modified in `json` field is updated on save"""
@@ -1383,6 +1440,36 @@ class TestInstance(TestBase):
         self.assertTrue(instance.is_encrypted)
         self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
 
+    def test_save_keeps_decryption_error_of_in_progress(self):
+        """Saving a submission being decrypted keeps its last decryption error."""
+        self._publish_managed_form()
+        instance = self._submit_encrypted_instance()
+        Instance.objects.filter(pk=instance.pk).update(
+            decryption_status=Instance.DecryptionStatus.IN_PROGRESS,
+            json={**instance.json, "_decryption_error": "MAX_RETRIES_EXCEEDED"},
+        )
+        instance.refresh_from_db()
+
+        instance.save()
+
+        instance.refresh_from_db()
+        self.assertEqual(instance.json.get("_decryption_error"), "MAX_RETRIES_EXCEEDED")
+
+    def test_save_keeps_decryption_error_of_pending(self):
+        """Saving a submission pending decryption keeps its last decryption error."""
+        self._publish_managed_form()
+        instance = self._submit_encrypted_instance()
+        Instance.objects.filter(pk=instance.pk).update(
+            json={**instance.json, "_decryption_error": "MAX_RETRIES_EXCEEDED"}
+        )
+        instance.refresh_from_db()
+
+        instance.save()
+
+        instance.refresh_from_db()
+        self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
+        self.assertEqual(instance.json.get("_decryption_error"), "MAX_RETRIES_EXCEEDED")
+
     @patch(
         "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
     )
@@ -1519,3 +1606,28 @@ class GetExpectedMediaTestCase(TestBase):
         self.assertCountEqual(
             instance.get_expected_media(), ["submission.xml.enc", "sunset.png.enc"]
         )
+
+
+class InstanceIndexTestCase(TestCase):
+    """Test the indexes Instance declares are present in the database."""
+
+    def test_user_date_created_index_exists(self):
+        """0047 uses SeparateDatabaseAndState, so state can drift from schema."""
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT pg_get_indexdef(i.indexrelid)
+                FROM pg_index i
+                JOIN pg_class c ON c.oid = i.indexrelid
+                JOIN pg_class t ON t.oid = i.indrelid
+                JOIN pg_namespace n ON n.oid = t.relnamespace
+                WHERE n.nspname = 'public'
+                  AND t.relname = 'logger_instance'
+                  AND c.relname = %s
+                """,
+                ["logger_inst_user_id_d0dd89_idx"],
+            )
+            row = cursor.fetchone()
+
+        self.assertIsNotNone(row, "logger_inst_user_id_d0dd89_idx is missing")
+        self.assertRegex(row[0], r"USING btree \(user_id, date_created\)$")

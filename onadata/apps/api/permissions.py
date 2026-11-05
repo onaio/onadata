@@ -117,9 +117,15 @@ class ExportDjangoObjectPermission(
     def has_object_permission(self, request, view, obj):
         model_cls = XForm
         user = request.user
+        # ExportFilter returns no exports for a dataview the user may not view.
+        dataview = getattr(view, "dataview", None)
+        is_dataview_export = (
+            dataview is not None and obj.options.get("dataview_pk") == dataview.pk
+        )
         return (
-            obj.xform.deleted_at is None
-            and (obj.xform.shared_data or obj.xform.shared or obj.xform.project.shared)
+            request.method in SAFE_METHODS
+            and obj.xform.deleted_at is None
+            and (obj.xform.shared_data or is_dataview_export)
         ) or self._has_object_permission(request, model_cls, user, obj.xform)
 
 
@@ -173,6 +179,7 @@ class SubmissionReviewPermissions(XFormPermissions):
     Custom Permission Checks for SubmissionReviews
     """
 
+    authenticated_users_only = True
     perms_map = {
         "GET": [],
         "OPTIONS": [],
@@ -282,6 +289,11 @@ class ProjectPermissions(DjangoObjectPermissions):
         return super().has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
+        if view.action == "star":
+            # get_object() already scopes the lookup to projects the caller
+            # may view; starring only alters the caller's own star.
+            return True
+
         if view.action == "share" and request.method == "PUT":
             remove = request.data.get("remove")
             username = request.data.get("username", "")
@@ -400,6 +412,14 @@ class ConnectViewsetPermissions(IsAuthenticated):
     """
     ConnectViewsetPermissions - requires an authenticated user.
     """
+
+    def has_object_permission(self, request, view, obj):
+        if view.action == "starred" and obj.user_id != request.user.pk:
+            # another user's profile gets the same response as an
+            # unknown one
+            raise Http404
+
+        return super().has_object_permission(request, view, obj)
 
 
 class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
@@ -523,7 +543,9 @@ __permissions__ = [DjangoObjectPermissions, IsAuthenticated]
 
 class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
     """
-    OrganizationProfilePermissions - allow authenticated users to delete an org
+    Object permissions for organizations: members may remove themselves
+    from the members list, key rotation is for owners and managers, and
+    everything else requires the standard Django object permissions.
     """
 
     def _check_is_admin_or_manager(self, user, obj):
@@ -531,13 +553,32 @@ class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
             user, obj
         )
 
-    def has_object_permission(self, request, view, obj):
-        is_authenticated = (
+    @staticmethod
+    def _is_self_removal(request, view):
+        # the members action reads the target username from both the body
+        # and the query string, so the exception holds only when every
+        # username supplied names the requester
+        if not (
             request
+            and request.method == "DELETE"
+            and view.action == "members"
             and request.user.is_authenticated
-            and request.user.username == request.data.get("username")
-        )
-        if is_authenticated and request.method == "DELETE":
+        ):
+            return False
+
+        supplied_usernames = {
+            username
+            for username in (
+                request.data.get("username"),
+                request.query_params.get("username"),
+            )
+            if username is not None
+        }
+        return supplied_usernames == {request.user.username}
+
+    def has_object_permission(self, request, view, obj):
+        # a member may remove themselves from an organization
+        if self._is_self_removal(request, view):
             return True
 
         if view.action == "rotate_key":

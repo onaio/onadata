@@ -1,29 +1,30 @@
 # Messaging
 
-Adds support to create and view messages.  Messages can be sent to:
+The public API provides read-only access to events recorded by internal
+application code. Events belong to a target: a user account, form, project,
+KMS key or entity list. Organizations use `target_type=user` with the
+organization's account ID.
 
-1. **Users**: this is a message that is sent from one user to another user.
-2. **XForms**:  this is a message that is sent from one user to all the users that have at least `view` permissions on an XForm.  This may be used to communicate with data enumerators, send notifications about an XForm, etc.
-3. **Projects**:  this is a message that is sent from one user to all the users that have at least `view` permissions on a Project.  This may be used when you wan tto send a notification to all the members of a project.
+All reads require authentication and access to the target. Personal account
+feeds are self-only; organization feeds can also be read by their owners and
+managers. Resource feeds require permission to view the target. See
+[the messaging documentation](../../../docs/messaging.rst) for target
+availability, error responses and caching rules.
 
-Once created, messages are stored in the database and can be retrieved via the API described below.  Additionally, messages are also sent to their recipients via a number of 'backends'.  MQTT is the only backend that is supported at this time.
+Internal code records events through `send_message`. Events are stored in the
+database and can also be delivered through configured notification backends.
+API clients cannot create, edit or delete events. Authenticated POST, PUT,
+PATCH and DELETE requests return `405 Method Not Allowed`.
 
-## API Endpoints
+## API endpoints
 
-### POST /api/messaging
+### GET /api/v1/messaging
 
-Create a new message, requires an `xform`, a `project`, or a `user` and the `message`.
+Returns events for the required `target_type` and `target_id` query parameters.
+Supported target types are `xform`, `project`, `user`, `kmskey` and `entitylist`.
 
 ```console
-curl -X POST -H "Content-Type:application/json" -d '{"target_type": "xform", "target_id": "1337", "message": "Hello, World!"}' https://api.ona.io/api/v1/messaging
-```
-
-### GET /api/messaging
-
-Returns an empty list, will return a list of messages given `target_type` and `target_id` query parameters. The `target_type` has `xform` or `project` or `user` as the value and `target_id` is the target identifier.
-
-```console
-curl -X GET https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1337
+curl -X GET "https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1337"
 ```
 
 #### Grouping activity counts
@@ -76,20 +77,12 @@ resolves to a user. Time bucket boundaries are computed in UTC; a client can
 render an event range by merging adjacent buckets using `earliest_timestamp`
 and `latest_timestamp`.
 
-### GET /api/messaging/[pk]
+### GET /api/v1/messaging/[pk]
 
 Returns a specific message with matching pk.
 
 ```console
 curl -X GET https://api.ona.io/api/v1/messaging/1337
-```
-
-### DELETE /api/messaging/[pk]
-
-Deletes a specific message with matching pk.
-
-```console
-curl -X DELETE https://api.ona.io/api/v1/messaging/1337
 ```
 
 ## Messaging Backends

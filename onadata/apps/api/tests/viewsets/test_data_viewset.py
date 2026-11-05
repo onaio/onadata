@@ -15,7 +15,7 @@ from datetime import timedelta
 from io import StringIO
 from tempfile import NamedTemporaryFile
 from unittest.mock import Mock, patch
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
 
 from django.conf import settings
 from django.core.cache import cache
@@ -642,7 +642,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Link", response)
         self.assertEqual(
-            response["Link"], ('<http://testserver/?page=2&page_size=1>; rel="next"')
+            parse_qs(urlsplit(response["Link"].split(";")[0].strip("<>")).query),
+            {"page": ["2"], "page_size": ["1"], "query": ["ambulance"]},
         )
         self.assertEqual(len(response.data), 1)
         # Pagination works with "sort" query parametr
@@ -657,7 +658,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Link", response)
         self.assertEqual(
-            response["Link"], ('<http://testserver/?page=2&page_size=2>; rel="next"')
+            parse_qs(urlsplit(response["Link"].split(";")[0].strip("<>")).query),
+            {"page": ["2"], "page_size": ["2"], "sort": ['{"date_modified":-1}']},
         )
         self.assertEqual(len(response.data), 2)
         self.assertEqual(response.data[0]["_id"], instances[0].pk)
@@ -682,10 +684,57 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Link", response)
         self.assertEqual(
-            response["Link"], ('<http://testserver/?page=2&page_size=1>; rel="next"')
+            parse_qs(urlsplit(response["Link"].split(";")[0].strip("<>")).query),
+            {
+                "page": ["2"],
+                "page_size": ["1"],
+                "sort": ['{"date_modified":-1}'],
+                "query": ["ambulance"],
+            },
         )
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["_id"], instances[0].pk)
+
+    def test_pagination_links_drop_start_and_limit(self):
+        """Page links leave the initial window and traverse the full result set."""
+        self._make_submissions()
+        view = DataViewSet.as_view({"get": "list"})
+        instance_ids = list(
+            self.xform.instances.order_by("id").values_list("id", flat=True)
+        )
+        for window in ({"limit": 2}, {"start": 1, "limit": 2}):
+            for variant in ({}, {"signed_urls": "true"}):
+                with self.subTest(window=window, variant=variant):
+                    request = self.factory.get(
+                        "/",
+                        data={"page": 2, "page_size": 1, **window, **variant},
+                        **self.extra,
+                    )
+                    response = view(request, pk=self.xform.pk)
+                    self.assertEqual(response.status_code, 200)
+                    links = {
+                        link["rel"]: link["url"]
+                        for link in requests.utils.parse_header_links(response["Link"])
+                    }
+                    for relation, page in (
+                        ("prev", 1),
+                        ("next", 3),
+                        ("first", 1),
+                        ("last", 4),
+                    ):
+                        url = links[relation]
+                        query = parse_qs(urlsplit(url).query)
+                        self.assertNotIn("start", query)
+                        self.assertNotIn("limit", query)
+                        for key, value in variant.items():
+                            self.assertEqual(query[key], [value])
+                        request = self.factory.get(url, **self.extra)
+                        page_response = view(request, pk=self.xform.pk)
+                        self.assertEqual(page_response.status_code, 200)
+                        self.assertEqual(
+                            [row["_id"] for row in page_response.data],
+                            [instance_ids[page - 1]],
+                        )
 
     def test_sort_query_param_with_invalid_values(self):
         self._make_submissions()
@@ -1001,8 +1050,22 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # access to a shared form but private data
         self.assertEqual(response.status_code, 404)
 
+        alice = self._create_user("alice", "alice")
+        alice_request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=f"Token {alice.auth_token}"
+        )
+        self.assertEqual(view(alice_request, pk=formid).status_code, 404)
+        detail_view = DataViewSet.as_view({"get": "retrieve"})
+        instance_pk = self.xform.instances.first().pk
+        self.assertEqual(
+            detail_view(alice_request, pk=formid, dataid=instance_pk).status_code, 404
+        )
+
         self.xform.shared_data = True
         self.xform.save()
+        self.assertEqual(
+            detail_view(alice_request, pk=formid, dataid=instance_pk).status_code, 200
+        )
         response = view(request, pk=formid)
         # access to a public data
         self.assertEqual(response.status_code, 200)
@@ -1598,12 +1661,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
             },
         )
 
-    def test_enketo_edit_url_names_the_submission(self):
-        """The server URL sent to Enketo names the submission being edited.
+    def test_enketo_edit_url_names_the_form(self):
+        """The server URL sent to Enketo names the form.
 
-        Enketo derives the form list and submission endpoints from it, so
-        naming the submission is what routes the edit to the endpoint that
-        supersedes it instead of the one that creates a new submission.
+        Enketo caches one form per server URL, and the edit names the
+        submission it replaces in the X-OpenRosa-Deprecated-Id header.
         """
         self._make_submissions()
         instance = self.xform.instances.all().order_by("id")[0]
@@ -1621,7 +1683,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
         self.assertEqual(
             posted["server_url"],
-            [f"https://testserver.com/enketo/{self.xform.pk}/{instance.pk}"],
+            [f"https://testserver.com/enketo/{self.xform.pk}"],
         )
 
     def test_enketo_edit_url_sends_instance_attachments(self):

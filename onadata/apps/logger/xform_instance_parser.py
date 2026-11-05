@@ -12,6 +12,7 @@ from django.utils.translation import gettext as _
 
 import dateutil.parser
 from defusedxml import minidom
+from defusedxml.ElementTree import ParseError, fromstring
 
 from onadata.libs.utils.common_tags import VERSION, XFORM_ID_STRING
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
@@ -169,6 +170,19 @@ def get_deprecated_uuid_from_xml(xml):
         if matches and len(matches.groups()) > 0:
             return matches.groups()[0]
     return None
+
+
+def is_encrypted_submission(xml):
+    """Return whether the submission XML is an encrypted envelope.
+
+    :param xml: The submission XML.
+    :returns: True when the root element is marked ``encrypted="yes"``, False
+        otherwise or when the XML cannot be parsed.
+    """
+    try:
+        return fromstring(xml).attrib.get("encrypted") == "yes"
+    except ParseError:
+        return False
 
 
 def clean_and_parse_xml(xml_string):

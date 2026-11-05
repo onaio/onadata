@@ -5,10 +5,16 @@ Test merged dataset functionality.
 import csv
 import json
 import os
+import re
+import warnings
+from datetime import timedelta
 from io import StringIO
 
 from django.conf import settings
 from django.core.files.base import File
+from django.core.paginator import UnorderedObjectListWarning
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -27,6 +33,8 @@ from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesViewSet
 from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
+from onadata.libs.serializers.xform_serializer import XFormMixin
+from onadata.libs.utils.cache_tools import MERGED_XFORM_BBOX_CACHE, safe_cache_get
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -222,7 +230,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         # A list containing the merged datasets for user bob
         request = self.factory.get("/", **self.extra)
-        response = view(request)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UnorderedObjectListWarning)
+            response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertIn(merged_dataset, response.data)
@@ -263,6 +273,13 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset["id"])
         self.assertEqual(response.status_code, 404)
 
+        # 4,301 digits passes isdecimal() and exceeds the digit limit of int()
+        oversized_pk = "1" * 4301
+        response = view(self.factory.get("/", **self.extra), pk=oversized_pk)
+        self.assertEqual(response.status_code, 400)
+        response = view(self.factory.get("/"), pk=oversized_pk)
+        self.assertEqual(response.status_code, 404)
+
         # status_code is 200 when: pk exists, user is authenticated
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=merged_dataset["id"])
@@ -292,6 +309,147 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             response.data["last_submission_time"],
             form_b.last_submission_time.isoformat(),
         )
+
+    def test_cached_zero_submission_count_is_ignored(self):
+        """A submission to a source form does not clear the merged dataset's key"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = XForm.objects.get(pk=merged_dataset["id"])
+        mixin = XFormMixin()
+        self.assertEqual(mixin.get_num_of_submissions(merged_xform), 0)
+
+        form_b = merged_xform.mergedxform.xforms.all()[1]
+        Instance(xform=form_b, xml='<data id="b"><fruit>mango</fruit></data>').save()
+        self.assertEqual(mixin.get_num_of_submissions(merged_xform), 1)
+
+    def _assert_permission_query_groups_once(self, view, request, **kwargs):
+        """Call the view and assert its permission-filtered query groups once"""
+        with CaptureQueriesContext(connection) as ctx:
+            response = view(request, **kwargs)
+        self.assertEqual(response.status_code, 200)
+        # Relies on guardian embedding the filtered queryset as a subquery of
+        # the query that carries the Sum
+        permission_sql = [
+            q["sql"]
+            for q in ctx.captured_queries
+            if "guardian_userobjectpermission" in q["sql"] and "SUM(" in q["sql"]
+        ]
+        self.assertEqual(len(permission_sql), 1)
+        # The outer query groups for the Sum; the permission subquery must not
+        self.assertEqual(permission_sql[0].count("GROUP BY"), 1)
+        return response, permission_sql[0]
+
+    def test_permission_filter_does_not_aggregate_all_merged_datasets(self):
+        """The permission subquery must not GROUP BY every merged dataset"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
+        self.assertFalse(merged_xform.shared)
+        form_b = merged_xform.xforms.all()[1]
+        Instance(xform=form_b, xml='<data id="b"><fruit>mango</fruit></data>').save()
+        # A count of 1 below can then only come from the Sum annotation
+        merged_xform.refresh_from_db()
+        self.assertEqual(merged_xform.num_of_submissions, 0)
+
+        request = self.factory.get("/", **self.extra)
+        response, permission_sql = self._assert_permission_query_groups_once(
+            MergedXFormViewSet.as_view({"get": "retrieve"}),
+            request,
+            pk=merged_dataset["id"],
+        )
+        self.assertEqual(response.data["num_of_submissions"], 1)
+        # Django aliases the subquery's table as U0, so this checks the
+        # permission subquery covers only the requested dataset
+        self.assertRegex(
+            permission_sql, rf'U0\."xform_ptr_id" = {merged_dataset["id"]}\b'
+        )
+
+        response, _ = self._assert_permission_query_groups_once(
+            MergedXFormViewSet.as_view({"get": "list"}), request
+        )
+        self.assertEqual(response.data[0]["num_of_submissions"], 1)
+
+    def _query_count(self, action, **kwargs):
+        request = self.factory.get("/", **self.extra)
+        with CaptureQueriesContext(connection) as ctx:
+            response = MergedXFormViewSet.as_view({"get": action})(request, **kwargs)
+        self.assertEqual(response.status_code, 200)
+        return len(ctx.captured_queries), response.data
+
+    def test_merged_datasets_query_count_is_constant(self):
+        """Listing and retrieving merged datasets don't run queries per
+        dataset or per source form"""
+        merged_dataset = self._create_merged_dataset()
+        source_xforms = MergedXForm.objects.get(pk=merged_dataset["id"]).xforms
+        form_a = source_xforms.get(id_string="a")
+        form_a.last_submission_time = timezone.now() - timedelta(days=1)
+        form_a.save(update_fields=["last_submission_time"])
+        form_b = source_xforms.get(id_string="b")
+        form_b.last_submission_time = timezone.now()
+        form_b.save(update_fields=["last_submission_time"])
+        # Warm guardian's process-wide content type cache so counts compare
+        self._query_count("list")
+        single_count, data = self._query_count("list")
+        self.assertEqual(len(data), 1)
+
+        request = self.factory.post(
+            "/",
+            data={
+                "xforms": [xform["url"] for xform in merged_dataset["xforms"]],
+                "name": "Second Merged Dataset",
+                "project": merged_dataset["project"],
+            },
+            **self.extra,
+        )
+        response = MergedXFormViewSet.as_view({"post": "create"})(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            response.data["last_submission_time"],
+            form_b.last_submission_time.isoformat(),
+        )
+
+        double_count, data = self._query_count("list")
+        self.assertEqual(len(data), 2)
+        self.assertEqual(double_count, single_count)
+        for merged in data:
+            self.assertEqual(
+                merged["last_submission_time"], form_b.last_submission_time.isoformat()
+            )
+
+        two_forms_count, data = self._query_count("retrieve", pk=merged_dataset["id"])
+        self.assertEqual(len(data["xforms"]), 2)
+        form_c = self._publish_markdown(MD, self.user, id_string="c")
+        MergedXForm.objects.get(pk=merged_dataset["id"]).xforms.add(form_c)
+        three_forms_count, data = self._query_count("retrieve", pk=merged_dataset["id"])
+        self.assertEqual(
+            sorted(xform["id_string"] for xform in data["xforms"]), ["a", "b", "c"]
+        )
+        self.assertEqual(
+            {xform["owner"] for xform in data["xforms"]}, {self.user.username}
+        )
+        self.assertEqual(three_forms_count, two_forms_count)
+
+    def test_list_and_retrieve_do_not_load_form_definitions(self):
+        """No form definition is rendered, so none should be fetched."""
+        merged_dataset = self._create_merged_dataset()
+        request = self.factory.get("/", **self.extra)
+
+        for action, kwargs in (
+            ("list", {}),
+            ("retrieve", {"pk": merged_dataset["id"]}),
+        ):
+            view = MergedXFormViewSet.as_view({"get": action})
+            with self.subTest(action=action):
+                with CaptureQueriesContext(connection) as context:
+                    response = view(request, **kwargs)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    [
+                        query["sql"]
+                        for query in context.captured_queries
+                        if re.search(r'"logger_xform"\."(json|xml|xls)"', query["sql"])
+                    ],
+                    [],
+                )
 
     def test_merged_datasets_form_json(self):
         """Test retrieving the XLSForm JSON of a merged dataset"""
@@ -401,6 +559,22 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             response.data["last_submission_time"],
             last_submission.date_created.isoformat(),
         )
+
+        merged_xform.shared = True
+        merged_xform.shared_data = False
+        merged_xform.save()
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        alice_request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=f"Token {alice.auth_token}"
+        )
+        self.assertEqual(view(alice_request, pk=merged_dataset["id"]).status_code, 404)
+        self.assertEqual(len(view(request, pk=merged_dataset["id"]).data), 2)
+
+        merged_xform.shared_data = True
+        merged_xform.save()
+        self.assertEqual(len(view(alice_request, pk=merged_dataset["id"]).data), 2)
 
     def test_md_data_viewset(self):
         """Test retrieving data of a merged dataset at the /data endpoint"""
@@ -1094,6 +1268,79 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         # deleted parents, 0 submissions
         self.assertEqual(response.data["num_of_submissions"], 0)
 
+    def _merged_dataset_with_submissions(self):
+        """Form a has two submissions, and form b has one newer submission"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
+        form_a = merged_xform.xforms.get(id_string="a")
+        form_b = merged_xform.xforms.get(id_string="b")
+        for form, fruits, days_ago in (
+            (form_a, ("orange", "apple"), 1),
+            (form_b, ("mango",), 0),
+        ):
+            for fruit in fruits:
+                xml = f'<data id="{form.id_string}"><fruit>{fruit}</fruit></data>'
+                Instance(xform=form, xml=xml).save()
+            form.refresh_from_db()
+            form.last_submission_time = timezone.now() - timedelta(days=days_ago)
+            form.save(update_fields=["last_submission_time"])
+        return merged_xform, form_a, form_b
+
+    def _assert_retrieved_and_listed(self, merged_xform, count, latest_form, forms):
+        request = self.factory.get("/", **self.extra)
+        retrieved = MergedXFormViewSet.as_view({"get": "retrieve"})(
+            request, pk=merged_xform.pk
+        )
+        listed = MergedXFormViewSet.as_view({"get": "list"})(request)
+        self.assertEqual((retrieved.status_code, listed.status_code), (200, 200))
+        latest = latest_form.last_submission_time.isoformat() if latest_form else None
+        expected = (merged_xform.pk, count, latest, [form.pk for form in forms])
+        self.assertEqual(
+            [
+                (
+                    data["id"],
+                    data["num_of_submissions"],
+                    data["last_submission_time"],
+                    sorted(xform["id"] for xform in data["xforms"]),
+                )
+                for data in (retrieved.data, *listed.data)
+            ],
+            [expected, expected],
+        )
+
+    def test_merged_dataset_counts_exclude_deleted_parents(self):
+        """A restored merged dataset doesn't count or list a parent that stays
+        deleted"""
+        merged_xform, form_a, form_b = self._merged_dataset_with_submissions()
+        self._assert_retrieved_and_listed(merged_xform, 3, form_b, [form_a, form_b])
+
+        # Deleting a parent deletes the merged dataset; restoring it brings the
+        # merged dataset back while the other parent stays deleted
+        form_a.soft_delete(self.user)
+        form_b.soft_delete(self.user)
+        form_a.refresh_from_db()
+        form_a.restore()
+        merged_xform.refresh_from_db()
+        self.assertIsNone(merged_xform.deleted_at)
+
+        self._assert_retrieved_and_listed(merged_xform, 2, form_a, [form_a])
+
+    def test_merged_dataset_restored_without_active_parents_reports_zero(self):
+        """A merged dataset restored while all its parents stay deleted stays
+        listed and retrievable, with no submissions"""
+        merged_xform, form_a, form_b = self._merged_dataset_with_submissions()
+
+        # Restoring the merged dataset itself leaves it without an active parent
+        form_a.soft_delete(self.user)
+        form_b.soft_delete(self.user)
+        merged_xform.refresh_from_db()
+        merged_xform.restore()
+        merged_xform.refresh_from_db()
+        self.assertIsNone(merged_xform.deleted_at)
+        self.assertEqual(merged_xform.xforms.count(), 2)
+
+        self._assert_retrieved_and_listed(merged_xform, 0, None, [])
+
     def test_bbox_returns_null_without_geolocated_submissions(self):
         """Merged dataset bbox returns ``null`` when no underlying xform has
         geolocated rows. Shape verification keeps parity with the XForm and
@@ -1107,3 +1354,24 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.data["bbox"])
+        self.assertEqual(
+            safe_cache_get(f"{MERGED_XFORM_BBOX_CACHE}{merged_dataset['id']}"),
+            response.data,
+        )
+
+        # Refused even with a warm cache.
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset["id"])
+        merged_xform.shared = True
+        merged_xform.shared_data = False
+        merged_xform.save()
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        alice_request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=f"Token {alice.auth_token}"
+        )
+        self.assertEqual(view(alice_request, pk=merged_dataset["id"]).status_code, 404)
+
+        merged_xform.shared_data = True
+        merged_xform.save()
+        self.assertEqual(view(alice_request, pk=merged_dataset["id"]).status_code, 200)

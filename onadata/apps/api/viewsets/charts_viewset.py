@@ -85,7 +85,7 @@ class ChartsViewSet(
     """
 
     filter_backends = (
-        filters.AnonDjangoObjectPermissionFilter,
+        filters.DataAnonDjangoObjectPermissionFilter,
         filters.ActiveXFormOrganizationFilter,
     )
     queryset = XForm.objects.filter(

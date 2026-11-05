@@ -26,6 +26,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractVi
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.models.share_project import ShareProject
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.cache_tools import safe_key
 
@@ -252,6 +253,21 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_starred_projects_scoped_to_requesting_user(self):
+        """A user cannot list another user's starred projects."""
+        self._project_create()
+        self.project.user_stars.add(self.user)
+        bob = self.user
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+
+        view = ConnectViewSet.as_view({"get": "starred"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user=bob.username)
+
+        self.assertEqual(response.status_code, 404)
+
     def test_get_starred_projects(self):
         self._project_create()
 
@@ -279,6 +295,86 @@ class TestConnectViewSet(TestAbstractViewSet):
         del response.data[0]["date_modified"]
         self.assertEqual(len(response.data), 1)
         self.assertDictEqual(dict(response.data[0]), dict(self.project_data))
+
+    def test_starred_list_hides_revoked_project(self):
+        """A starred project the user can no longer view is not listed."""
+        self._project_create()
+        project = self.project
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        ShareProject(project, "alice", "readonly").save()
+
+        star_view = ProjectViewSet.as_view({"post": "star"})
+        request = self.factory.post("/", **self.extra)
+        response = star_view(request, pk=project.pk)
+        self.assertEqual(response.status_code, 204)
+
+        view = ConnectViewSet.as_view({"get": "starred"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        ShareProject(project, "alice", "readonly", remove=True).save()
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_starred_list_hides_star_held_without_access(self):
+        """A star held without view access does not expose the project."""
+        self._project_create()
+        project = self.project
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        # a star planted without any project access, as the old bug allowed
+        project.user_stars.add(self.user)
+
+        view = ConnectViewSet.as_view({"get": "starred"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_starred_list_hides_soft_deleted_project(self):
+        """A starred project that was soft-deleted is not listed."""
+        self._project_create()
+        self.project.user_stars.add(self.user)
+        self.project.soft_delete()
+
+        view = ConnectViewSet.as_view({"get": "starred"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_starred_list_shows_public_project(self):
+        """A public project stays in the starred list without a grant."""
+        self._project_create()
+        project = self.project
+        project.shared = True
+        project.save()
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+
+        star_view = ProjectViewSet.as_view({"post": "star"})
+        request = self.factory.post("/", **self.extra)
+        response = star_view(request, pk=project.pk)
+        self.assertEqual(response.status_code, 204)
+
+        view = ConnectViewSet.as_view({"get": "starred"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["projectid"], project.pk)
 
     def test_user_list_with_digest(self):
         # Clear cache

@@ -31,7 +31,7 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
     authentication_classes = api_settings.DEFAULT_AUTHENTICATION_CLASSES + [
         TempTokenURLParameterAuthentication
     ]
-    queryset = Export.objects.filter(
+    queryset = Export.objects.select_related("xform").filter(
         xform__deleted_at__isnull=True,
         xform__project__organization__is_active=True,
     )

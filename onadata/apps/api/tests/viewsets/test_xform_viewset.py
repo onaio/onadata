@@ -10,6 +10,7 @@ import csv
 import json
 import os
 import re
+import warnings
 from builtins import open
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
@@ -23,9 +24,11 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.paginator import UnorderedObjectListWarning
+from django.db import connection
 from django.db.models import Q
 from django.http import HttpResponseRedirect
-from django.test.utils import override_settings
+from django.test.utils import CaptureQueriesContext, override_settings
 from django.utils.dateparse import parse_datetime
 from django.utils.html import conditional_escape
 
@@ -57,7 +60,15 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
 )
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment, EntityList, Instance, Project, XForm
+from onadata.apps.logger.models import (
+    Attachment,
+    EntityList,
+    FollowUpForm,
+    Instance,
+    Project,
+    RegistrationForm,
+    XForm,
+)
 from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.views import delete_xform
@@ -97,11 +108,16 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_delete,
     safe_cache_get,
 )
-from onadata.libs.utils.common_tags import GROUPNAME_REMOVED_FLAG, MONGO_STRFTIME
+from onadata.libs.utils.common_tags import (
+    GROUPNAME_REMOVED_FLAG,
+    MONGO_STRFTIME,
+    XFORM_META_PERMS,
+)
 from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
 )
+from onadata.libs.utils.export_tools import generate_export
 from onadata.libs.utils.xform_utils import get_xform_users
 
 ROLES = [ReadOnlyRole, DataEntryRole, EditorRole, ManagerRole, OwnerRole]
@@ -900,8 +916,49 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             request = self.factory.get("/", **self.extra)
-            response = self.view(request)
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", UnorderedObjectListWarning)
+                response = self.view(request)
             self.assertNotEqual(response.get("Cache-Control"), None)
+
+    def test_form_list_query_count_is_constant(self):
+        """Listing forms doesn't run queries per form"""
+        md = """
+        | survey |
+        |        | type | name | label |
+        |        | text | city | City? |
+        """
+
+        def warm_list_query_count(xform):
+            RegistrationForm.objects.create(entity_list=trees, xform=xform)
+            RegistrationForm.objects.create(entity_list=deleted, xform=xform)
+            FollowUpForm.objects.create(entity_list=trees, xform=xform)
+            FollowUpForm.objects.create(entity_list=deleted, xform=xform)
+            # A count of 0 is not cached, and is looked up for each form
+            XForm.objects.update(num_of_submissions=1)
+            request = self.factory.get("/", **self.extra)
+            self.view(request)
+            with CaptureQueriesContext(connection) as queries:
+                response = self.view(request)
+            return len(queries), response.data
+
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            trees = EntityList.objects.create(name="trees", project=self.project)
+            deleted = EntityList.objects.create(
+                name="old", project=self.project, deleted_at=datetime.now(timezone.utc)
+            )
+            one_form_count, _ = warm_list_query_count(self.xform)
+            second_form = self._publish_markdown(
+                md, self.user, project=self.project, id_string="second"
+            )
+            two_forms_count, data = warm_list_query_count(second_form)
+
+        self.assertEqual(two_forms_count, one_form_count)
+        second = next(form for form in data if form["formid"] == second_form.pk)
+        expected_lists = [{"id": trees.pk, "name": "trees", "is_active": True}]
+        self.assertEqual(second["contributes_entities_to"], expected_lists)
+        self.assertEqual(second["consumes_entities_from"], expected_lists)
 
     @override_settings(STREAM_DATA=True)
     def test_form_list_stream(self):
@@ -1010,7 +1067,9 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             request = self.factory.get("/")
-            response = self.view(request)
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", UnorderedObjectListWarning)
+                response = self.view(request)
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get("Cache-Control"), None)
             self.assertEqual(response.data, [])
@@ -3815,6 +3874,14 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(self.user.username, "alice")
             self.assertNotEqual(previous_user, self.user)
 
+            self.assertFalse(self.xform.shared_data)
+            view = XFormViewSet.as_view({"get": "retrieve"})
+            for extra in (self.extra, {}):
+                request = self.factory.get("/", **extra)
+                response = view(request, pk=self.xform.pk)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data["formid"], self.xform.pk)
+
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("onadata.apps.api.tasks.get_async_status")
     def test_publish_form_async(self, mock_get_status):
@@ -5625,11 +5692,89 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             key = "_submitted_by"
             self._validate_csv_export(response, None, key, expected_data)
 
+            # export_id only reaches exports limited to the user's own submissions.
+            own_export = Export.objects.get(
+                xform=self.xform, options__query___submitted_by="alice"
+            )
+            whole_form_export = generate_export(
+                Export.CSV_EXPORT, self.xform, None, {"extension": "csv"}
+            )
+            for export_id, expected_status in (
+                (own_export.pk, 200),
+                (whole_form_export.pk, 404),
+            ):
+                request = self.factory.get(
+                    "/", {"export_id": export_id}, **alices_extra
+                )
+                response = view(request, pk=self.xform.pk, format="csv")
+                self.assertEqual(response.status_code, expected_status)
+
             DataEntryOnlyRole.add(alice_profile.user, self.xform)
 
             request = self.factory.get("/", **alices_extra)
             response = view(request, pk=self.xform.pk, format="csv")
             self.assertEqual(response.status_code, 403)
+
+            # Forms can have no meta permissions row.
+            self.xform.metadata_set.filter(data_type=XFORM_META_PERMS).delete()
+            response = view(request, pk=self.xform.pk, format="csv")
+            self.assertEqual(response.status_code, 403)
+
+            self.xform.shared = True
+            self.xform.save()
+            carol = self._create_user_profile(
+                {"username": "carol", "email": "carol@localhost.com"}
+            ).user
+            carol_request = self.factory.get(
+                "/", HTTP_AUTHORIZATION=f"Token {carol.auth_token}"
+            )
+            response = view(carol_request, pk=self.xform.pk, format="csv")
+            self.assertEqual(response.status_code, 404)
+
+            dave = self._create_user_profile(
+                {"username": "dave", "email": "dave@localhost.com"}
+            ).user
+            ReadOnlyRole.add(dave, self.xform)
+            request = self.factory.get(
+                "/", HTTP_AUTHORIZATION=f"Token {dave.auth_token}"
+            )
+            response = view(request, pk=self.xform.pk, format="csv")
+            self.assertEqual(response.status_code, 200)
+
+            self.xform.shared_data = True
+            self.xform.save()
+            response = view(carol_request, pk=self.xform.pk, format="csv")
+            self.assertEqual(response.status_code, 200)
+
+            carol_export_request = self.factory.get(
+                "/",
+                {"export_id": whole_form_export.pk},
+                HTTP_AUTHORIZATION=f"Token {carol.auth_token}",
+            )
+            response = view(carol_export_request, pk=self.xform.pk, format="csv")
+            self.assertEqual(response.status_code, 200)
+
+    def test_export_id_reaches_whole_form_export_without_meta_perms(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+            self.xform.metadata_set.filter(data_type=XFORM_META_PERMS).delete()
+            alice = self._create_user_profile(
+                {"username": "alice", "email": "alice@localhost.com"}
+            ).user
+            DataEntryMinorRole.add(alice, self.xform)
+            alices_extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
+            view = XFormViewSet.as_view({"get": "retrieve"})
+
+            request = self.factory.get("/", **alices_extra)
+            response = view(request, pk=self.xform.pk, format="csv")
+            self.assertEqual(response.status_code, 200)
+            export = Export.objects.get(xform=self.xform)
+            self.assertNotIn("_submitted_by", export.options.get("query") or {})
+
+            request = self.factory.get("/", {"export_id": export.pk}, **alices_extra)
+            response = view(request, pk=self.xform.pk, format="csv")
+            self.assertEqual(response.status_code, 200)
 
     def test_csv_export_cache(self):
         with HTTMock(enketo_mock):
@@ -5861,6 +6006,28 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 response.data.get("error"),
                 "The uploaded file 'good.xlsx' could not be validated.",
             )
+
+    def test_replacing_form_reports_entity_lists_after_publish(self):
+        """The response reflects what publishing the new file changed"""
+        xform = self._publish_registration_form(self.user)
+        view = XFormViewSet.as_view({"patch": "partial_update"})
+
+        def publish(*_args):
+            RegistrationForm.objects.filter(xform=xform).update(is_active=False)
+            return xform
+
+        with patch(
+            "onadata.apps.api.viewsets.xform_viewset.utils.publish_xlsform",
+            side_effect=publish,
+        ) as publish_mock:
+            request = self.factory.patch(
+                "/", data={"text_xls_form": "form"}, **self.extra
+            )
+            response = view(request, pk=xform.pk)
+
+        publish_mock.assert_called_once()
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["contributes_entities_to"][0]["is_active"])
 
     @override_settings(TIME_ZONE="UTC")
     def test_get_single_registration_form(self):
@@ -6330,6 +6497,20 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
                 self.assertEqual(response.status_code, 202)
                 export = Export.objects.get(task_id=task_id)
                 self.assertTrue(export.is_successful)
+
+            self.xform.shared = True
+            self.xform.save()
+            alice = self._create_user_profile(
+                {"username": "alice", "email": "alice@localhost.com"}
+            ).user
+            alice_extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
+            request = self.factory.get("/", data={"format": "csv"}, **alice_extra)
+            self.assertEqual(view(request, pk=formid).status_code, 404)
+
+            self.xform.shared_data = True
+            self.xform.save()
+            request = self.factory.get("/", data={"format": "csv"}, **alice_extra)
+            self.assertEqual(view(request, pk=formid).status_code, 202)
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("onadata.libs.utils.api_export_tools.AsyncResult")
@@ -6914,6 +7095,21 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
         self.assertIsNotNone(response.data["bbox"])
         self.assertEqual(len(response.data["bbox"]), 4)
         self.assertEqual(safe_cache_get(cache_key), response.data)
+
+        # Refused even with a warm cache.
+        self.xform.shared = True
+        self.xform.save()
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        alice_request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=f"Token {alice.auth_token}"
+        )
+        self.assertEqual(view(alice_request, pk=self.xform.pk).status_code, 404)
+
+        self.xform.shared_data = True
+        self.xform.save()
+        self.assertIsNotNone(view(alice_request, pk=self.xform.pk).data["bbox"])
 
     @override_settings(BBOX_CACHE_TTL=123)
     @patch("onadata.apps.api.viewsets.xform_viewset.safe_cache_set")

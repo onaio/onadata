@@ -10,7 +10,9 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import connection
 from django.test import TransactionTestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from django_digest.test import Client as DigestClient
@@ -22,7 +24,6 @@ from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet,
     XFormListViewSet,
 )
-from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.main.models import MetaData
 from onadata.libs.models.share_project import ShareProject
@@ -39,6 +40,39 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         super(self.__class__, self).setUp()
         self.view = XFormListViewSet.as_view({"get": "list"})
         self._publish_xls_form_to_project()
+
+    def test_get_xform_list_query_count_is_constant(self):
+        """Listing forms doesn't run queries per form"""
+        md = """
+        | survey |
+        |        | type | name | label |
+        |        | text | city | City? |
+        """
+
+        def list_forms():
+            request = self.factory.get("/")
+            response = self.view(request)
+            auth = DigestAuth("bob", "bobbob")
+            request.META.update(auth(request.META, response))
+            with CaptureQueriesContext(connection) as queries:
+                response = self.view(request, username="bob")
+            self.assertEqual(response.status_code, 200)
+            return len(queries), response.data
+
+        list_forms()
+        one_form_count, _ = list_forms()
+        second_form = self._publish_markdown(
+            md, self.user, project=self.project, id_string="second"
+        )
+        MetaData.objects.create(
+            content_object=second_form, data_type="media", data_value="trees.csv"
+        )
+        two_forms_count, data = list_forms()
+
+        self.assertEqual(two_forms_count, one_form_count)
+        manifest_urls = {form["formID"]: form["manifestUrl"] for form in data}
+        self.assertIsNone(manifest_urls[self.xform.id_string])
+        self.assertIn(f"/xformsManifest/{second_form.pk}", manifest_urls["second"])
 
     def test_get_xform_list(self):
         request = self.factory.get("/")
@@ -1120,6 +1154,49 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertEqual(first_line, expected_headers)
 
+    def test_retrieve_xform_media_linked_xform_no_permission(self):
+        """Linked dataset is named when user lacks access to the linked form"""
+        linked_xform = self.xform
+        self._project_create({"name": "Linking project"})
+        self._publish_xls_form_to_project(
+            xlsform_path=os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_1.xlsx",
+            )
+        )
+        self._add_form_metadata(
+            self.xform, "media", f"xform {linked_xform.pk} transportation"
+        )
+        self._create_user_profile(
+            {
+                "username": "alice",
+                "email": "alice@localhost.com",
+                "password1": "alice",
+                "password2": "alice",
+            }
+        )
+        ShareProject(self.project, "alice", "readonly").save()
+        client = DigestClient()
+        client.set_authorization("alice", "alice", "Digest")
+
+        response = client.get(
+            f"/bob/xformsMedia/{self.xform.pk}/{self.metadata.pk}.csv"
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(
+            response.json(),
+            {
+                "details": "You don't have permission to access the linked "
+                'dataset "transportation".'
+            },
+        )
+
     def test_retrieve_xform_media_entity_list_dataset(self):
         """EntityList dataset is returned"""
         # Publish registration form and create "trees" Entitylist dataset
@@ -1629,27 +1706,3 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
             self.assertTrue(response.has_header("Date"))
             self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
-
-    def test_form_list_submission_belongs_to_xform(self):
-        """formList with submission_pk returns 404 if submission doesn't belong to xform."""
-        self._submit_transport_instance()
-        instance = Instance.objects.first()
-
-        # Publish a second form
-        md = """
-        | survey  |
-        |         | type | name | label  |
-        |         | text | city | City?  |
-        """
-        other_xform = self._publish_markdown(md, self.user, id_string="other")
-
-        # Request with mismatched xform_pk and submission_pk
-        request = self.factory.get("/", **self.extra)
-        response = self.view(
-            request, xform_pk=other_xform.pk, submission_pk=instance.pk
-        )
-        self.assertEqual(response.status_code, 404)
-
-        # Request with correct xform_pk and submission_pk succeeds
-        response = self.view(request, xform_pk=self.xform.pk, submission_pk=instance.pk)
-        self.assertEqual(response.status_code, 200)

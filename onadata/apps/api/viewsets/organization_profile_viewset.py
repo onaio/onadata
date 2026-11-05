@@ -18,8 +18,11 @@ from reversion.views import RevisionMixin
 
 from onadata.apps.api import permissions
 from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.api.tools import get_baseviewset_class, get_org_profile_cache_key
-from onadata.apps.logger.models import KMSKey
+from onadata.apps.api.tools import (
+    get_baseviewset_class,
+    get_org_profile_cache_key,
+    invalidate_organization_cache,
+)
 from onadata.apps.messaging.constants import KMS_KEY, KMS_KEY_ROTATED
 from onadata.apps.messaging.serializers import send_message
 from onadata.libs.filters import (
@@ -31,6 +34,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.organization_member_serializer import (
+    OrganizationMemberListSerializer,
     OrganizationMemberSerializer,
 )
 from onadata.libs.serializers.organization_serializer import (
@@ -75,6 +79,7 @@ class OrganizationProfileViewSet(
     lookup_field = "user"
     permission_classes = [permissions.OrganizationProfilePermissions]
     filter_backends = (OrganizationPermissionFilter, OrganizationsSharedWithUserFilter)
+    api_version = "v1"
 
     def get_serializer_class(self):
         """Override `get_serializer_class` method"""
@@ -86,7 +91,9 @@ class OrganizationProfileViewSet(
     def retrieve(self, request, *args, **kwargs):
         """Get organization from cache or db"""
         organization = self.get_object()
-        cache_key = get_org_profile_cache_key(request.user, organization)
+        cache_key = get_org_profile_cache_key(
+            request.user, organization, self.api_version
+        )
         cached_org = safe_cache_get(cache_key)
 
         if cached_org:
@@ -102,20 +109,28 @@ class OrganizationProfileViewSet(
         organization = response.data
         username = organization.get("org")
         organization_profile = OrganizationProfile.objects.get(user__username=username)
-        cache_key = get_org_profile_cache_key(request.user, organization_profile)
+        cache_key = get_org_profile_cache_key(
+            request.user, organization_profile, self.api_version
+        )
         safe_cache_set(cache_key, organization)
         return response
 
     def destroy(self, request, *args, **kwargs):
         """Clear cache and destroy organization"""
-        cache_key = get_org_profile_cache_key(request.user, self.get_object())
+        cache_key = get_org_profile_cache_key(
+            request.user, self.get_object(), self.api_version
+        )
         safe_cache_delete(cache_key)
         return super().destroy(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
         """Update org in cache and db"""
         response = super().update(request, *args, **kwargs)
-        cache_key = get_org_profile_cache_key(request.user, self.get_object())
+        organization = self.get_object()
+        invalidate_organization_cache(organization.user.username)
+        cache_key = get_org_profile_cache_key(
+            request.user, organization, self.api_version
+        )
         safe_cache_set(cache_key, response.data)
         return response
 
@@ -123,8 +138,25 @@ class OrganizationProfileViewSet(
     def members(self, request, *args, **kwargs):
         """Return organization members."""
         organization = self.get_object()
+
+        if request.method == "GET":
+            data = self.serializer_class(
+                organization, context={"request": request}
+            ).data
+            # pylint: disable=attribute-defined-outside-init
+            self.etag_data = json.dumps(data)
+
+            return Response(OrganizationMemberListSerializer(organization).data)
+
+        # Writes take their input from the request body; DELETE also accepts
+        # the query string because clients cannot reliably send a DELETE body.
+        # The body takes precedence so the username the permission check
+        # authorized is the one acted on.
+        query_params = (
+            request.query_params.dict() if request.method == "DELETE" else {}
+        )
         data = merge_dicts(
-            request.data, request.query_params.dict(), {"organization": organization.pk}
+            query_params, request.data, {"organization": organization.pk}
         )
 
         if request.method == "POST" and "username" not in data:
@@ -155,10 +187,14 @@ class OrganizationProfileViewSet(
     @action(methods=["POST"], detail=True, url_path="rotate-key")
     def rotate_key(self, request, *args, **kwargs):
         """Manually rotate KMS key."""
-        self.get_object()  # Check if user has permission to rotate key
-        serializer = self.get_serializer(data=request.data)
+        # Checks if user has permission to rotate key
+        organization = self.get_object()
+        serializer = self.get_serializer(
+            data=request.data,
+            context={**self.get_serializer_context(), "organization": organization},
+        )
         serializer.is_valid(raise_exception=True)
-        old_key = KMSKey.objects.get(id=serializer.validated_data["id"])
+        old_key = serializer.validated_data["id"]
         new_key = serializer.save()
         # Capture audit log
         send_message(

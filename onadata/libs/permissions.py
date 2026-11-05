@@ -10,9 +10,12 @@ from typing import Any
 from django.apps import apps
 from django.db.models import Q
 from django.db.models.base import ModelBase
+from django.http import Http404
 
 import six
+from guardian.core import ObjectPermissionChecker
 from guardian.shortcuts import assign_perm, get_perms, get_users_with_perms, remove_perm
+from rest_framework.exceptions import PermissionDenied
 
 from onadata.apps.logger.models.project import (
     Project,
@@ -535,6 +538,23 @@ def get_role_in_org(user, organization):
     return get_role(perms, organization) or MemberRole.name
 
 
+def is_organization_admin(user, organization):
+    """Return True if ``user`` is an owner or manager of ``organization``.
+
+    Owners are members of the organization's Owners team or holders of the
+    owner role on the organization; managers hold the manager role.
+
+    :param user: The user to check if admin in org
+    :param organization: The organization to check in
+    :return: True of the user is an admin, False otherwise
+    """
+    return (
+        organization.is_organization_owner(user)
+        or OwnerRole.user_has_role(user, organization)
+        or ManagerRole.user_has_role(user, organization)
+    )
+
+
 def get_user_perms(obj):
     """
     Return XFormUserObjectPermission or ProjectUserObjectPermission queryset.
@@ -682,6 +702,32 @@ def _check_meta_perms_enabled(xform):
     return xform.metadata_set.filter(data_type=XFORM_META_PERMS).count() > 0
 
 
+def can_view_submission(user, instance):
+    """
+    Return True if ``user`` may view the submission ``instance``.
+
+    The user needs ``view_xform`` on the submission's form. When the form's
+    meta permissions are enabled and the form's data is not public, a user
+    without ``view_xform_all`` may only view their own submissions, and only
+    with ``view_xform_data`` — the same rules the queryset filters apply to
+    data reads.
+    """
+    xform = instance.xform
+    perms = set(ObjectPermissionChecker(user).get_perms(xform))
+
+    if CAN_VIEW_XFORM not in perms:
+        return False
+
+    if (
+        CAN_VIEW_XFORM_ALL in perms
+        or xform.shared_data
+        or not _check_meta_perms_enabled(xform)
+    ):
+        return True
+
+    return CAN_VIEW_XFORM_DATA in perms and instance.user_id == user.pk
+
+
 # pylint: disable=invalid-name
 def exclude_items_from_queryset_using_xform_meta_perms(xform, user, queryset):
     """
@@ -696,6 +742,39 @@ def exclude_items_from_queryset_using_xform_meta_perms(xform, user, queryset):
     if user.has_perm(CAN_VIEW_XFORM_DATA, xform):
         return queryset.exclude(~Q(user=user), xform=xform)
     return queryset.none()
+
+
+def can_read_all_xform_data(user, xform):
+    """Returns whether ``user`` may read every submission, whatever the meta perms."""
+    return xform.shared_data or user.has_perm(CAN_VIEW_XFORM_ALL, xform)
+
+
+def export_dataview_query_string(
+    user, export, can_read_all_data=can_read_all_xform_data
+):
+    """Returns ``?dataview=<pk>`` if ``user`` reaches ``export`` only via its dataview.
+
+    Pass a cached ``can_read_all_data`` when calling it once per export.
+    """
+    dataview_pk = export.options.get("dataview_pk")
+    if not dataview_pk or can_read_all_data(user, export.xform):
+        return ""
+
+    return f"?dataview={dataview_pk}"
+
+
+def require_xform_data_access(user, xform):
+    """Raises unless ``user`` may read the submissions.
+
+    403 if they can view the form, else 404.
+    """
+    if xform.shared_data or user.has_perm(CAN_VIEW_XFORM_DATA, xform):
+        return
+
+    if user.has_perm(CAN_VIEW_XFORM, xform):
+        raise PermissionDenied
+
+    raise Http404
 
 
 def filter_queryset_xform_meta_perms(xform, user, instance_queryset):

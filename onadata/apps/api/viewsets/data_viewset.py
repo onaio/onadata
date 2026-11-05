@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """The /data API endpoint."""
 
+# pylint: disable=too-many-lines
+
 import json
 import math
 import types
@@ -12,6 +14,7 @@ from django.db.models import Q
 from django.db.utils import DataError, OperationalError
 from django.http import Http404, StreamingHttpResponse
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.translation import gettext as _
 
 import six
@@ -21,6 +24,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
+from rest_framework.utils.urls import remove_query_param, replace_query_param
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.permissions import ConnectViewsetPermissions, XFormPermissions
@@ -75,6 +79,7 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_set,
 )
 from onadata.libs.utils.common_tools import json_stream, str_to_bool
+from onadata.libs.utils.signed_urls import SignedAttachmentURLs
 from onadata.libs.utils.viewer_tools import (
     get_enketo_attachment_params,
     get_enketo_urls,
@@ -163,6 +168,31 @@ class DataViewSet(
         deleted_at__isnull=True, project__organization__is_active=True
     )
 
+    @cached_property
+    def signed_attachment_urls(self):
+        """Enable signing only for JSON submission list and detail requests."""
+        if (
+            self.request.method in ("GET", "HEAD")
+            and self.action in ("list", "retrieve")
+            and self.kwargs.get("pk") not in (None, self.public_data_endpoint)
+            and self.request.accepted_renderer.format == "json"
+            and str_to_bool(self.request.query_params.get("signed_urls", False))
+        ):
+            return SignedAttachmentURLs(self.request)
+        return None
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        """Apply signed URL freshness and validators after the ordinary mixins."""
+        response = super().finalize_response(request, response, *args, **kwargs)
+        if response.status_code == 200 and self.signed_attachment_urls is not None:
+            if response.streaming:
+                self.signed_attachment_urls.finalize_response(response)
+            else:
+                response.add_post_render_callback(
+                    self.signed_attachment_urls.finalize_response
+                )
+        return response
+
     def get_serializer_class(self):
         """Returns appropriate serializer class based on context."""
         pk_lookup, dataid_lookup = self.lookup_fields
@@ -236,13 +266,15 @@ class DataViewSet(
 
     def _filtered_or_shared_queryset(self, queryset, form_pk):
         filter_kwargs = {self.lookup_field: form_pk}
-        queryset = queryset.filter(**filter_kwargs).only("id", "shared")
+        queryset = queryset.filter(**filter_kwargs).only("id", "shared", "shared_data")
 
         if not queryset:
             filter_kwargs["shared_data"] = True
             filter_kwargs["deleted_at__isnull"] = True
             filter_kwargs["project__organization__is_active"] = True
-            queryset = XForm.objects.filter(**filter_kwargs).only("id", "shared")
+            queryset = XForm.objects.filter(**filter_kwargs).only(
+                "id", "shared", "shared_data"
+            )
 
             if not queryset:
                 raise Http404(_("No data matches with given query."))
@@ -252,7 +284,7 @@ class DataViewSet(
     # pylint: disable=unused-argument
     def filter_queryset(self, queryset, view=None):
         """Returns and filters queryset based on context and query params."""
-        queryset = super().filter_queryset(queryset.only("id", "shared"))
+        queryset = super().filter_queryset(queryset.only("id", "shared", "shared_data"))
         form_pk = self.kwargs.get(self.lookup_field)
 
         if form_pk:
@@ -343,7 +375,6 @@ class DataViewSet(
                     self.object.xform.user.username,
                     xform_pk=self.object.xform.id,
                     generate_consistent_urls=True,
-                    submission_pk=self.object.pk,
                 )
                 if not return_url:
                     raise ParseError(_("return_url not provided."))
@@ -461,7 +492,10 @@ class DataViewSet(
         self.object = instance = self.get_object()
 
         if _format == "json" or _format is None or _format == "debug":
-            return Response(instance.json)
+            data = instance.json
+            if self.signed_attachment_urls is not None:
+                data = next(self.signed_attachment_urls.transform([data]))
+            return Response(data)
         if _format == "xml":
             return Response(instance.xml)
         if _format == "geojson":
@@ -500,9 +534,9 @@ class DataViewSet(
         """
         Sets the self.headers value for the viewset
         """
-        url = self.request.build_absolute_uri()
+        url = remove_query_param(self.request.build_absolute_uri(), "start")
+        url = remove_query_param(url, "limit")
         query = self.request.query_params.get("query")
-        base_url = url.split("?")[0]
         if query:
             query = self._parse_query(query)
             num_of_records = query_count(
@@ -519,6 +553,11 @@ class DataViewSet(
         last_page_url = None
         links = []
 
+        def page_url(page):
+            """Keep filters and signing without the initial start/limit window."""
+            page_link = replace_query_param(url, "page", page)
+            return replace_query_param(page_link, "page_size", current_page_size)
+
         if isinstance(current_page, str):
             try:
                 current_page = int(current_page)
@@ -532,21 +571,17 @@ class DataViewSet(
                 return
 
         if (current_page * current_page_size) < num_of_records:
-            next_page_url = (
-                f"{base_url}?page={current_page + 1}&page_size={current_page_size}"
-            )
+            next_page_url = page_url(current_page + 1)
 
         if current_page > 1:
-            prev_page_url = (
-                f"{base_url}?page={current_page - 1}&page_size={current_page_size}"
-            )
+            prev_page_url = page_url(current_page - 1)
 
         last_page = math.ceil(num_of_records / current_page_size)
         if last_page not in (current_page, current_page + 1):
-            last_page_url = f"{base_url}?page={last_page}&page_size={current_page_size}"
+            last_page_url = page_url(last_page)
 
         if current_page != 1:
-            first_page_url = f"{base_url}?page=1&page_size={current_page_size}"
+            first_page_url = page_url(1)
 
         if not hasattr(self, "headers"):
             # pylint: disable=attribute-defined-outside-init
@@ -844,7 +879,7 @@ class DataViewSet(
 
             # ETags are Disabled for XForms with Submissions that surpass
             # the configured SUBMISSION_RETRIEVAL_THRESHOLD setting
-            if enable_etag:
+            if enable_etag and self.signed_attachment_urls is None:
                 sql = params = None
 
                 if xform:
@@ -947,7 +982,10 @@ class DataViewSet(
             response = self._get_streaming_response()
         else:
             serializer = self.get_serializer(self.object_list, many=True)
-            response = Response(serializer.data, headers=self.headers)
+            data = serializer.data
+            if self.signed_attachment_urls is not None:
+                data = list(self.signed_attachment_urls.transform(data))
+            response = Response(data, headers=self.headers)
 
         return response
 
@@ -968,8 +1006,11 @@ class DataViewSet(
                 content_type="application/xml",
             )
         else:
+            items = self.object_list
+            if self.signed_attachment_urls is not None:
+                items = self.signed_attachment_urls.transform(items)
             response = StreamingHttpResponse(
-                json_stream(self.object_list, get_json_string),
+                json_stream(items, get_json_string),
                 content_type="application/json",
             )
 

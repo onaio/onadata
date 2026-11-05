@@ -4,6 +4,7 @@ OpenRosa Form List API - https://docs.getodk.org/openrosa-form-list/
 """
 
 from django.conf import settings
+from django.db.models import Exists, OuterRef
 from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 
@@ -18,7 +19,6 @@ from onadata.apps.api.tools import (
     get_media_file_response,
     get_xform_list_cache_key,
 )
-from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm, get_forms_shared_with_user
 from onadata.apps.main.models.meta_data import MetaData
@@ -35,6 +35,7 @@ from onadata.libs.renderers.renderers import (
 from onadata.libs.serializers.xform_serializer import (
     XFormListSerializer,
     XFormManifestSerializer,
+    media_metadata,
 )
 from onadata.libs.utils.cache_tools import (
     XFORM_MANIFEST_CACHE,
@@ -70,13 +71,23 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         filters.XFormListXFormPKFilter,
         django_filter_filters.DjangoFilterBackend,
     )
-    queryset = XForm.objects.filter(
-        downloadable=True,
-        deleted_at=None,
-        is_merged_dataset=False,
-        project__organization__is_active=True,
-    ).only(
-        "id_string", "title", "version", "uuid", "description", "user__username", "hash"
+    queryset = (
+        XForm.objects.filter(
+            downloadable=True,
+            deleted_at=None,
+            is_merged_dataset=False,
+            project__organization__is_active=True,
+        )
+        .select_related("user")
+        .only(
+            "id_string",
+            "title",
+            "version",
+            "uuid",
+            "description",
+            "user__username",
+            "hash",
+        )
     )
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (XFormListRenderer,)
@@ -177,7 +188,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             deleted_at=None,
             is_merged_dataset=False,
             project__organization__is_active=True,
-        )
+        ).annotate(has_media=Exists(media_metadata(OuterRef("pk"))))
 
     def _get_xform_list_cache_key(self):
         xform_pk = self.kwargs.get("xform_pk")
@@ -204,27 +215,12 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         return cache_key
 
-    def _validate_submission_belongs_to_xform(self):
-        """Validate that the submission belongs to the xform."""
-        submission_pk = self.kwargs.get("submission_pk")
-        xform_pk = self.kwargs.get("xform_pk")
-
-        if submission_pk and xform_pk:
-            get_object_or_404(
-                Instance,
-                pk=submission_pk,
-                xform_id=xform_pk,
-                xform__deleted_at__isnull=True,
-                xform__project__organization__is_active=True,
-            )
-
     def list(self, request, *args, **kwargs):
         headers = get_openrosa_headers(request, location=False)
 
         if request.method in ["HEAD"]:
             return Response("", headers=headers, status=204)
 
-        self._validate_submission_belongs_to_xform()
         cache_key = self._get_xform_list_cache_key()
 
         if cache_key is not None:

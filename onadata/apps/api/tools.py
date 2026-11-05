@@ -4,6 +4,7 @@ API utility functions.
 """
 
 import importlib
+import json
 import os
 import tempfile
 from datetime import datetime
@@ -27,7 +28,8 @@ from guardian.shortcuts import get_perms, get_perms_for_model, remove_perm
 from kombu.exceptions import OperationalError
 from multidb.pinning import use_master
 from registration.models import RegistrationProfile
-from rest_framework import exceptions
+from rest_framework import exceptions, status
+from rest_framework.response import Response
 from six import iteritems
 from taggit.forms import TagField
 
@@ -36,17 +38,21 @@ from onadata.apps.api.models.organization_profile import (
     add_user_to_team,
     get_or_create_organization_owners_team,
     get_organization_members_team,
+    is_organization_owners_team,
 )
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import DataView, EntityList, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
+from onadata.libs.exceptions import NoRecordsPermission
 from onadata.libs.permissions import (
     ROLES,
     ROLES_ORDERED,
     ManagerRole,
+    MemberRole,
     OwnerRole,
+    filter_queryset_xform_meta_perms_sql,
     get_role,
     get_role_in_org,
     get_team_project_default_permissions,
@@ -58,7 +64,7 @@ from onadata.libs.utils.api_export_tools import (
     get_metadata_format,
 )
 from onadata.libs.utils.cache_tools import (
-    ORG_PROFILE_CACHE,
+    ORG_PROFILE_CACHE_PREFIXES,
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
@@ -233,8 +239,8 @@ def remove_user_from_team(team, user):
     # remove the permission
     remove_perm("view_team", user, team)
 
-    # if team is owners team remove more perms
-    if team.name.find(Team.OWNER_TEAM_NAME) > 0:
+    # if team is the organization's Owners team remove more perms
+    if is_organization_owners_team(team):
         owners_team = get_or_create_organization_owners_team(team.organization.profile)
         members_team = get_organization_members_team(team.organization.profile)
         for perm in get_perms_for_model(Team):
@@ -635,6 +641,24 @@ def get_media_file_response(metadata, request=None):
             if isinstance(obj, EntityList):
                 return get_entity_list_export_response(request, obj, filename)
 
+            if isinstance(obj, XForm):
+                try:
+                    filter_queryset_xform_meta_perms_sql(obj, request.user, None)
+                except NoRecordsPermission:
+                    return Response(
+                        data=json.dumps(
+                            {
+                                "details": _(
+                                    "You don't have permission to access the "
+                                    'linked dataset "%(name)s".'
+                                )
+                                % {"name": filename}
+                            }
+                        ),
+                        status=status.HTTP_403_FORBIDDEN,
+                        content_type="application/json",
+                    )
+
             export_type = get_metadata_format(metadata.data_value)
             dataview = obj if isinstance(obj, DataView) else False
             xform = obj.xform if isinstance(obj, DataView) else obj
@@ -806,25 +830,29 @@ def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
     return resp
 
 
-def get_org_profile_cache_key(user, organization):
-    """Return cache key given user and organization profile"""
+def get_org_profile_cache_key(user, organization, api_version="v1"):
+    """Return cache key given user, organization profile and API version"""
+    prefix = ORG_PROFILE_CACHE_PREFIXES[api_version]
     org_username = organization.user.username
 
     if user.is_anonymous:
-        return f"{ORG_PROFILE_CACHE}{org_username}-anon"
+        return f"{prefix}{org_username}-anon"
 
     user_role = get_role_in_org(user, organization)
 
-    return f"{ORG_PROFILE_CACHE}{org_username}-{user_role}"
+    return f"{prefix}{org_username}-{user_role}"
 
 
 def invalidate_organization_cache(org_username):
-    """Set organization cache to none for all roles"""
-    for role in ROLES_ORDERED:
-        key = f"{ORG_PROFILE_CACHE}{org_username}-{role.name}"
-        safe_cache_delete(key)
+    """Set organization cache to none for all roles, in all API versions"""
+    # `member` is the role of a user added to an organization without one
+    roles = [*ROLES, MemberRole.name]
 
-    safe_cache_delete(f"{ORG_PROFILE_CACHE}{org_username}-anon")
+    for prefix in ORG_PROFILE_CACHE_PREFIXES.values():
+        for role in roles:
+            safe_cache_delete(f"{prefix}{org_username}-{role}")
+
+        safe_cache_delete(f"{prefix}{org_username}-anon")
 
 
 def _get_xform_list_cache_key_prefix(xform_or_project):

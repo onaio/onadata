@@ -4,6 +4,7 @@
 import csv
 import json
 import os
+import warnings
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ from django.conf import settings
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
 from django.core.files.storage import default_storage
+from django.core.paginator import UnorderedObjectListWarning
 from django.test.utils import override_settings
 
 from flaky import flaky
@@ -22,6 +24,7 @@ from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
+from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.import_tools import django_file
@@ -55,6 +58,7 @@ from onadata.libs.utils.dataview_filters import (
     get_filter_kwargs,
     is_safe_column,
 )
+from onadata.libs.utils.export_tools import generate_export
 
 
 class TestDataViewViewSet(TestAbstractViewSet):
@@ -869,7 +873,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         )
 
         request = self.factory.get("/", **self.extra)
-        response = view(request)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UnorderedObjectListWarning)
+            response = view(request)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
@@ -1226,6 +1232,20 @@ class TestDataViewViewSet(TestAbstractViewSet):
         with open(test_file_path, encoding="utf-8") as test_file:
             self.assertEqual(content, test_file.read())
 
+        self.project.shared = True
+        self.project.save()
+        dataview_export = Export.objects.get(options__dataview_pk=self.data_view.pk)
+        whole_form_export = generate_export(
+            Export.CSV_EXPORT, self.xform, None, {"extension": "csv"}
+        )
+        for export_id, expected_status in (
+            (dataview_export.pk, 200),
+            (whole_form_export.pk, 404),
+        ):
+            request = self.factory.get("/", {"export_id": export_id})
+            response = view(request, pk=self.data_view.pk, format="csv")
+            self.assertEqual(response.status_code, expected_status)
+
     def test_csvzip_export_dataview(self):
         self._create_dataview()
         count = Export.objects.all().count()
@@ -1477,6 +1497,18 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 202)
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
+
+        self.assertNotIn("dataview=", response.data["export_url"])
+
+        # A viewer of the dataview's project has no access to the source form.
+        self.assertTrue(self.data_view.query)
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.get("/", data=get_data)
+        response = view(request, pk=self.data_view.pk)
+        request = self.factory.get(response.data["export_url"])
+        export_view = ExportViewSet.as_view({"get": "retrieve"})
+        self.assertEqual(export_view(request, pk=export.pk).status_code, 200)
 
     # pylint: disable=invalid-name
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -2021,7 +2053,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         request = self.factory.get(
             "/?geofield=_geolocation&page=1&page_size=1&fields=name", **self.extra
         )
-        response = view(request, pk=self.data_view.pk, format="geojson")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UnorderedObjectListWarning)
+            response = view(request, pk=self.data_view.pk, format="geojson")
         # we get correct content type
         headers = dict(response.items())
         self.assertEqual(headers["Content-Type"], "application/geo+json")

@@ -231,30 +231,36 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
         view_name="user-detail", lookup_field="username", read_only=True
     )
     id = serializers.IntegerField()
-    rotation_reason = serializers.CharField(required=False)
+    rotation_reason = serializers.CharField(required=False, max_length=255)
 
     def validate_id(self, value):
+        """Resolve the id to one of the organization's own keys."""
+        organization = self.context["organization"]
+
         try:
-            # pylint: disable=attribute-defined-outside-init
-            self.kms_key = KMSKey.objects.get(id=value)
+            kms_key = KMSKey.objects.get(
+                id=value,
+                content_type=ContentType.objects.get_for_model(OrganizationProfile),
+                object_id=organization.pk,
+            )
 
         except KMSKey.DoesNotExist as exc:
             raise serializers.ValidationError(
                 _("Key does not exist."), code="does_not_exist"
             ) from exc
 
-        if self.kms_key.disabled_at:
+        if kms_key.disabled_at:
             raise serializers.ValidationError(_("Key is inactive."))
 
-        if self.kms_key.rotated_at:
+        if kms_key.rotated_at:
             raise serializers.ValidationError(_("Key already rotated."))
 
-        return value
+        return kms_key
 
     def save(self, **kwargs):
         try:
             return rotate_key(
-                self.kms_key,
+                self.validated_data["id"],
                 rotated_by=self.context["request"].user,
                 rotation_reason=self.validated_data.get("rotation_reason"),
             )

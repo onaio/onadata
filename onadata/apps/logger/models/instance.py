@@ -9,6 +9,7 @@ import importlib
 import logging
 import math
 from datetime import datetime
+from functools import partial
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -23,25 +24,28 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from defusedxml import ElementTree
 from deprecated import deprecated
 from multidb.pinning import use_master
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
-from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
+from onadata.apps.logger.models.xform import (
+    XFORM_TITLE_LENGTH,
+    XForm,
+    clear_merged_dataset_caches,
+)
 from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
     clean_and_parse_xml,
     get_uuid_from_xml,
+    is_encrypted_submission,
 )
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_BBOX_CACHE,
     DATAVIEW_COUNT,
     IS_ORG,
-    MERGED_XFORM_BBOX_CACHE,
     PROJ_NUM_DATASET_CACHE,
     PROJ_SUB_DATE_CACHE,
     PROJECT_DATE_MODIFIED_CACHE,
@@ -88,11 +92,7 @@ from onadata.libs.utils.common_tags import (
 )
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.dict_tools import get_values_matching_key
-from onadata.libs.utils.model_tools import (
-    queryset_iterator,
-    set_uuid,
-    update_fields_directly,
-)
+from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
 logger = logging.getLogger(__name__)
@@ -230,13 +230,12 @@ def _update_submission_count_for_today(
 def invalidate_bbox_cache(xform_id):
     """Bust cached bbox responses affected by a change to ``xform_id``.
 
-    Clears the form's own bbox plus every DataView and MergedXForm whose extent
-    includes this xform, so the next request recomputes from current rows. Run
-    from the Instance signals on submission create, edit, and delete.
+    Clears the form's own bbox plus every DataView whose extent includes this
+    xform, so the next request recomputes from current rows. Run from the Instance
+    signals on submission create, edit, and delete.
     """
     # pylint: disable=import-outside-toplevel
     from onadata.apps.logger.models.data_view import DataView
-    from onadata.apps.logger.models.merged_xform import MergedXForm
 
     safe_cache_delete(f"{XFORM_BBOX_CACHE}{xform_id}")
 
@@ -246,11 +245,25 @@ def invalidate_bbox_cache(xform_id):
     for dataview_id in dataview_ids:
         safe_cache_delete(f"{DATAVIEW_BBOX_CACHE}{dataview_id}")
 
-    merged_ids = MergedXForm.objects.filter(xforms__pk=xform_id).values_list(
-        "pk", flat=True
-    )
-    for merged_id in merged_ids:
-        safe_cache_delete(f"{MERGED_XFORM_BBOX_CACHE}{merged_id}")
+
+def clear_merged_dataset_caches_on_commit(xform_id):
+    """Clears the caches of the merged datasets that include ``xform_id``.
+
+    Waits for the commit because a read before it would cache the old values. A
+    failed clear is logged rather than raised, because a task retried after the
+    commit would count its submission again.
+    """
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.models.merged_xform import MergedXForm
+
+    def clear_caches():
+        merged_ids = MergedXForm.objects.filter(xforms__pk=xform_id).values_list(
+            "pk", flat=True
+        )
+        for merged_id in merged_ids:
+            clear_merged_dataset_caches(merged_id)
+
+    transaction.on_commit(clear_caches, robust=True)
 
 
 def update_xform_submission_count(instance):
@@ -280,7 +293,11 @@ def update_xform_submission_count(instance):
 
     safe_cache_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
     safe_cache_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
-    safe_cache_delete(f"{XFORM_COUNT}{instance.xform_id}")
+    # A read before the commit would cache the old count, and a cached 0 is trusted.
+    transaction.on_commit(
+        partial(safe_cache_delete, f"{XFORM_COUNT}{instance.xform_id}")
+    )
+    clear_merged_dataset_caches_on_commit(instance.xform_id)
     # Clear project cache
     # pylint: disable=import-outside-toplevel
     from onadata.apps.logger.models.xform import clear_project_cache
@@ -386,12 +403,21 @@ def save_full_json(instance, include_related=True):
 
     # Preserve dynamic metadata fields if present
     if (
-        instance.decryption_status == Instance.DecryptionStatus.FAILED
+        instance.decryption_status
+        in (
+            Instance.DecryptionStatus.PENDING,
+            Instance.DecryptionStatus.IN_PROGRESS,
+            Instance.DecryptionStatus.FAILED,
+        )
         and instance.json.get(DECRYPTION_ERROR) is not None
     ):
         json[DECRYPTION_ERROR] = instance.json[DECRYPTION_ERROR]
 
-    update_fields_directly(instance, json=json)
+    # Skip the write if the XML changed since the instance was loaded, such as
+    # when it was decrypted meanwhile, so stale json does not overwrite newer json
+    Instance.objects.filter(pk=instance.pk, checksum=instance.checksum).update(
+        json=json
+    )
 
 
 def update_project_date_modified(instance):
@@ -654,6 +680,7 @@ class Instance(models.Model, InstanceBaseClass):
     class DecryptionStatus(models.TextChoices):  # pylint: disable=too-many-ancestors
         UNMANAGED = "unmanaged", _("Does not use managed keys")
         PENDING = "pending", _("Pending decryption")
+        IN_PROGRESS = "in_progress", _("Decryption in progress")
         SUCCESS = "success", _("Decryption successful")
         FAILED = "failed", _("Decryption failed")
 
@@ -742,6 +769,9 @@ class Instance(models.Model, InstanceBaseClass):
     class Meta:
         app_label = "logger"
         unique_together = ("xform", "uuid")
+        # Adding a standalone last_edited index reintroduces the scan this
+        # (user, date_created) one fixes. Pair it with (last_edited_by,
+        # last_edited).
         indexes = [
             models.Index(fields=["date_created"]),
             models.Index(fields=["date_modified"]),
@@ -751,6 +781,7 @@ class Instance(models.Model, InstanceBaseClass):
             models.Index(fields=["xform_id", "date_created"]),
             models.Index(fields=["xform_id", "date_modified"]),
             models.Index(fields=["xform_id", "last_edited"]),
+            models.Index(fields=["user", "date_created"]),
             models.Index(
                 fields=["validation_status"],
                 condition=Q(validation_status__isnull=False),
@@ -791,7 +822,7 @@ class Instance(models.Model, InstanceBaseClass):
         if self.check_encrypted():
             self.is_encrypted = True
 
-            if self.xform.is_was_managed:
+            if self._state.adding and self.xform.is_was_managed:
                 self.decryption_status = Instance.DecryptionStatus.PENDING
         else:
             self.is_encrypted = False
@@ -825,13 +856,7 @@ class Instance(models.Model, InstanceBaseClass):
 
     def check_encrypted(self) -> bool:
         """Checks if submission XML is encrypted."""
-        try:
-            tree = ElementTree.fromstring(self.xml)
-
-        except ElementTree.ParseError:
-            return False
-
-        return tree.attrib.get("encrypted") == "yes"
+        return is_encrypted_submission(self.xml)
 
     @property
     def num_of_media(self):
@@ -887,7 +912,9 @@ class Instance(models.Model, InstanceBaseClass):
         """
         Soft deletes an attachment by adding a deleted_at timestamp.
         """
-        queryset = self.attachments.filter(~Q(name__in=self.get_expected_media()))
+        queryset = self.attachments.filter(
+            ~Q(name__in=self.get_expected_media()), deleted_at__isnull=True
+        )
         kwargs = {"deleted_at": timezone.now()}
         if user:
             kwargs.update({"deleted_by": user})
@@ -967,6 +994,11 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
     # Bust bbox caches so the next map-fit request reflects this submission's
     # geom, whether it was just created or edited.
     invalidate_bbox_cache(instance.xform_id)
+    if not created:
+        # Here rather than in the soft delete pre_save receiver, which with no
+        # transaction would clear before the row is written. A new submission
+        # clears these once its count is updated.
+        clear_merged_dataset_caches_on_commit(instance.xform_id)
 
 
 # pylint: disable=unused-argument

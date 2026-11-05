@@ -60,7 +60,8 @@ cd onadata
 Install the development requirements in your local virtual environment by executing in the terminal
 
 ```sh
-pip install -r requirements/dev.pip
+python -m pip install --upgrade "pip>=26.2.2"
+python -m pip install -r requirements/dev.pip
 ```
 
 Install the pre-commit hooks by running:
@@ -96,6 +97,12 @@ Ona Data is a modular Django project composed of several apps, each handling a s
 
 New packages are added via `pip-compile` provided by the [pip-tools](https://pypi.org/project/pip-tools/) package. Install this package in your environment.
 
+Use Python 3.13 with pip-tools 7.6.2 or newer and pip 26.2.2 or newer:
+
+```sh
+python -m pip install --upgrade "pip>=26.2.2" "pip-tools>=7.6.2"
+```
+
 To add a new package, update the corresponding `requirements/<environment>.in` depending on the package's purpose.
 
 Available environments in `requirements/` include:
@@ -113,13 +120,20 @@ Compile the corresponding `<environment>.pip` by running the command
 pip-compile --output-file=requirements/<environment>.pip requirements/<environment>.in
 ```
 
-e.g `pip-compile --output-file=requirements/base.pip requirements/base.in`
+e.g `pip-compile --allow-unsafe --output-file=requirements/base.pip requirements/base.in`
 
 After making these changes, rebuild your Docker image:
 
+Existing Compose environments retain dependencies in the `venv` volume.
+After stopping the containers, remove only that volume so Docker can populate
+it with the updated pip and certifi from the rebuilt image. Replace
+`PROJECT_venv` below with your Compose volume name; preserve the `dbdata`
+volume containing your database.
+
 ```sh
 docker compose down
-docker compose build
+docker volume rm PROJECT_venv
+docker compose build --pull --no-cache
 docker compose up
 ```
 
