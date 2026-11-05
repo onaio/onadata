@@ -230,7 +230,7 @@ class EnrolmentConfirmationConcurrencyTestCase(TransactionTestCase):
 
 @override_settings(
     ENABLE_TWO_FACTOR=True,
-    TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False,
+    STEP_UP={"MODE": "local"},
     TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY],
 )
 class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
@@ -243,8 +243,9 @@ class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
 
     def setUp(self):
         super().setUp()
+        self.password = "pw-9F3kz"
         self.user = User.objects.create_user(
-            "startrace", "startrace@example.com", "pw-9F3kz"
+            "startrace", "startrace@example.com", self.password
         )
 
     def test_racing_starts_leave_one_pending_device(self):
@@ -260,7 +261,9 @@ class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
 
         def worker():
             try:
-                request = APIRequestFactory().post("/", data={}, HTTP_SSO=sso)
+                request = APIRequestFactory().post(
+                    "/", data={"password": self.password}, HTTP_SSO=sso
+                )
                 barrier.wait(timeout=10)
                 response = TOTPViewSet.as_view({"post": "enroll_start"})(request)
                 with guard:

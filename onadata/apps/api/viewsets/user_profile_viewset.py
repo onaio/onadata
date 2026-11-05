@@ -5,6 +5,7 @@ UserProfileViewSet module.
 
 import datetime
 import json
+from copy import deepcopy
 
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
@@ -20,6 +21,7 @@ from registration.models import RegistrationProfile
 from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.fields import empty
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
@@ -42,6 +44,14 @@ from onadata.libs.serializers.monthly_submissions_serializer import (
     MonthlySubmissionsSerializer,
 )
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.policy import (
+    GATE_CHANGE_EMAIL,
+    GATE_CHANGE_PASSWORD,
+    GATE_PRIVACY_CONSENT,
+    GATE_REQUIRE_AUTH,
+    eu_consent_record,
+)
 from onadata.libs.utils.cache_tools import (
     CHANGE_PASSWORD_ATTEMPTS,
     LOCKOUT_CHANGE_PASSWORD_USER,
@@ -153,8 +163,60 @@ def change_password_attempts(request):
     return 1
 
 
+def _parsed_metadata(data):
+    """The request's metadata, which clients send as a dict or a JSON string.
+
+    ``None`` when it is absent or not valid JSON.
+    """
+    raw = data.get("metadata")
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except ValueError:
+            return None
+    return raw
+
+
+def _stored_eu_consent(profile):
+    return eu_consent_record(profile.metadata or {})
+
+
+def _changes_email(data, profile) -> bool:
+    new_email = str(data.get("email", "") or "").strip()
+    return bool(new_email) and new_email.lower() != (profile.user.email or "").lower()
+
+
+def _takes_merge_path(request) -> bool:
+    return request.method == "PATCH" and request.data.get("overwrite") == "false"
+
+
+def _changes_consent(request, profile) -> bool:
+    """Whether a wholesale metadata write changes the consent record.
+
+    Compared on the effective value, so a payload that omits or nulls the
+    record drops it and counts as a change. The merge path is checked after
+    merging instead, since it preserves absent keys.
+    """
+    if "metadata" not in request.data or _takes_merge_path(request):
+        return False
+    return eu_consent_record(_parsed_metadata(request.data)) != _stored_eu_consent(
+        profile
+    )
+
+
+def _merged_metadata(stored, incoming):
+    merged = deepcopy(stored or {})
+    for key, value in incoming.items():
+        if check_if_key_exists(key, merged):
+            merged = replace_key_value(key, value, merged)
+        else:
+            merged[key] = value
+    return merged
+
+
 # pylint: disable=too-many-ancestors
 class UserProfileViewSet(
+    RequiresStepUp,
     AuthenticateHeaderMixin,
     CacheControlMixin,
     ETagsMixin,
@@ -214,6 +276,9 @@ class UserProfileViewSet(
 
     def update(self, request, *args, **kwargs):
         """Update user in cache and db"""
+        refusal = self._step_up_refusal(request, partial=kwargs.get("partial", False))
+        if refusal is not None:
+            return refusal
         username = kwargs.get("user")
         request_username = request.user.username if request.user else ""
         safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
@@ -246,7 +311,14 @@ class UserProfileViewSet(
     def change_password(self, request, *args, **kwargs):  # noqa
         """
         Change user's password.
+
+        Gated as well as demanding the current password: a session opened on a
+        machine the user walked away from already knows nothing else, and a
+        new password is a durable takeover.
         """
+        refusal = self.check_step_up(request, GATE_CHANGE_PASSWORD)
+        if refusal is not None:
+            return refusal
         # clear cache
         safe_cache_delete(f"{USER_PROFILE_PREFIX}{request.user.username}")
         user_profile = self.get_object()
@@ -296,21 +368,58 @@ class UserProfileViewSet(
 
         return Response(status=status.HTTP_200_OK, data=data)
 
+    def _incoming_require_auth(self, request, profile, partial):
+        """The require_auth value this request would write, or ``empty``.
+
+        Read through the serializer's own field, so the gate and the write
+        agree on "on" meaning true and on an absent form checkbox meaning
+        false in a full update.
+        """
+        field = self.get_serializer(profile, partial=partial).fields["require_auth"]
+        value = field.get_value(request.data)
+        return value if value is empty else field.to_internal_value(value)
+
+    def _changes_require_auth(self, request, profile, partial) -> bool:
+        incoming = self._incoming_require_auth(request, profile, partial)
+        return incoming is not empty and incoming != profile.require_auth
+
+    def _step_up_refusal(self, request, partial=True):
+        """Refuse whichever gated change this request would make, or None.
+
+        Shared by update and partial_update: the gate belongs to the change,
+        not to the verb. Each value is gated only on an actual change, because
+        a full-profile write echoes unchanged values back.
+        """
+        profile = self.get_object()
+        changes = (
+            (GATE_REQUIRE_AUTH, self._changes_require_auth(request, profile, partial)),
+            (GATE_CHANGE_EMAIL, _changes_email(request.data, profile)),
+            (GATE_PRIVACY_CONSENT, _changes_consent(request, profile)),
+        )
+        for audience, changed in changes:
+            refusal = self.check_step_up(request, audience) if changed else None
+            if refusal is not None:
+                return refusal
+        return None
+
     def partial_update(self, request, *args, **kwargs):
         """Allows for partial update of the user profile data."""
+        refusal = self._step_up_refusal(request)
+        if refusal is not None:
+            return refusal
         profile = self.get_object()
-        metadata = profile.metadata or {}
         if request.data.get("overwrite") == "false":
-            if isinstance(request.data.get("metadata"), str):
-                metadata_items = json.loads(request.data.get("metadata")).items()
-            else:
-                metadata_items = request.data.get("metadata").items()
-
-            for key, value in metadata_items:
-                if check_if_key_exists(key, metadata):
-                    metadata = replace_key_value(key, value, metadata)
-                else:
-                    metadata[key] = value
+            incoming = _parsed_metadata(request.data)
+            if not isinstance(incoming, dict):
+                raise ParseError(_("metadata must be a JSON object."))
+            # Merges keys by name anywhere in the tree, so it can change a
+            # nested consent leaf the raw payload never named. Gated on the
+            # merged result for that reason.
+            metadata = _merged_metadata(profile.metadata, incoming)
+            if eu_consent_record(metadata) != _stored_eu_consent(profile):
+                refusal = self.check_step_up(request, GATE_PRIVACY_CONSENT)
+                if refusal is not None:
+                    return refusal
 
             profile.metadata = metadata
             profile.save()
