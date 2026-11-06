@@ -667,12 +667,24 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
         raise NotImplementedError("Subclasses must implement this method.")
 
     def validate_silent_authorization(self, request):
-        """See oauthlib.oauth2.rfc6749.request_validator"""
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Allow an OpenID Connect ``prompt=none`` request to skip consent.
+
+        Only for applications that already skip the consent screen. Any other
+        application gets ``consent_required`` from oauthlib, instead of the
+        authorization view rendering a consent page for a request that asked
+        for no UI.
+        """
+        application = getattr(request, "client", None)
+        return bool(application and application.skip_authorization)
 
     def validate_silent_login(self, request):
-        """See oauthlib.oauth2.rfc6749.request_validator"""
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Accept an OpenID Connect ``prompt=none`` request's login.
+
+        The Django session is checked by the authorization view, not here (the
+        oauthlib request carries no user): it answers an anonymous
+        ``prompt=none`` request with ``login_required`` after validating it.
+        """
+        return True
 
     def is_pkce_required(self, client_id, request):
         """Require PKCE for code grants when the effective policy enforces it."""
