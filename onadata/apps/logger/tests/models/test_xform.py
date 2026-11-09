@@ -28,6 +28,7 @@ from onadata.apps.logger.models.xform import (
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.test_utils.lagging_replica import lagging_replica
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 
@@ -544,6 +545,42 @@ class TestXForm(TestBase):
 
         self.assertEqual(result, 0)
         self.assertEqual(self.xform.num_of_decrypted_submissions, 0)
+
+    def test_update_num_of_decrypted_submissions_with_lagging_replica(self):
+        """The decrypted count drops when the replica hasn't replayed a delete"""
+        self._publish_managed_form_and_submit_instance()
+        dec_instance = self._submit_decrypted_instance()
+        self.assertEqual(self.xform.update_num_of_decrypted_submissions(), 1)
+
+        with lagging_replica():
+            Instance.objects.filter(pk=dec_instance.pk).update(
+                deleted_at=timezone.now()
+            )
+            self.assertIsNone(Instance.objects.get(pk=dec_instance.pk).deleted_at)
+
+            result = self.xform.update_num_of_decrypted_submissions()
+
+        self.xform.refresh_from_db()
+        self.assertEqual(result, 0)
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 0)
+
+    def test_merged_dataset_submission_count_with_lagging_replica(self):
+        """A merged dataset's count follows its forms' counts on the primary"""
+        merged_xf = self._create_merged_dataset()
+        source_pks = list(merged_xf.xforms.values_list("pk", flat=True))
+        XForm.objects.filter(pk__in=source_pks).update(num_of_submissions=1)
+        xform = XForm.objects.get(pk=merged_xf.pk)
+        self.assertEqual(xform.submission_count(force_update=True), 2)
+
+        with lagging_replica():
+            XForm.objects.filter(pk=source_pks[0]).update(num_of_submissions=0)
+            self.assertEqual(XForm.objects.get(pk=source_pks[0]).num_of_submissions, 1)
+
+            count = xform.submission_count(force_update=True)
+
+        xform.refresh_from_db()
+        self.assertEqual(count, 1)
+        self.assertEqual(xform.num_of_submissions, 1)
 
     def test_update_num_of_decrypted_submissions_clears_cache(self):
         """update_num_of_decrypted_submissions() clears cached count"""
