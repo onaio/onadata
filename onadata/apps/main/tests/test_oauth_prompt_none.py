@@ -32,6 +32,7 @@ OIDC_OAUTH2_PROVIDER = {
 
 @override_settings(
     OAUTH2_PROVIDER=OIDC_OAUTH2_PROVIDER,
+    OIDC_PROMPT_NONE_ENABLED=True,
     OAUTH2_PKCE_S256_MODE="enforce",
     OAUTH2_PKCE_S256_MIGRATION_CUTOFF=None,
     OAUTH2_PKCE_S256_MIGRATION_EXPIRES_AT=None,
@@ -137,4 +138,37 @@ class OAuthPromptNoneTestCase(TestCase):
         parameters = self._redirect_parameters(self._authorize_silently(application))
 
         self.assertEqual(parameters["error"], ["consent_required"])
+        self.assertNotIn("code", parameters)
+
+    @override_settings(OIDC_PROMPT_NONE_ENABLED=False)
+    def test_signed_in_user_gets_login_required_when_disabled(self):
+        application = self._create_application("disabled", skip_authorization=True)
+        self.client.force_login(self.resource_owner)
+
+        parameters = self._redirect_parameters(self._authorize_silently(application))
+
+        self.assertEqual(parameters["error"], ["login_required"])
+        self.assertNotIn("code", parameters)
+
+    @override_settings(OIDC_PROMPT_NONE_ENABLED=False)
+    def test_app_that_needs_consent_gets_login_required_when_disabled(self):
+        application = self._create_application(
+            "disabled-consent", skip_authorization=False
+        )
+        self.client.force_login(self.resource_owner)
+
+        parameters = self._redirect_parameters(self._authorize_silently(application))
+
+        self.assertEqual(parameters["error"], ["login_required"])
+        self.assertNotIn("code", parameters)
+
+    @override_settings(OIDC_PROMPT_NONE_ENABLED=False)
+    def test_anonymous_user_gets_login_required_when_disabled(self):
+        application = self._create_application(
+            "disabled-anonymous", skip_authorization=True
+        )
+
+        parameters = self._redirect_parameters(self._authorize_silently(application))
+
+        self.assertEqual(parameters["error"], ["login_required"])
         self.assertNotIn("code", parameters)
