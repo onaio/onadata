@@ -9,6 +9,7 @@ import os
 from datetime import datetime
 from http import HTTPStatus
 
+from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -38,6 +39,11 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from bson import json_util
 from bson.objectid import ObjectId
 from guardian.shortcuts import assign_perm, remove_perm
+from oauth2_provider.forms import AllowForm
+from oauth2_provider.views.application import (
+    ApplicationRegistration,
+    ApplicationUpdate,
+)
 from oauth2_provider.views.base import AuthorizationView, TokenView
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
@@ -87,6 +93,13 @@ from onadata.libs.authentication import (
 )
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import CAN_VIEW_PROJECT
+from onadata.libs.stepup.gate import refusal_reason
+from onadata.libs.stepup.pages import (
+    gated_profile_values,
+    refuse_gated_changes,
+    refuse_page_action,
+)
+from onadata.libs.stepup.policy import GATE_AUTHORIZE_OAUTH_APP, GATE_PUBLISH_DATA
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.export_tools import upload_template_for_external_export
 from onadata.libs.utils.log import Actions, audit_log
@@ -378,8 +391,24 @@ def profile_settings(request, username):
 
     user_profile, _created = UserProfile.objects.get_or_create(user=content_user)
     if request.method == "POST":
+        # Taken before validation, which writes the posted values onto
+        # user_profile.
+        gated_before = gated_profile_values(
+            user_profile.require_auth, content_user.email, user_profile.metadata
+        )
         form = UserProfileForm(request.POST, instance=user_profile)
         if form.is_valid():
+            refusal = refuse_gated_changes(
+                request,
+                gated_before,
+                gated_profile_values(
+                    form.cleaned_data["require_auth"],
+                    form.cleaned_data["email"],
+                    form.cleaned_data["metadata"],
+                ),
+            )
+            if refusal is not None:
+                return refusal
             # get user
             # user.email = cleaned_email
             form.instance.user.email = form.cleaned_data["email"]
@@ -687,6 +716,18 @@ def public_api(request, username, id_string):
     return JsonResponse(exports)
 
 
+_PUBLIC_FLAGS = {"data": "shared_data", "form": "shared"}
+
+
+def _refuse_making_public(request, xform):
+    """``None``, or a 403 for sharing a form or its data without a grant.
+    Unsharing is never gated."""
+    flag = _PUBLIC_FLAGS.get(request.POST["toggle_shared"])
+    if flag is None or getattr(xform, flag):
+        return None
+    return refuse_page_action(request, GATE_PUBLISH_DATA)
+
+
 # pylint: disable=too-many-locals,too-many-branches,too-many-statements
 @login_required
 def edit(request, username, id_string):  # noqa C901
@@ -737,6 +778,9 @@ def edit(request, username, id_string):  # noqa C901
             )
             xform.title = request.POST["title"]
         elif request.POST.get("toggle_shared"):
+            refusal = _refuse_making_public(request, xform)
+            if refusal is not None:
+                return refusal
             if request.POST["toggle_shared"] == "data":
                 audit = {"xform": xform.id_string}
                 old_shared = _("shared") if xform.shared_data else _("not shared")
@@ -1814,6 +1858,20 @@ def username_list(request):
     return JsonResponse(data, safe=False)
 
 
+def _with_grant_field(form_class):
+    """``form_class`` with a hidden ``grant`` field, so a re-rendered page
+    keeps the grant that was posted with it."""
+
+    class StepUpForm(form_class):  # pylint: disable=too-few-public-methods
+        grant = forms.CharField(required=False, label="", widget=forms.HiddenInput())
+
+    return StepUpForm
+
+
+class _AutoApprovalNeedsStepUp(Exception):
+    """The toolkit tried to approve on GET for a request the gate refuses."""
+
+
 # pylint: disable=too-few-public-methods
 class OnaAuthorizationView(AuthorizationView):
     """
@@ -1821,12 +1879,75 @@ class OnaAuthorizationView(AuthorizationView):
     and adds the user to the context
     """
 
+    form_class = _with_grant_field(AllowForm)
+
     def get_context_data(self, **kwargs):
         """Adds `user` and `request_path` to context and returns the context."""
         context = super().get_context_data(**kwargs)
         context["user"] = self.request.user
         context["request_path"] = self.request.get_full_path()
         return context
+
+    def get(self, request, *args, **kwargs):
+        """Shows the consent form instead of approving on GET, through
+        ``skip_authorization`` or ``approval_prompt=auto``, without a grant."""
+        try:
+            return super().get(request, *args, **kwargs)
+        except _AutoApprovalNeedsStepUp:
+            return self.render_to_response(self.get_context_data(**self.oauth2_data))
+
+    def form_valid(self, form):
+        if form.cleaned_data.get("allow"):
+            refusal = refuse_page_action(self.request, GATE_AUTHORIZE_OAUTH_APP)
+            if refusal is not None:
+                return refusal
+        return super().form_valid(form)
+
+    def create_authorization_response(self, request, scopes, credentials, allow):
+        if (
+            allow
+            and request.method == "GET"
+            and refusal_reason(request, GATE_AUTHORIZE_OAUTH_APP) is not None
+        ):
+            raise _AutoApprovalNeedsStepUp
+        return super().create_authorization_response(
+            request, scopes, credentials, allow
+        )
+
+
+class StepUpApplicationRegistration(ApplicationRegistration):
+    """Registers an OAuth application only with a grant, since its redirect
+    URIs decide who receives the codes it is issued."""
+
+    def get_form_class(self):
+        return _with_grant_field(super().get_form_class())
+
+    def form_valid(self, form):
+        refusal = refuse_page_action(self.request, GATE_AUTHORIZE_OAUTH_APP)
+        if refusal is not None:
+            return refusal
+        return super().form_valid(form)
+
+
+def _redirect_target(values):
+    return (values.get("client_type"), (values.get("redirect_uris") or "").split())
+
+
+class StepUpApplicationUpdate(ApplicationUpdate):
+    """Changes an OAuth application's redirect URIs or client type only with
+    a grant. Other edits are not gated."""
+
+    def get_form_class(self):
+        return _with_grant_field(super().get_form_class())
+
+    def form_valid(self, form):
+        # form.instance already holds the posted values; form.initial still
+        # holds the stored ones.
+        if _redirect_target(form.initial) != _redirect_target(form.cleaned_data):
+            refusal = refuse_page_action(self.request, GATE_AUTHORIZE_OAUTH_APP)
+            if refusal is not None:
+                return refusal
+        return super().form_valid(form)
 
 
 class LockoutTokenView(TokenView):

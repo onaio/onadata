@@ -33,6 +33,8 @@ from onadata.libs.serializers.open_data_serializer import (
     OpenDataSerializer,
     get_manageable_xforms,
 )
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.policy import GATE_PUBLISH_DATA
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     GEOLOCATION,
@@ -168,7 +170,9 @@ def process_tableau_data(data, xform):  # noqa C901
 
 
 # pylint: disable=too-many-ancestors
-class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
+class OpenDataViewSet(
+    ETagsMixin, CacheControlMixin, RequiresStepUp, BaseViewset, ModelViewSet
+):
     """The /api/v1/open-data API endpoint."""
 
     permission_classes = (OpenDataViewSetPermissions,)
@@ -203,6 +207,60 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
             return OpenDataCreateSerializer
 
         return super().get_serializer_class()
+
+    def _create_refusal(self, request, validated_data):
+        """An entry is a link that reads its form's data without logging in.
+        Asking again for a form that has one returns that one unchanged.
+
+        The form is resolved first, so a request refused for it keeps its
+        grant."""
+        object_id = validated_data.get("object_id")
+        if object_id is None:
+            return None
+        xform = get_object_or_404(get_manageable_xforms(request.user), id=object_id)
+        if OpenData.objects.filter(
+            content_type=ContentType.objects.get_for_model(xform), object_id=xform.pk
+        ).exists():
+            return None
+        return self.check_step_up(request, GATE_PUBLISH_DATA)
+
+    def _update_refusal(self, request, open_data, validated_data):
+        """Reactivating an entry, or pointing an active one at another form,
+        opens a form's data to anyone holding the link."""
+        if not validated_data.get("active", open_data.active):
+            return None
+        object_id = validated_data.get("object_id", open_data.object_id)
+        if open_data.active and object_id == open_data.object_id:
+            return None
+        get_object_or_404(get_manageable_xforms(request.user), id=object_id)
+        return self.check_step_up(request, GATE_PUBLISH_DATA)
+
+    def create(self, request, *args, **kwargs):
+        """Create an entry, or return the form's existing one."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        refusal = self._create_refusal(request, serializer.validated_data)
+        if refusal is not None:
+            return refusal
+        self.perform_create(serializer)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=self.get_success_headers(serializer.data),
+        )
+
+    def update(self, request, *args, **kwargs):
+        """Update an entry, the target of PUT and PATCH alike."""
+        open_data = self.get_object()
+        serializer = self.get_serializer(
+            open_data, data=request.data, partial=kwargs.pop("partial", False)
+        )
+        serializer.is_valid(raise_exception=True)
+        refusal = self._update_refusal(request, open_data, serializer.validated_data)
+        if refusal is not None:
+            return refusal
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
     def get_tableau_type(self, xform_type):
         """
