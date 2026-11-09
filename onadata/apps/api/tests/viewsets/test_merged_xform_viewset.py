@@ -113,6 +113,14 @@ def _make_submissions_merged_datasets(merged_xform):
     Instance(xform=form_b, xml=xml).save()
 
 
+def _with_xforms_by_id(merged_dataset):
+    """Return the merged dataset with its source forms sorted by id."""
+    return {
+        **merged_dataset,
+        "xforms": sorted(merged_dataset["xforms"], key=lambda xform: xform["id"]),
+    }
+
+
 class TestMergedXFormViewSet(TestAbstractViewSet):
     """Test merged dataset functionality."""
 
@@ -235,7 +243,11 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
-        self.assertIn(merged_dataset, response.data)
+        # The API doesn't order a merged dataset's source forms.
+        self.assertIn(
+            _with_xforms_by_id(merged_dataset),
+            [_with_xforms_by_id(dataset) for dataset in response.data],
+        )
 
         # merged dataset included in api/forms endpoint
         request = self.factory.get("/", **self.extra)
