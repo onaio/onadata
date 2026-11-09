@@ -5,6 +5,8 @@ from django.conf import settings
 from django.core.checks import Error, Tags, register
 
 from cryptography.fernet import Fernet
+from oauth2_provider.settings import oauth2_settings
+from oauthlib.openid.connect.core.request_validator import RequestValidator
 
 
 @register(Tags.security)
@@ -91,3 +93,38 @@ def two_factor_secret_key_check(app_configs, **kwargs):
             )
         ]
     return []
+
+
+PROMPT_NONE_HOOKS = ("validate_silent_authorization", "validate_silent_login")
+
+
+@register(Tags.security)
+# pylint: disable=unused-argument
+def oidc_prompt_none_check(app_configs, **kwargs):
+    """Refuse to start when OIDC is on but the validator can't answer prompt=none.
+
+    ``OAUTH2_VALIDATOR_CLASS`` is chosen per deployment; one that leaves
+    oauthlib's silent-authentication hooks unimplemented turns every
+    ``prompt=none`` request into a 500, so surface it as a startup error.
+    """
+    if not oauth2_settings.OIDC_ENABLED:
+        return []
+    validator_class = oauth2_settings.OAUTH2_VALIDATOR_CLASS
+    missing = [
+        hook
+        for hook in PROMPT_NONE_HOOKS
+        if getattr(validator_class, hook, None) is getattr(RequestValidator, hook)
+    ]
+    if not missing:
+        return []
+    return [
+        Error(
+            f"OAUTH2_VALIDATOR_CLASS {validator_class.__module__}."
+            f"{validator_class.__qualname__} does not implement "
+            f"{', '.join(missing)}.",
+            hint="Include onadata.libs.authentication.OIDCPromptNoneMixin in "
+            "the validator so OpenID Connect prompt=none requests are answered "
+            "instead of raising a 500.",
+            id="api.E005",
+        )
+    ]
