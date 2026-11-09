@@ -31,6 +31,7 @@ from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.kms.tools import encrypt_xform
+from onadata.libs.test_utils.lagging_replica import lagging_replica
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
@@ -1198,6 +1199,37 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertEqual(Instance.objects.count(), 3)
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, 3)
+
+    def _assert_replica_still_has_four_submissions(self):
+        self.assertEqual(
+            Instance.objects.filter(xform=self.xform, deleted_at__isnull=True).count(),
+            4,
+        )
+
+    def test_soft_delete_subset_with_lagging_replica(self):
+        """The count drops when the replica hasn't replayed the delete"""
+        instance_id = self.instances[0].pk
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 4)
+
+        with lagging_replica():
+            delete_xform_submissions(self.xform, self.user, instance_ids=[instance_id])
+            self._assert_replica_still_has_four_submissions()
+
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 3)
+
+    def test_soft_delete_all_with_lagging_replica(self):
+        """The count stays at 0 when the replica hasn't replayed the delete"""
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 4)
+
+        with lagging_replica():
+            delete_xform_submissions(self.xform, self.user)
+            self._assert_replica_still_has_four_submissions()
+
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 0)
 
     def test_sets_deleted_at(self):
         """deleted_at is set to the current time"""

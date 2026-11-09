@@ -30,6 +30,7 @@ from django.utils.translation import gettext_lazy
 
 import reversion
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
+from multidb.pinning import use_master
 from pyxform import SurveyElementBuilder, constants
 from pyxform.errors import PyXFormError
 from pyxform.question import Question
@@ -1492,15 +1493,18 @@ class XForm(XFormMixin, BaseModel):
     def submission_count(self, force_update=False):
         """Returns the form's number of submission."""
         if self.num_of_submissions == 0 or force_update:
-            if self.is_merged_dataset:
-                count = (
-                    self.mergedxform.active_xforms()
-                    .aggregate(num=Sum("num_of_submissions"))
-                    .get("num")
-                    or 0
-                )
-            else:
-                count = self.instances.filter(deleted_at__isnull=True).count()
+            # A lagging read replica returns stale counts, such as rows that were
+            # just deleted, so count on the primary.
+            with use_master:
+                if self.is_merged_dataset:
+                    count = (
+                        self.mergedxform.active_xforms()
+                        .aggregate(num=Sum("num_of_submissions"))
+                        .get("num")
+                        or 0
+                    )
+                else:
+                    count = self.instances.filter(deleted_at__isnull=True).count()
 
             if count != self.num_of_submissions:
                 self.num_of_submissions = count
@@ -1571,9 +1575,10 @@ class XForm(XFormMixin, BaseModel):
     def update_num_of_decrypted_submissions(self):
         """Update the number of decrypted submissions for the form."""
         if self.is_managed:
-            count = self.instances.filter(
-                deleted_at__isnull=True, is_encrypted=False
-            ).count()
+            with use_master:
+                count = self.instances.filter(
+                    deleted_at__isnull=True, is_encrypted=False
+                ).count()
 
         else:
             count = 0
