@@ -470,6 +470,38 @@ class TestAccountTakeoverGates(TestAbstractViewSet):
         self.user.refresh_from_db()
         self.assertEqual(self.user.email, "somewhere.else@example.org")
 
+    def test_an_email_change_without_the_password_keeps_the_grant(self):
+        """The serializer demands the current password to change the email.
+        Checked before the gate, so a request missing it keeps the grant."""
+        grant = issue_grant(self.user.pk, "change-email")
+        old_email = self.user.email
+
+        response = self._patch_email(
+            {"email": "somewhere.else@example.org", "grant": grant}
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, old_email)
+        self.assertTrue(spend_grant(self.user.pk, "change-email", grant))
+
+    def test_an_email_change_with_a_wrong_password_keeps_the_grant(self):
+        grant = issue_grant(self.user.pk, "change-email")
+        old_email = self.user.email
+
+        response = self._patch_email(
+            {
+                "email": "somewhere.else@example.org",
+                "password": "not-my-password",
+                "grant": grant,
+            }
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, old_email)
+        self.assertTrue(spend_grant(self.user.pk, "change-email", grant))
+
     def test_changing_the_password_is_challenged(self):
         """It already demands the current password; the second factor is what
         a password alone cannot provide."""

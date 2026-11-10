@@ -393,6 +393,18 @@ class UserProfileViewSet(
         current = profile.user.username
         return serializer.validated_data.get("username", current) != current
 
+    def _require_password_for_email(self, request, profile):
+        """The serializer refuses an email change without the current password.
+        Checked before the gate, so a request it would reject keeps its grant.
+        """
+        password = request.data.get("password")
+        if not password:
+            raise serializers.ValidationError(
+                _("Your password is required when updating your email address.")
+            )
+        if not profile.user.check_password(password):
+            raise serializers.ValidationError(_("Invalid password"))
+
     def _step_up_refusal(self, request, partial=True):
         """Refuse whichever gated change this request would make, or None.
 
@@ -404,6 +416,8 @@ class UserProfileViewSet(
         refused before any grant is spent.
         """
         profile = self.get_object()
+        if is_gated(GATE_CHANGE_EMAIL) and _changes_email(request.data, profile):
+            self._require_password_for_email(request, profile)
         return gated_change_refusal(
             self,
             request,
