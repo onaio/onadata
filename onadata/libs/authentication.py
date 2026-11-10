@@ -654,7 +654,41 @@ def send_lockout_email(username, ip_address):
         )
 
 
-class MasterReplicaOAuth2Validator(OAuth2Validator):
+class OIDCPromptNoneMixin:
+    """Answer OpenID Connect ``prompt=none`` (silent authentication) requests.
+
+    oauthlib's base hooks raise ``NotImplementedError``, which turns every
+    ``prompt=none`` request into a 500. Mix this into any
+    ``OAUTH2_VALIDATOR_CLASS`` so the request is answered per the spec instead.
+
+    ``OIDC_PROMPT_NONE_ENABLED`` decides whether silent sign-in is allowed:
+    off, every request gets ``login_required``; on, signed-in users of
+    applications that skip the consent screen get a code, and the rest get
+    ``login_required`` or ``consent_required``.
+    """
+
+    def validate_silent_authorization(self, request):
+        """Allow consent to be skipped only for ``skip_authorization`` apps.
+
+        When silent sign-in is off this passes, so that
+        ``validate_silent_login`` answers ``login_required`` for every request.
+        """
+        if not getattr(settings, "OIDC_PROMPT_NONE_ENABLED", False):
+            return True
+        application = getattr(request, "client", None)
+        return bool(application and application.skip_authorization)
+
+    def validate_silent_login(self, request):
+        """Accept the login only when silent sign-in is on.
+
+        The Django session is checked by the authorization view, not here (the
+        oauthlib request carries no user): it answers an anonymous
+        ``prompt=none`` request with ``login_required`` after validating it.
+        """
+        return bool(getattr(settings, "OIDC_PROMPT_NONE_ENABLED", False))
+
+
+class MasterReplicaOAuth2Validator(OIDCPromptNoneMixin, OAuth2Validator):
     """
     Custom OAuth2Validator class that takes into account replication lag
     between Master & Replica databases
@@ -663,14 +697,6 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
     """
 
     def introspect_token(self, token, token_type_hint, request, *args, **kwargs):
-        """See oauthlib.oauth2.rfc6749.request_validator"""
-        raise NotImplementedError("Subclasses must implement this method.")
-
-    def validate_silent_authorization(self, request):
-        """See oauthlib.oauth2.rfc6749.request_validator"""
-        raise NotImplementedError("Subclasses must implement this method.")
-
-    def validate_silent_login(self, request):
         """See oauthlib.oauth2.rfc6749.request_validator"""
         raise NotImplementedError("Subclasses must implement this method.")
 

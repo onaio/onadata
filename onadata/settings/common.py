@@ -357,6 +357,12 @@ OAUTH2_PKCE_S256_MODE = "enforce"
 OAUTH2_PKCE_S256_MIGRATION_CUTOFF = None
 OAUTH2_PKCE_S256_MIGRATION_EXPIRES_AT = None
 
+# Whether OpenID Connect ``prompt=none`` (silent authentication) may sign in a
+# user who already has an OnaData session. Only applications that skip the
+# consent screen qualify. When off, every ``prompt=none`` request is answered
+# with ``login_required``.
+OIDC_PROMPT_NONE_ENABLED = False
+
 OPENID_CONNECT_VIEWSET_CONFIG = {
     "REDIRECT_AFTER_AUTH": "http://localhost:3000",
     "USE_SSO_COOKIE": True,
