@@ -446,7 +446,11 @@ class TestAccountTakeoverGates(TestAbstractViewSet):
         self.assertTrue(spend_grant(self.user.pk, "change-email", grant))
 
     def test_changing_the_email_is_challenged(self):
-        response = self._patch_email({"email": "somewhere.else@example.org"})
+        """Carries the password the serializer demands, so the request is
+        otherwise valid and the gate is what refuses it."""
+        response = self._patch_email(
+            {"email": "somewhere.else@example.org", "password": self.login_password}
+        )
 
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data["audience"], "change-email")
