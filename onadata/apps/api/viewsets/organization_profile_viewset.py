@@ -8,10 +8,12 @@ List, Retrieve, Update, Create/Register Organizations.
 import json
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.utils.module_loading import import_string
 
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.fields import empty
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from reversion.views import RevisionMixin
@@ -33,6 +35,7 @@ from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixi
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.permissions import ManagerRole, OwnerRole
 from onadata.libs.serializers.organization_member_serializer import (
     OrganizationMemberListSerializer,
     OrganizationMemberSerializer,
@@ -42,6 +45,13 @@ from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer,
     RotateOrganizationKeySerializer,
 )
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.drf import incoming_value
+from onadata.libs.stepup.policy import (
+    GATE_GRANT_ORG_ADMIN,
+    GATE_REQUIRE_AUTH,
+    GATE_ROTATE_ORG_KEY,
+)
 from onadata.libs.utils.cache_tools import (
     safe_cache_delete,
     safe_cache_get,
@@ -50,6 +60,9 @@ from onadata.libs.utils.cache_tools import (
 from onadata.libs.utils.common_tools import merge_dicts
 
 BaseViewset = get_baseviewset_class()
+User = get_user_model()
+
+ADMIN_ROLES = {role.name: role for role in (OwnerRole, ManagerRole)}
 
 
 def serializer_from_settings():
@@ -67,6 +80,7 @@ class OrganizationProfileViewSet(
     ETagsMixin,
     ObjectLookupMixin,
     RevisionMixin,
+    RequiresStepUp,
     BaseViewset,
     ModelViewSet,
 ):
@@ -123,8 +137,37 @@ class OrganizationProfileViewSet(
         safe_cache_delete(cache_key)
         return super().destroy(request, *args, **kwargs)
 
+    def _require_auth_refusal(self, request, partial):
+        """An organisation's profile is a UserProfile, so toggling its
+        require_auth needs the same proof as on a personal profile."""
+        organization = self.get_object()
+        incoming = incoming_value(
+            self.get_serializer(organization, partial=partial),
+            "require_auth",
+            request.data,
+        )
+        if incoming is empty or incoming == organization.require_auth:
+            return None
+        return self.check_step_up(request, GATE_REQUIRE_AUTH)
+
+    def member_role_refusal(self, request, organization, validated_data):
+        """Making someone an owner or manager lets them change every gated
+        setting of the organisation with their own factor, so it needs the
+        caller's. Checked after validation, so a rejected request does not
+        spend the grant."""
+        role = ADMIN_ROLES.get(validated_data.get("role"))
+        username = validated_data.get("username")
+        if validated_data.get("remove") or role is None or not username:
+            return None
+        if role.user_has_role(User.objects.get(username=username), organization):
+            return None
+        return self.check_step_up(request, GATE_GRANT_ORG_ADMIN)
+
     def update(self, request, *args, **kwargs):
         """Update org in cache and db"""
+        refusal = self._require_auth_refusal(request, kwargs.get("partial", False))
+        if refusal is not None:
+            return refusal
         response = super().update(request, *args, **kwargs)
         organization = self.get_object()
         invalidate_organization_cache(organization.user.username)
@@ -173,6 +216,11 @@ class OrganizationProfileViewSet(
         if not serializer.is_valid():
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        refusal = self.member_role_refusal(
+            request, organization, serializer.validated_data
+        )
+        if refusal is not None:
+            return refusal
         serializer.save()
 
         data = self.serializer_class(organization, context={"request": request}).data
@@ -194,6 +242,9 @@ class OrganizationProfileViewSet(
             context={**self.get_serializer_context(), "organization": organization},
         )
         serializer.is_valid(raise_exception=True)
+        refusal = self.check_step_up(request, GATE_ROTATE_ORG_KEY)
+        if refusal is not None:
+            return refusal
         old_key = serializer.validated_data["id"]
         new_key = serializer.save()
         # Capture audit log

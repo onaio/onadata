@@ -19,6 +19,7 @@ from onadata.apps.main.forms import (
 )
 from onadata.apps.main.registration_views import (
     FHRegistrationView,
+    StepUpPasswordChangeView,
     TokenRotatingPasswordResetConfirmView,
 )
 
@@ -77,6 +78,16 @@ urlpatterns = [
             success_url=reverse_lazy("auth_password_reset_complete")
         ),
         name="auth_password_reset_confirm",
+    ),
+    # Override the password-change view (also defined in registration.auth_urls
+    # below) so it is gated like the API's change_password. Declared first so
+    # it takes precedence over the include's route.
+    path(
+        "password/change/",
+        StepUpPasswordChangeView.as_view(
+            success_url=reverse_lazy("auth_password_change_done")
+        ),
+        name="auth_password_change",
     ),
     re_path(r"", include("registration.auth_urls")),
 ]

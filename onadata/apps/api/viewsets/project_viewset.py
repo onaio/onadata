@@ -5,6 +5,7 @@ The /projects API endpoint implementation.
 
 import logging
 
+from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -35,6 +36,7 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.profiler_mixin import ProfilerMixin
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.permissions import ROLES
 from onadata.libs.serializers.project_invitation_serializer import (
     ProjectInvitationResendSerializer,
     ProjectInvitationRevokeSerializer,
@@ -54,6 +56,15 @@ from onadata.libs.serializers.xform_serializer import (
     XFormCreateSerializer,
     XFormSerializer,
 )
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.drf import gated_change_refusal
+from onadata.libs.stepup.policy import (
+    ADMIN_ROLE_NAMES,
+    GATE_INVITE_PROJECT_ADMIN,
+    GATE_PUBLISH_DATA,
+    GATE_SHARE_PROJECT_ADMIN,
+    GATE_TRANSFER_PROJECT,
+)
 from onadata.libs.utils.cache_tools import (
     clear_project_owner_cache,
     get_project_cache_key,
@@ -70,6 +81,20 @@ logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
+User = get_user_model()
+
+
+def _publishes_data(project, validated_data):
+    """Saving a public project makes every private form in it public, data
+    included, whether or not ``public`` is what changed."""
+    if not validated_data.get("shared", project.shared):
+        return False
+    return not project.shared or project.xform_set.filter(shared=False).exists()
+
+
+def _transfers(project, validated_data):
+    new_owner = validated_data.get("organization", project.organization)
+    return new_owner != project.organization
 
 
 # pylint: disable=too-many-ancestors
@@ -80,6 +105,7 @@ class ProjectViewSet(
     LabelsMixin,
     ProfilerMixin,
     RevisionMixin,
+    RequiresStepUp,
     BaseViewset,
     ModelViewSet,
 ):
@@ -131,10 +157,38 @@ class ProjectViewSet(
 
         return super().get_queryset()
 
+    def _update_refusal(self, request, project, validated_data):
+        """Refuse whichever gated change saving ``validated_data`` would make,
+        or None."""
+        return gated_change_refusal(
+            self,
+            request,
+            (
+                (GATE_TRANSFER_PROJECT, _transfers(project, validated_data)),
+                (GATE_PUBLISH_DATA, _publishes_data(project, validated_data)),
+            ),
+        )
+
+    def _move_form_refusal(self, request, project, xform):
+        """A form that is neither public nor has public data takes on a public
+        project's visibility when moved into it."""
+        if project.shared and not (xform.shared or xform.shared_data):
+            return self.check_step_up(request, GATE_PUBLISH_DATA)
+        return None
+
     def update(self, request, *args, **kwargs):
         """Updates project properties and set's cache with the updated records."""
         project_id = kwargs.get("pk")
-        response = super().update(request, *args, **kwargs)
+        project = self.get_object()
+        serializer = self.get_serializer(
+            project, data=request.data, partial=kwargs.pop("partial", False)
+        )
+        serializer.is_valid(raise_exception=True)
+        refusal = self._update_refusal(request, project, serializer.validated_data)
+        if refusal is not None:
+            return refusal
+        self.perform_update(serializer)
+        response = Response(serializer.data)
         clear_project_owner_cache(project_id)
         safe_cache_set(
             get_project_cache_key(project_id, request, api_version=self.api_version),
@@ -167,7 +221,15 @@ class ProjectViewSet(
         # pylint: disable=attribute-defined-outside-init
         project = self.object = self.get_object()
         if request.method.upper() == "POST":
-            survey = utils.publish_project_xform(request, project)
+            survey = utils.publish_project_xform(
+                request,
+                project,
+                move_refusal=lambda xform: self._move_form_refusal(
+                    request, project, xform
+                ),
+            )
+            if isinstance(survey, Response):
+                return survey
 
             if isinstance(survey, XForm):
                 if "formid" in request.data:
@@ -204,6 +266,21 @@ class ProjectViewSet(
 
         return Response(serializer.data)
 
+    def _share_admin_refusal(self, request, validated_data):
+        """An owner or manager can share the project on and delete it, so
+        appointing one needs the caller's factor. Only for a target who does
+        not already hold the role."""
+        role_name = validated_data["role"]
+        if role_name not in ADMIN_ROLE_NAMES:
+            return None
+        role = ROLES[role_name]
+        targets = User.objects.filter(
+            username__in=validated_data["username"].split(",")
+        )
+        if all(role.user_has_role(user, self.object) for user in targets):
+            return None
+        return self.check_step_up(request, GATE_SHARE_PROJECT_ADMIN)
+
     @action(methods=["PUT"], detail=True)
     def share(self, request, *args, **kwargs):
         """
@@ -222,6 +299,10 @@ class ProjectViewSet(
         else:
             serializer = ShareProjectSerializer(data=data)
         if serializer.is_valid():
+            if not remove:
+                refusal = self._share_admin_refusal(request, serializer.validated_data)
+                if refusal is not None:
+                    return refusal
             serializer.save()
             email_msg = data.get("email_msg")
             if email_msg:
@@ -276,6 +357,21 @@ class ProjectViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def _invite_admin_refusal(self, request, validated_data, invitation=None):
+        """An accepted invitation confers its role, so inviting an owner or
+        manager needs the same factor as sharing with one. Pointing an admin
+        invitation at another email invites someone new."""
+        role = validated_data["role"]
+        if role not in ADMIN_ROLE_NAMES:
+            return None
+        if (
+            invitation is not None
+            and invitation.role == role
+            and invitation.email == validated_data["email"]
+        ):
+            return None
+        return self.check_step_up(request, GATE_INVITE_PROJECT_ADMIN)
+
     @action(
         detail=True,
         methods=["GET", "POST", "PUT"],
@@ -302,6 +398,9 @@ class ProjectViewSet(
             data = draft_request_data
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
+            refusal = self._invite_admin_refusal(request, serializer.validated_data)
+            if refusal is not None:
+                return refusal
             serializer.save()
             return Response(serializer.data)
 
@@ -323,6 +422,11 @@ class ProjectViewSet(
                 data=data,
             )
             serializer.is_valid(raise_exception=True)
+            refusal = self._invite_admin_refusal(
+                request, serializer.validated_data, invitation
+            )
+            if refusal is not None:
+                return refusal
             serializer.save()
             return Response(serializer.data)
 

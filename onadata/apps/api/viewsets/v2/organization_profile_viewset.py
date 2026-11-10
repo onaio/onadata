@@ -156,6 +156,11 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
         if request.method != "GET":
             serializer = self.get_serializer(data=request.data, context=context)
             serializer.is_valid(raise_exception=True)
+            refusal = self.member_role_refusal(
+                request, organization, serializer.validated_data
+            )
+            if refusal is not None:
+                return refusal
             serializer.save()
 
             if serializer.validated_data["remove"]:

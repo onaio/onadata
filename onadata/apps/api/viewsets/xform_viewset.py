@@ -68,7 +68,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
-from onadata.libs.permissions import require_xform_data_access
+from onadata.libs.permissions import ROLES, require_xform_data_access
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import ShareXFormSerializer
@@ -77,6 +77,15 @@ from onadata.libs.serializers.xform_serializer import (
     XFormCreateSerializer,
     XFormSerializer,
     XFormVersionListSerializer,
+)
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.drf import gated_change_refusal
+from onadata.libs.stepup.policy import (
+    ADMIN_ROLE_NAMES,
+    GATE_DISABLE_FORM_ENCRYPTION,
+    GATE_FORM_REQUIRE_AUTH,
+    GATE_PUBLISH_DATA,
+    GATE_SHARE_FORM_ADMIN,
 )
 from onadata.libs.utils.api_export_tools import (
     _get_export_type,
@@ -432,6 +441,30 @@ def _format_enketo_response(urls, survey_type):
     }
 
 
+def _publishes_data(xform, validated_data):
+    return any(
+        validated_data.get(field) and not getattr(xform, field)
+        for field in ("shared", "shared_data")
+    )
+
+
+def _drops_require_auth(xform, validated_data):
+    return xform.require_auth and not validated_data.get(
+        "require_auth", xform.require_auth
+    )
+
+
+def _disables_encryption(xform, validated_data):
+    """Mirrors what ``disable_xform_encryption`` refuses, so a request it
+    would reject does not cost a grant."""
+    return (
+        validated_data.get("enable_kms_encryption") is False
+        and xform.encrypted
+        and not xform.num_of_submissions
+        and xform.kms_keys.filter(version=xform.version).exists()
+    )
+
+
 # pylint: disable=too-many-ancestors
 class XFormViewSet(
     AnonymousUserPublicFormsMixin,
@@ -439,6 +472,7 @@ class XFormViewSet(
     AuthenticateHeaderMixin,
     ETagsMixin,
     LabelsMixin,
+    RequiresStepUp,
     BaseViewset,
     ModelViewSet,
 ):
@@ -767,6 +801,18 @@ class XFormViewSet(
             meta,
         )
 
+    def _share_admin_refusal(self, request, shares):
+        """An owner or manager can share the form on and delete it, so
+        appointing one needs the caller's factor. Only for a target who does
+        not already hold the role."""
+        for share in shares:
+            if share["role"] not in ADMIN_ROLE_NAMES:
+                continue
+            target = User.objects.get(username=share["username"])
+            if not ROLES[share["role"]].user_has_role(target, self.object):
+                return self.check_step_up(request, GATE_SHARE_FORM_ADMIN)
+        return None
+
     @action(methods=["POST"], detail=True)
     def share(self, request, *args, **kwargs):
         """Perform form sharing."""
@@ -788,6 +834,9 @@ class XFormViewSet(
         serializer = ShareXFormSerializer(data=data_list, many=True)
 
         if serializer.is_valid():
+            refusal = self._share_admin_refusal(request, serializer.validated_data)
+            if refusal is not None:
+                return refusal
             serializer.save()
         else:
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -997,6 +1046,37 @@ class XFormViewSet(
                 else status.HTTP_400_BAD_REQUEST
             ),
         )
+
+    def _update_refusal(self, request, xform, validated_data):
+        """Refuse whichever gated change saving ``validated_data`` would make,
+        or None. Restoring a protection is never gated."""
+        return gated_change_refusal(
+            self,
+            request,
+            (
+                (GATE_PUBLISH_DATA, _publishes_data(xform, validated_data)),
+                (GATE_FORM_REQUIRE_AUTH, _drops_require_auth(xform, validated_data)),
+                (
+                    GATE_DISABLE_FORM_ENCRYPTION,
+                    _disables_encryption(xform, validated_data),
+                ),
+            ),
+        )
+
+    def update(self, request, *args, **kwargs):
+        """Update a form's properties, the target of PUT and PATCH alike."""
+        xform = self.get_object()
+        serializer = self.get_serializer(
+            xform, data=request.data, partial=kwargs.pop("partial", False)
+        )
+        serializer.is_valid(raise_exception=True)
+        refusal = self._update_refusal(request, xform, serializer.validated_data)
+        if refusal is not None:
+            return refusal
+        self.perform_update(serializer)
+        # The update can change relations the queryset prefetched.
+        xform._prefetched_objects_cache = {}  # pylint: disable=protected-access
+        return Response(serializer.data)
 
     def partial_update(self, request, *args, **kwargs):
         """Partial update of a form's properties."""
