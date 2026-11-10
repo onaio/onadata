@@ -353,8 +353,7 @@ class UserProfileViewSet(
                 data={"errors": error.messages}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Last, as on the settings page: a mistyped or refused password must
-        # not spend the grant.
+        # Spend the grant last: a mistyped or refused password must not spend it.
         refusal = self.check_step_up(request, GATE_CHANGE_PASSWORD)
         if refusal is not None:
             return refusal

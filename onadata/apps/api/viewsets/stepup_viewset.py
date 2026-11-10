@@ -39,7 +39,7 @@ class StepUpViewSet(StepUpCallbackMixin, ViewSet):
     renderer_classes = (JSONRenderer, StaticHTMLRenderer)
 
     def finalize_response(self, request, response, *args, **kwargs):
-        """Forbid storing any answer: the callback's carries a grant."""
+        """No-store every response: the callback's body carries a grant."""
         response = super().finalize_response(request, response, *args, **kwargs)
         response["Cache-Control"] = "no-store"
         return response

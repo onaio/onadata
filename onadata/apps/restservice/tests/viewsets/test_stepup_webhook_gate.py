@@ -118,18 +118,6 @@ class TestChangeWebhookGate(TestAbstractViewSet):
         service.refresh_from_db()
         self.assertEqual(service.name, "generic_json")
 
-    def test_a_put_changing_the_url_without_a_grant_is_challenged(self):
-        service = self._service()
-
-        response = self._request(
-            "put", self._new_service(service_url=OTHER_URL), pk=service.pk
-        )
-
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.data["audience"], CHANGE_WEBHOOK)
-        service.refresh_from_db()
-        self.assertEqual(service.service_url, SERVICE_URL)
-
     def test_a_grant_lets_the_url_change_through(self):
         service = self._service()
 

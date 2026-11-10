@@ -28,7 +28,7 @@ git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd4
 git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
 # Pinned at the step-up branch tip for stepup_grants, which the totp endpoints
 # import. Re-pin to a main SHA once onaio/ona-oidc#139 merges.
-git+https://github.com/onaio/ona-oidc.git@f4324edc68ad955f22f8b03fc98b5775d4a8068e#egg=ona-oidc
+git+https://github.com/onaio/ona-oidc.git@227059bab2fea456bcc9f655110c8ff5804eadc2#egg=ona-oidc
 -e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
 git+https://git@github.com/onaio/valigetta.git@v0.3.1#egg=valigetta
 codetiming

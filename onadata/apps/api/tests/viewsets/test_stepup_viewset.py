@@ -529,8 +529,8 @@ class TestAccountTakeoverGates(TestAbstractViewSet):
         self.assertFalse(self.user.check_password(new_password))
 
     def test_a_mistyped_current_password_keeps_the_grant(self):
-        """Validated before the gate, as the settings page is, so the retry
-        does not need a second factor proved again."""
+        """Validated before the gate, so the retry does not need a second
+        factor proved again."""
         new_password = "Tr0ub4dor-and-3-horses"
         grant = issue_grant(self.user.pk, "change-password")
         view = UserProfileViewSet.as_view({"post": "change_password"})

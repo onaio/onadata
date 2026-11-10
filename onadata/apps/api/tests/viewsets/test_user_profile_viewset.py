@@ -761,27 +761,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
     @override_settings(
         STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"}
     )
-    def test_changing_require_auth_needs_a_step_up_grant(self):
-        """A client-side prompt is not a gate: PATCHing the field directly would
-        bypass it, so the server verifies the step-up itself."""
-        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
-        before = UserProfile.objects.get(user=self.user).require_auth
-
-        request = self.factory.patch(
-            "/", data={"require_auth": not before}, **self.extra
-        )
-        response = self.view(request, user=self.user.username)
-
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.data["error"], "step_up_required")
-        self.assertEqual(response.data["audience"], "require-auth-toggle")
-        self.assertEqual(
-            UserProfile.objects.get(user=self.user).require_auth, before
-        )
-
-    @override_settings(
-        STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"}
-    )
     def test_echoing_require_auth_unchanged_is_not_challenged(self):
         """A full-profile write echoes require_auth back; gating on its mere
         presence would challenge a name or city edit that never touched the

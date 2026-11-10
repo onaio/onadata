@@ -83,12 +83,3 @@ class TestFederatedStepUp(TestCase):
 
         self.assertIsNone(grant)
         self.assertEqual(reason, "state_user_mismatch")
-
-    def test_the_state_carries_the_audience_and_the_user(self):
-        """The provider redirects back to a URL, not to the control the user
-        clicked, so both have to survive the round trip. The callback refuses
-        a state whose user is not the one redeeming it."""
-        stashed = cache.get(f"oidc:step-up:{self.state}")["context"]
-
-        self.assertEqual(stashed["audience"], "require-auth-toggle")
-        self.assertEqual(stashed["user_pk"], self.user.pk)

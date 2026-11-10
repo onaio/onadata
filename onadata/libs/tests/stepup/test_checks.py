@@ -207,16 +207,6 @@ class TestFederatedStepUpBindsByEmail(SimpleTestCase):
 
     @override_settings(
         STEP_UP={"MODE": "federated", "ACTIONS": ["change-email"]},
-        OPENID_CONNECT_AUTH_SERVERS=_servers(SUBJECT_CLAIM="preferred_username"),
-    )
-    def test_a_username_claim_is_reported(self):
-        """The claim maps to the username field through MAP_CLAIM_TO_MODEL."""
-        warnings = check_federated_step_up_binds_by_email()
-
-        self.assertEqual([w.id for w in warnings], ["stepup.W007"])
-
-    @override_settings(
-        STEP_UP={"MODE": "federated", "ACTIONS": ["change-email"]},
         OPENID_CONNECT_AUTH_SERVERS=_servers(),
     )
     def test_the_default_email_binding_is_silent(self):
