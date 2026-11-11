@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.31.5(2026-11-11)
+--------------------
+- fix: recount submissions on the primary database
+  [@FrankApiyo]
+  `PR #3316 https://github.com/onaio/onadata/pull/3316`
+- test: compare merged dataset source forms regardless of order
+  [@FrankApiyo]
+  `PR #3317 https://github.com/onaio/onadata/pull/3317`
+- fix: support OpenID Connect prompt=none
+  [@kahummer]
+  `PR #3319 https://github.com/onaio/onadata/pull/3319`
+
 v5.31.4(2026-11-04)
 --------------------
 - perf: annotate merged dataset submissions after permission filtering
