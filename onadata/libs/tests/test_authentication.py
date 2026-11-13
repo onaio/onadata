@@ -1,4 +1,5 @@
 import base64
+import time
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -10,6 +11,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 import jwt
+from kombu.exceptions import OperationalError
 from oauth2_provider.models import AccessToken, get_application_model
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.test import APIRequestFactory
@@ -21,6 +23,7 @@ from onadata.libs.authentication import (
     MasterReplicaOAuth2Validator,
     TempTokenAuthentication,
     TempTokenURLParameterAuthentication,
+    add_login_attempt,
     assert_not_locked_out,
     check_lockout,
     get_api_token,
@@ -321,6 +324,145 @@ class TestGetLockoutUsername(TestCase):
         """An unmatched identifier is returned unchanged so it is still
         throttled."""
         self.assertEqual(get_lockout_username("nobody"), "nobody")
+
+
+@override_settings(MAX_LOGIN_ATTEMPTS=3, LOCKOUT_TIME=1800)
+class TestAddLoginAttempt(TestCase):
+    """Test add_login_attempt() locks out, notifies the owner and logs it."""
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        User.objects.create_user(
+            username="bob", email="bob@example.com", password="secret"
+        )
+        email_patcher = patch(
+            "onadata.libs.authentication.send_account_lockout_email.apply_async"
+        )
+        self.send_email = email_patcher.start()
+        self.addCleanup(email_patcher.stop)
+        log_patcher = patch("onadata.libs.authentication.sentry_logger")
+        self.sentry_logger = log_patcher.start()
+        self.addCleanup(log_patcher.stop)
+
+    def _fail_until_locked_out(self, ip_address):
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS - 1):
+            add_login_attempt(ip_address, "bob")
+        with self.assertRaises(AuthenticationFailed):
+            add_login_attempt(ip_address, "bob")
+
+    def test_lockouts_from_other_ips_do_not_email_again(self):
+        """An account locked out from many IPs gets one start and one end
+        email, not a pair per IP."""
+        self._fail_until_locked_out("1.2.3.4")
+        self.assertEqual(self.send_email.call_count, 2)
+
+        self._fail_until_locked_out("5.6.7.8")
+        self.assertEqual(self.send_email.call_count, 2)
+
+    def test_the_interval_does_not_hold_back_other_accounts(self):
+        self._fail_until_locked_out("1.2.3.4")
+        User.objects.create_user(
+            username="alice", email="alice@example.com", password="secret"
+        )
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS - 1):
+            add_login_attempt("1.2.3.4", "alice")
+        with self.assertRaises(AuthenticationFailed):
+            add_login_attempt("1.2.3.4", "alice")
+
+        self.assertEqual(self.send_email.call_count, 4)
+
+    @override_settings(LOCKOUT_EMAIL_INTERVAL=1)
+    def test_emails_again_once_the_interval_has_passed(self):
+        self._fail_until_locked_out("1.2.3.4")
+        self.assertEqual(self.send_email.call_count, 2)
+
+        time.sleep(1.1)
+        self._fail_until_locked_out("5.6.7.8")
+        self.assertEqual(self.send_email.call_count, 4)
+
+    def test_a_failed_send_still_locks_out_and_retries_on_the_next_lockout(self):
+        self.send_email.side_effect = [OperationalError("broker down"), None, None]
+        with self.assertLogs("onadata.libs.authentication", level="ERROR"):
+            self._fail_until_locked_out("1.2.3.4")
+        self.assertFalse(self.sentry_logger.info.call_args.kwargs["email_sent"])
+
+        self._fail_until_locked_out("5.6.7.8")
+        self.assertEqual(self.send_email.call_count, 3)
+
+    def test_lockouts_of_unknown_accounts_are_not_reported(self):
+        """Usernames that match no account are attacker-chosen strings."""
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS - 1):
+            add_login_attempt("1.2.3.4", "nobody")
+        with self.assertRaises(AuthenticationFailed):
+            add_login_attempt("1.2.3.4", "nobody")
+
+        self.send_email.assert_not_called()
+        self.sentry_logger.info.assert_not_called()
+
+    def test_every_lockout_is_logged_to_sentry(self):
+        """Lockouts whose email was suppressed are still logged."""
+        self._fail_until_locked_out("1.2.3.4")
+        self._fail_until_locked_out("5.6.7.8")
+
+        self.assertEqual(
+            [call.kwargs for call in self.sentry_logger.info.call_args_list],
+            [
+                {
+                    "username": "bob",
+                    "ip_address": "1.2.3.4",
+                    "attempts": 3,
+                    "email_sent": True,
+                },
+                {
+                    "username": "bob",
+                    "ip_address": "5.6.7.8",
+                    "attempts": 3,
+                    "email_sent": False,
+                },
+            ],
+        )
+
+    def test_attempts_without_a_username_do_not_create_a_lockout(self):
+        """Excluded paths count attempts with no IP or username; a lockout
+        keyed on neither would lock nobody out."""
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS):
+            add_login_attempt(None, None)
+
+        self.assertEqual(add_login_attempt(None, None), settings.MAX_LOGIN_ATTEMPTS + 1)
+        self.assertIsNone(cache.get(safe_key(f"{LOCKOUT_IP}None-None")))
+
+    def test_lockouts_without_a_client_ip_are_still_reported(self):
+        """An IP that resolves to an empty string (``X-Real-Ip: ,1.2.3.4``)
+        escapes enforcement, so the owner must still hear about it."""
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS):
+            add_login_attempt("", "bob")
+
+        self.assertEqual(self.send_email.call_count, 2)
+        self.sentry_logger.info.assert_called_once()
+
+    def test_attempts_racing_past_the_threshold_create_one_lockout(self):
+        """Concurrent requests can each read the lockout key before any of
+        them writes it; only one of them may create the lockout."""
+        for _ in range(settings.MAX_LOGIN_ATTEMPTS - 1):
+            add_login_attempt("1.2.3.4", "bob")
+        lockout_key = safe_key(f"{LOCKOUT_IP}1.2.3.4-bob")
+
+        def read_before_lockout_written(key, default=None):
+            return None if key == lockout_key else cache.get(key, default)
+
+        # The stale read also hides the lockout from assert_not_locked_out,
+        # so neither call raises.
+        with patch(
+            "onadata.libs.authentication.safe_cache_get",
+            side_effect=read_before_lockout_written,
+        ):
+            add_login_attempt("1.2.3.4", "bob")
+            add_login_attempt("1.2.3.4", "bob")
+
+        self.assertEqual(self.send_email.call_count, 2)
+        self.assertEqual(self.sentry_logger.info.call_count, 1)
+        self.assertIsNotNone(cache.get(lockout_key))
 
 
 class TestMasterReplicaOAuth2Validator(TestCase):

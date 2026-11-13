@@ -105,6 +105,7 @@ ORG_PROFILE_CACHE_PREFIXES = {
 # cache login attempts
 LOCKOUT_IP = "lockout_ip-"
 LOGIN_ATTEMPTS = "login_attempts-"
+LOCKOUT_EMAIL_SENT = "lockout_email_sent-"
 LOCKOUT_CHANGE_PASSWORD_USER = "lockout_change_password_user-"  # noqa
 CHANGE_PASSWORD_ATTEMPTS = "change_password_attempts-"  # noqa
 PASSWORD_RESET_ATTEMPTS = "password_reset_attempts-"  # noqa
