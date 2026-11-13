@@ -341,7 +341,7 @@ class TestAddLoginAttempt(TestCase):
         )
         self.send_email = email_patcher.start()
         self.addCleanup(email_patcher.stop)
-        log_patcher = patch("onadata.libs.authentication.sentry_logger", create=True)
+        log_patcher = patch("onadata.libs.authentication.sentry_logger")
         self.sentry_logger = log_patcher.start()
         self.addCleanup(log_patcher.stop)
 

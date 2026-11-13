@@ -787,6 +787,8 @@ SECRET_KEY = INSECURE_DEFAULT_SECRET_KEY
 # Time in seconds to lock out user from account
 LOCKOUT_TIME = 30 * 60
 MAX_LOGIN_ATTEMPTS = 10
+# Minimum time in seconds between lockout emails to one account
+LOCKOUT_EMAIL_INTERVAL = 24 * 60 * 60
 MAX_PASSWORD_RESET_ATTEMPTS = 3
 PASSWORD_RESET_ATTEMPT_WINDOW = 15 * 60
 # No SUPPORT_EMAIL default: 2FA emails raise ImproperlyConfigured if unset.
