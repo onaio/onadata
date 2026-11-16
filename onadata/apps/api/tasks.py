@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
 from celery.result import AsyncResult
+from multidb.pinning import use_master
 
 from onadata.apps.api import tools
 from onadata.apps.logger.models import Instance, Project, ProjectInvitation, XForm
@@ -244,8 +245,11 @@ def delete_xform_submissions_async(
     :param soft_delete: Soft delete instances if True, otherwise hard delete
     """
     try:
-        xform = XForm.objects.get(pk=xform_id)
-        deleted_by = User.objects.get(pk=deleted_by_id)
+        # The recount compares against the loaded form's count, so a stale
+        # replica copy can hide a change.
+        with use_master:
+            xform = XForm.objects.get(pk=xform_id)
+            deleted_by = User.objects.get(pk=deleted_by_id)
 
     except (XForm.DoesNotExist, User.DoesNotExist) as err:
         logger.exception(err)

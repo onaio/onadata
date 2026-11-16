@@ -11,7 +11,7 @@ from onadata.apps.api.viewsets.submission_review_viewset import SubmissionReview
 from onadata.apps.logger.models import Instance, SubmissionReview
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.messaging.constants import SUBMISSION_REVIEWED, XFORM
-from onadata.libs.permissions import EditorRole, ManagerRole, OwnerRole
+from onadata.libs.permissions import EditorRole, ManagerRole, OwnerRole, ReadOnlyRole
 from onadata.libs.utils.common_tags import REVIEW_COMMENT, REVIEW_STATUS
 
 
@@ -178,6 +178,81 @@ class TestSubmissionReviewViewSet(TestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(submission_review_data["id"], response.data["id"])
+
+    def test_submission_review_anonymous_access(self):
+        """
+        Anonymous users cannot list or retrieve submission reviews
+        """
+        submission_review_data = self._create_submission_review()
+
+        view = SubmissionReviewViewSet.as_view({"get": "list"})
+        request = self.factory.get("/")
+        response = view(request=request)
+
+        self.assertEqual(401, response.status_code)
+
+        view = SubmissionReviewViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/")
+        response = view(request=request, pk=submission_review_data["id"])
+
+        self.assertEqual(401, response.status_code)
+
+    def test_submission_review_requires_form_role(self):
+        """
+        Users without a role on the form cannot read its
+        submission reviews
+        """
+        submission_review_data = self._create_submission_review()
+
+        self._create_user_and_login("dave", "1234")
+        extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+
+        view = SubmissionReviewViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **extra)
+        response = view(request=request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(0, len(response.data))
+
+        # filtering by instance does not leak the reviews either
+        request = self.factory.get(
+            "/", {"instance": submission_review_data["instance"]}, **extra
+        )
+        response = view(request=request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(0, len(response.data))
+
+        view = SubmissionReviewViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **extra)
+        response = view(request=request, pk=submission_review_data["id"])
+
+        self.assertEqual(404, response.status_code)
+
+    def test_submission_review_readable_with_form_role(self):
+        """
+        Any user with a role on the form can read its submission reviews
+        """
+        submission_review_data = self._create_submission_review()
+        form = Instance.objects.get(id=submission_review_data["instance"]).xform
+
+        self._create_user_and_login("dave", "1234")
+        ReadOnlyRole.add(self.user, form)
+        extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+
+        view = SubmissionReviewViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **extra)
+        response = view(request=request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(1, len(response.data))
+        self.assertEqual(submission_review_data["id"], response.data[0]["id"])
+
+        view = SubmissionReviewViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **extra)
+        response = view(request=request, pk=submission_review_data["id"])
+
+        self.assertEqual(200, response.status_code)
 
     def test_submission_review_update(self):
         """

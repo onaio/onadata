@@ -335,3 +335,30 @@ class TestFloipViewSet(TestAbstractViewSet):
         # The transportation form(self.xform) contains 11 responses
         # Assert that the responses are returned
         self.assertEqual(len(response.data["attributes"]["responses"]), 11)
+
+        submission_uuid = self.xform.instances.first().uuid.encode()
+        package_view = FloipViewSet.as_view({"get": "retrieve"})
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        alice_extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
+
+        def read_responses(form, extra):
+            request = self.factory.get("/", **extra)
+            return view(request, uuid=form.uuid).render()
+
+        for form in (self.xform, XForm.objects.get(uuid=dataset_uuid)):
+            form.shared = True
+            form.shared_data = False
+            form.save()
+            for extra in ({}, alice_extra):
+                self.assertEqual(read_responses(form, extra).status_code, 404)
+                request = self.factory.get("/", **extra)
+                response = package_view(request, uuid=form.uuid)
+                self.assertEqual(response.status_code, 200)
+
+            self.assertIn(submission_uuid, read_responses(form, self.extra).content)
+
+            form.shared_data = True
+            form.save()
+            self.assertIn(submission_uuid, read_responses(form, {}).content)

@@ -14,6 +14,7 @@ from onadata.apps.viewer.tasks import create_async_export
 class TestExportSerializer(TestAbstractViewSet):
     def test_export_serializer(self):
         request = APIRequestFactory().get('/')
+        request.user = self.user
         self._publish_xls_form_to_project()
         temp_dir = settings.MEDIA_ROOT
         dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
@@ -48,3 +49,23 @@ class TestExportSerializer(TestAbstractViewSet):
                                                                    request})
 
         self.assertEqual(serializer.data.get('export_url'), new_url)
+
+        dataview_export = Export.objects.create(xform=self.xform,
+                                                filename='dataview.xlsx',
+                                                filedir=filedir,
+                                                options={"dataview_pk": 7},
+                                                internal_status=True)
+
+        def export_url(user):
+            request.user = user
+            return ExportSerializer(instance=dataview_export, context={
+                'request': request}).data.get('export_url')
+
+        no_role_user = self._create_user('alice', 'alice')
+        self.assertFalse(self.xform.shared_data)
+        self.assertTrue(export_url(no_role_user).endswith('?dataview=7'))
+        self.assertNotIn('dataview=', export_url(self.user))
+
+        self.xform.shared_data = True
+        self.xform.save()
+        self.assertNotIn('dataview=', export_url(no_role_user))

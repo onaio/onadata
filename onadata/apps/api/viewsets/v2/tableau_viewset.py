@@ -202,7 +202,7 @@ class TableauViewSet(OpenDataViewSet):
 
                 if xform.is_merged_dataset:
                     xform_pks = list(
-                        xform.mergedxform.xforms.values_list("pk", flat=True)
+                        xform.mergedxform.active_xforms().values_list("pk", flat=True)
                     )
                     qs_kwargs = {"xform__pk__in": xform_pks}
 
@@ -236,7 +236,7 @@ class TableauViewSet(OpenDataViewSet):
             xform_pks = [xform.id]
 
             if xform.is_merged_dataset:
-                xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
+                xform_pks = xform.mergedxform.active_xform_pks_for_sql()
 
             sql_params = [tuple(xform_pks)] + sql_where_params
 

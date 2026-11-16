@@ -290,7 +290,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
             if xform.is_merged_dataset:
                 qs_kwargs = {
                     "xform_id__in": list(
-                        xform.mergedxform.xforms.values_list("pk", flat=True)
+                        xform.mergedxform.active_xforms().values_list("pk", flat=True)
                     )
                 }
             else:

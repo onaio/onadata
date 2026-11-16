@@ -1,9 +1,13 @@
 """Tests for onadata.apps.api.viewsets.v2.project_viewset"""
 
 from datetime import timedelta
+from unittest.mock import patch
 
+from django.contrib.auth.models import Group
 from django.core.cache import cache
+from django.db import connection
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -11,9 +15,13 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectV
 from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSet
 from onadata.apps.logger.models import EntityList, Project, XForm
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.project_serializer import PROJECT_PUBLIC_EXCLUDED_FIELDS
+from onadata.libs.serializers.v2.project_serializer import ProjectListSerializer
 from onadata.libs.utils.cache_tools import (
+    PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
+    PROJ_SUB_DATE_CACHE,
     PROJ_V2_OWNER_CACHE,
     PROJ_V2_PUBLIC_OWNER_CACHE,
 )
@@ -86,6 +94,118 @@ class GetProjectListTestCase(TestAbstractViewSet):
         self.assertEqual(len(response.data), 1)
         public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
         self.assertFalse(public_excluded_fields & set(response.data[0]))
+
+    def test_user_specific_fields_query_count_is_constant(self):
+        """Roles and stars are looked up once for all the listed projects."""
+        group = Group.objects.create(name="readers")
+        self.user.groups.add(group)
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        request = self.factory.get("/", **self.extra)
+        self.view(request)
+        with CaptureQueriesContext(connection) as one_project:
+            response = self.view(request)
+        self.assertEqual(len(response.data), 1)
+
+        starred = Project.objects.create(
+            name="Starred", organization=self.user, created_by=self.user
+        )
+        starred.user_stars.add(self.user)
+        through_group = Project.objects.create(
+            name="Through Group", organization=alice, created_by=alice
+        )
+        ReadOnlyRole.add(group, through_group)
+        with CaptureQueriesContext(connection) as listed_projects:
+            response = self.view(request)
+
+        self.assertEqual(len(listed_projects), len(one_project))
+        self.assertEqual(
+            {
+                project["name"]: (project["current_user_role"], project["starred"])
+                for project in response.data
+            },
+            {
+                "Tree Monitoring": ("owner", False),
+                "Starred": ("owner", True),
+                "Through Group": ("readonly", False),
+            },
+        )
+
+    def _serialize_for(self, user):
+        request = self.factory.get("/")
+        request.user = user
+        return ProjectListSerializer(
+            [self.project], many=True, context={"request": request}
+        ).data[0]
+
+    def test_user_specific_fields_for_superuser_and_inactive_user(self):
+        """Superusers get the full shape and inactive users the public shape."""
+        superuser = self._create_user_profile(
+            {"username": "root", "email": "root@localhost.com"}
+        ).user
+        superuser.is_superuser = True
+        superuser.save()
+        inactive = self._create_user_profile(
+            {"username": "gone", "email": "gone@localhost.com"}
+        ).user
+        ManagerRole.add(inactive, self.project)
+        self.assertEqual(self._serialize_for(inactive)["current_user_role"], "manager")
+        inactive.is_active = False
+        inactive.save()
+
+        superuser_project = self._serialize_for(superuser)
+        self.assertEqual(superuser_project["current_user_role"], "owner")
+        self.assertTrue(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(superuser_project))
+        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
+        self.assertFalse(public_excluded_fields & set(self._serialize_for(inactive)))
+
+    def test_public_projects_listed_for_user_without_permissions(self):
+        """Shared projects with no permissions keep the public shape and query count."""
+        alice = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        public_project = Project.objects.create(
+            name="Public", organization=alice, created_by=alice, shared=True
+        )
+        public_project.user_stars.add(self.user)
+        request = self.factory.get("/", {"owner": "alice"}, **self.extra)
+        self.view(request)
+        with CaptureQueriesContext(connection) as one_project:
+            response = self.view(request)
+        self.assertEqual(len(response.data), 1)
+
+        Project.objects.create(
+            name="Public Too", organization=alice, created_by=alice, shared=True
+        )
+        with CaptureQueriesContext(connection) as two_projects:
+            response = self.view(request)
+
+        self.assertEqual(len(two_projects), len(one_project))
+        self.assertEqual(
+            {project["name"]: project["starred"] for project in response.data},
+            {"Public": True, "Public Too": False},
+        )
+        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
+        for project in response.data:
+            self.assertFalse(public_excluded_fields & set(project))
+
+    def test_cached_project_counts_are_read_once_per_page(self):
+        """Cached counts and dates come from one cache read for the page."""
+        cache.set(f"{PROJ_NUM_DATASET_CACHE}{self.project.pk}", 7)
+        self.addCleanup(cache.delete, f"{PROJ_NUM_DATASET_CACHE}{self.project.pk}")
+        submitted = timezone.now()
+        cache.set(f"{PROJ_SUB_DATE_CACHE}{self.project.pk}", submitted)
+        self.addCleanup(cache.delete, f"{PROJ_SUB_DATE_CACHE}{self.project.pk}")
+
+        with patch(
+            "onadata.libs.serializers.project_serializer.safe_cache_get"
+        ) as cache_get_mock:
+            project = self._serialize_for(self.user)
+
+        cache_get_mock.assert_not_called()
+        self.assertEqual(project["num_datasets"], 7)
+        self.assertEqual(project["last_submission_date"], submitted)
 
     def test_public_inactive_organization_project_excluded(self):
         """Anonymous list omits public projects under inactive organizations."""
@@ -848,6 +968,24 @@ class ProjectOrderingTestCase(ProjectListFilterTestBase):
         self.assertEqual(
             self._names(response, sort=False), ["Banana", "Cherry", "Apple"]
         )
+
+    def test_order_by_last_submission_groups_outside_permission_filters(self):
+        """Permission subqueries must not GROUP BY every project."""
+        self._make_forms()
+        for params in (
+            {"ordering": "last_submission_date"},
+            {"ordering": "last_submission_date", "role": "owner"},
+        ):
+            with CaptureQueriesContext(connection) as ctx:
+                response = self._list(params)
+            self.assertEqual(
+                self._names(response, sort=False), ["Apple", "Cherry", "Banana"]
+            )
+            ordered_sql = [q["sql"] for q in ctx.captured_queries if "MAX(" in q["sql"]]
+            self.assertEqual(len(ordered_sql), 1)
+            self.assertIn("objectpermission", ordered_sql[0])
+            # The outer query groups for the Max; the permission subqueries must not
+            self.assertEqual(ordered_sql[0].count("GROUP BY"), 1)
 
 
 @override_settings(TIME_ZONE="UTC")

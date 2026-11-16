@@ -81,7 +81,7 @@ class Command(BaseCommand):
         for xform in XForm.objects.filter(
             downloadable=True, is_merged_dataset=True
         ).iterator():
-            child_ids = xform.mergedxform.xforms.values_list("pk", flat=True)
+            child_ids = xform.mergedxform.active_xforms().values_list("pk", flat=True)
             expected_count = Instance.objects.filter(
                 xform_id__in=child_ids, deleted_at__isnull=True
             ).count()

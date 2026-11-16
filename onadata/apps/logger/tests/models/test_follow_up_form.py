@@ -1,13 +1,12 @@
 """Tests for module onadata.apps.logger.models.follow_up_form"""
 
-import pytz
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from django.db.utils import IntegrityError
 
+from onadata.apps.logger.models import EntityList, FollowUpForm
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import FollowUpForm, EntityList
 
 
 class FollowUpFormTestCase(TestBase):
@@ -16,7 +15,7 @@ class FollowUpFormTestCase(TestBase):
     def setUp(self):
         super().setUp()
 
-        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
+        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=timezone.utc)
         self.xform = self._publish_follow_up_form(self.user)
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
 

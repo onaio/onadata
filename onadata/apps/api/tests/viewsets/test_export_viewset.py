@@ -7,7 +7,9 @@ import os
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
+from django.db import connection
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils.dateparse import parse_datetime
 
 from httmock import HTTMock
@@ -18,6 +20,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from onadata.apps.api.tests.mocked_data import enketo_mock
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.logger.models import DataView, Project
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
@@ -229,8 +232,8 @@ class TestExportViewSet(TestBase):
 
     def test_export_non_public_export(self):
         """
-        Test export of a private form for anonymous users results in
-        HTTP_404_NOT_FOUND response.
+        Test export of private data results in HTTP_404_NOT_FOUND response
+        for users without access to it.
         """
         self._create_user_and_login()
         self._publish_transportation_form()
@@ -242,6 +245,104 @@ class TestExportViewSet(TestBase):
         request = self.factory.get("/export")
         response = self.view(request, pk=export.pk)
         self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+
+        self.xform.shared = True
+        self.xform.save()
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+        no_role_request = self.factory.get("/export")
+        force_authenticate(no_role_request, user=self._create_user("mosh", "mosh"))
+        response = self.view(no_role_request, pk=export.pk)
+        self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+        owner_request = self.factory.get("/export")
+        force_authenticate(owner_request, user=self.user)
+        response = self.view(owner_request, pk=export.pk)
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+        # A dataview only reaches its own exports, whichever project it is in.
+        dataview = DataView.objects.create(
+            name="public dataview",
+            xform=self.xform,
+            project=Project.objects.create(
+                name="public project",
+                organization=self.user,
+                created_by=self.user,
+                shared=True,
+            ),
+            columns=["name"],
+            query=[{"column": "name", "filter": "=", "value": "x"}],
+        )
+        dataview_export = generate_export(
+            Export.CSV_EXPORT,
+            self.xform,
+            None,
+            {"extension": "csv", "dataview_pk": dataview.pk},
+        )
+        self.assertEqual(dataview_export.options["dataview_pk"], dataview.pk)
+        dataview_request = self.factory.get("/export", {"dataview": dataview.pk})
+
+        def assert_only_dataview_export_is_reachable():
+            response = self.view(dataview_request, pk=export.pk)
+            self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+            response = self.view(dataview_request, pk=dataview_export.pk)
+            self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+        assert_only_dataview_export_is_reachable()
+
+        dataview.project.shared = False
+        dataview.project.save()
+        response = self.view(dataview_request, pk=dataview_export.pk)
+        self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+
+        reader = self._create_user("reader", "reader")
+        ReadOnlyRole.add(reader, dataview.project)
+        force_authenticate(dataview_request, user=reader)
+        assert_only_dataview_export_is_reachable()
+
+        delete_request = self.factory.delete(f"/export?dataview={dataview.pk}")
+        force_authenticate(delete_request, user=reader)
+        delete_view = ExportViewSet.as_view({"delete": "destroy"})
+        response = delete_view(delete_request, pk=dataview_export.pk)
+        self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+        self.assertTrue(Export.objects.filter(pk=dataview_export.pk).exists())
+
+    def test_export_list_checks_read_access_once_per_form(self):
+        """Listing more dataview exports of a form runs no more queries."""
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        self.assertFalse(self.xform.shared_data)
+
+        def create_dataview_export(dataview_pk):
+            return Export.objects.create(
+                xform=self.xform,
+                export_type=Export.CSV_EXPORT,
+                filename=f"dataview_{dataview_pk}.csv",
+                internal_status=Export.SUCCESSFUL,
+                options={"dataview_pk": dataview_pk},
+            )
+
+        def list_exports():
+            request = self.factory.get("/export", data={"xform": self.xform.id})
+            force_authenticate(request, user=self.user)
+            view = ExportViewSet.as_view({"get": "list"})
+            with CaptureQueriesContext(connection) as queries:
+                response = view(request)
+                response.render()
+            self.assertEqual(status.HTTP_200_OK, response.status_code)
+            return response.data, len(queries)
+
+        create_dataview_export(1)
+        # The first request fills the content type and user permission caches.
+        list_exports()
+        exports, single_export_queries = list_exports()
+        self.assertEqual(1, len(exports))
+
+        create_dataview_export(2)
+        create_dataview_export(3)
+        exports, three_export_queries = list_exports()
+        self.assertEqual(3, len(exports))
+
+        self.assertEqual(single_export_queries, three_export_queries)
 
     def test_export_list_on_user(self):
         """
@@ -300,6 +401,15 @@ class TestExportViewSet(TestBase):
         force_authenticate(request, user=self.user)
         response = view(request, pk=export.pk)
         self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+
+        xform.shared_data = True
+        xform.save()
+        list_view = ExportViewSet.as_view({"get": "list"})
+        response = list_view(self.factory.get("/export", {"xform": xform.pk}))
+        self.assertEqual([export.pk], [item["id"] for item in response.data])
+        response = view(self.factory.delete("/export"), pk=export.pk)
+        self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+        self.assertTrue(Export.objects.filter(pk=export.pk).exists())
 
         # bob has access hence can delete
         request = self.factory.delete("/export")

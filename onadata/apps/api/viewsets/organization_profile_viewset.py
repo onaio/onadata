@@ -23,7 +23,6 @@ from onadata.apps.api.tools import (
     get_org_profile_cache_key,
     invalidate_organization_cache,
 )
-from onadata.apps.logger.models import KMSKey
 from onadata.apps.messaging.constants import KMS_KEY, KMS_KEY_ROTATED
 from onadata.apps.messaging.serializers import send_message
 from onadata.libs.filters import (
@@ -35,6 +34,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.organization_member_serializer import (
+    OrganizationMemberListSerializer,
     OrganizationMemberSerializer,
 )
 from onadata.libs.serializers.organization_serializer import (
@@ -138,8 +138,25 @@ class OrganizationProfileViewSet(
     def members(self, request, *args, **kwargs):
         """Return organization members."""
         organization = self.get_object()
+
+        if request.method == "GET":
+            data = self.serializer_class(
+                organization, context={"request": request}
+            ).data
+            # pylint: disable=attribute-defined-outside-init
+            self.etag_data = json.dumps(data)
+
+            return Response(OrganizationMemberListSerializer(organization).data)
+
+        # Writes take their input from the request body; DELETE also accepts
+        # the query string because clients cannot reliably send a DELETE body.
+        # The body takes precedence so the username the permission check
+        # authorized is the one acted on.
+        query_params = (
+            request.query_params.dict() if request.method == "DELETE" else {}
+        )
         data = merge_dicts(
-            request.data, request.query_params.dict(), {"organization": organization.pk}
+            query_params, request.data, {"organization": organization.pk}
         )
 
         if request.method == "POST" and "username" not in data:
@@ -170,10 +187,14 @@ class OrganizationProfileViewSet(
     @action(methods=["POST"], detail=True, url_path="rotate-key")
     def rotate_key(self, request, *args, **kwargs):
         """Manually rotate KMS key."""
-        self.get_object()  # Check if user has permission to rotate key
-        serializer = self.get_serializer(data=request.data)
+        # Checks if user has permission to rotate key
+        organization = self.get_object()
+        serializer = self.get_serializer(
+            data=request.data,
+            context={**self.get_serializer_context(), "organization": organization},
+        )
         serializer.is_valid(raise_exception=True)
-        old_key = KMSKey.objects.get(id=serializer.validated_data["id"])
+        old_key = serializer.validated_data["id"]
         new_key = serializer.save()
         # Capture audit log
         send_message(

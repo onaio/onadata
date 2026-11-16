@@ -1,46 +1,91 @@
 Messaging
 *********
 
-This endpoint provides access to event messages sent for a specific target. Where:
+The messaging API provides read-only access to events recorded by internal
+application code. Clients cannot create, edit or delete events. Authenticated
+POST, PUT, PATCH and DELETE requests return ``405 Method Not Allowed``.
 
-* ``target_type`` - The type of the target object. The supported target types are:
-    - ``xform``
+Events have the following target and action fields:
 
-    - ``project``
-
-    - ``user``
-
-    - ``kmskey``
-
-    - ``entitylist``
-
+* ``target_type`` - The type of the target object: ``xform``, ``project``,
+  ``user``, ``kmskey`` or ``entitylist``.
 * ``target_id`` - The unique identifier of the target object.
+* ``verb`` - The action recorded on the target. The following verbs can appear
+  in GET responses and can be used to filter events. None can be posted through
+  the API:
 
-* ``verb`` - A specific action that has occured on the object. The supported verbs are:
-    - ``message``
+  - ``message``
+  - ``submission_created``
+  - ``submission_edited``
+  - ``submission_deleted``
+  - ``submission_reviewed``
+  - ``form_updated``
+  - ``kmskey_rotated``
+  - ``export_created``
+  - ``export_downloaded``
+  - ``entitylist_imported``
+  - ``entitylist_deleted``
+  - ``profile_updated``
 
-    - ``submission_created``
+.. _messaging-access:
 
-    - ``submission_edited``
+Targets and feeds
+-----------------
 
-    - ``submission_deleted``
+Every event belongs to one target, identified by ``target_type`` and
+``target_id``. The events for a target are its *feed*.
 
-    - ``submission_reviewed``
+A ``user`` target is an account. Organizations are accounts too. To read an
+organization's feed, pass ``target_type=user`` and the organization's account
+ID, rather than its organization profile ID.
 
-    - ``form_updated``
+Permissions
+-----------
 
-    - ``kmskey_rotated``
+All requests require authentication. Read permissions apply to lists, grouped
+counts, individual event details and messaging statistics, including empty
+feeds.
 
-    - ``export_created``
+.. list-table::
+   :header-rows: 1
 
-    - ``export_downloaded``
+   * - Target
+     - Who can read its feed
+   * - ``xform``, ``project``, ``entitylist``, ``kmskey``
+     - Users with permission to view the target
+   * - Personal ``user`` account
+     - The account itself
+   * - Organization ``user`` account
+     - The account itself, and the organization's owners and managers
 
-    - ``entitylist_imported``
+Unavailable targets
+-------------------
 
-    - ``entitylist_deleted``
+A target is unavailable when it is deleted, belongs to a deleted project, is an
+inactive account, or an inactive personal or organization account owns it. A
+KMS key is unavailable unless an active account owns it. Rotating, expiring or
+disabling a key does not hide its events.
 
-    - ``profile_updated``
+Errors
+------
 
+* ``400`` - A list or stats request is missing ``target_type`` or ``target_id``,
+  or ``target_type`` is not supported.
+* ``403`` - The target exists but you cannot access it. This applies even when
+  the target has no events.
+* ``404`` - The target ID is malformed, does not exist, or identifies an
+  unavailable target. Event detail reads also return ``404`` for missing events
+  or events whose targets are unavailable.
+* ``405`` - An authenticated client attempts to create, edit or delete an event.
+
+Caching
+-------
+
+Responses are private, and browsers and shared caches do not store them. The
+server caches list responses, including grouped counts, for up to ten minutes.
+Lists may omit new events or retain internally deleted events for that long.
+The API still checks permissions and target availability on every request.
+The server does not cache event detail or messaging stats responses.
 
 GET All event messages that have been sent for a form
 ------------------------------------------------------

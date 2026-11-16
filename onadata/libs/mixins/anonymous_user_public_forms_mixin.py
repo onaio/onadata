@@ -20,7 +20,7 @@ class AnonymousUserPublicFormsMixin:  # pylint: disable=too-few-public-methods
             shared=True,
             deleted_at__isnull=True,
             project__organization__is_active=True,
-        )
+        ).order_by("pk")
 
     def get_queryset(self):
         """Public forms only for anonymous Users."""

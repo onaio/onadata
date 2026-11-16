@@ -77,7 +77,7 @@ class SubmissionStatsViewSet(
         deleted_at__isnull=True, project__organization__is_active=True
     )
     filter_backends = (
-        filters.AnonDjangoObjectPermissionFilter,
+        filters.DataAnonDjangoObjectPermissionFilter,
         filters.ActiveXFormOrganizationFilter,
     )
     permission_classes = [
