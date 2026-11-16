@@ -133,7 +133,7 @@ class OperationalErrorMiddlewareTestCase(SimpleTestCase):
 
         self.assertFalse(this_thread_is_pinned())
 
-    def test_unpins_after_a_retry_that_fails(self):
+    def test_unpins_when_the_retry_raises(self):
         self.get_response.side_effect = recovery_conflict()
         self.assertFalse(this_thread_is_pinned())
 

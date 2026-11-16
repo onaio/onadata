@@ -286,6 +286,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         content = self._get_with_one_recovery_conflict(url, rows, **digest)
 
         self.assertEqual(json.loads(content), rows)
+        # The user is reused only within one request: a new request that
+        # replays the header is still rejected.
+        self.addCleanup(cache.clear)
+        replay = self.client.get(url, {"sort": '{"_id": -1}'}, **digest)
+        self.assertEqual(replay.status_code, 401)
 
     def test_catch_data_error(self):
         view = DataViewSet.as_view({"get": "list"})
