@@ -4,20 +4,17 @@ from unittest.mock import MagicMock, patch
 
 from django.db import OperationalError
 from django.http import HttpResponse
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, SimpleTestCase
 
 from multidb.pinning import this_thread_is_pinned, unpin_this_thread, use_master
 
+from onadata.libs.test_utils.recovery_conflict import recovery_conflict
 from onadata.libs.utils.middleware import OperationalErrorMiddleware
 
-RECOVERY_CONFLICT = OperationalError(
-    "canceling statement due to conflict with recovery\n"
-    "DETAIL:  User query might have needed to see row versions that must be "
-    "removed.\n"
-)
+RECOVERY_CONFLICT = recovery_conflict()
 
 
-class OperationalErrorMiddlewareTestCase(TestCase):
+class OperationalErrorMiddlewareTestCase(SimpleTestCase):
     """Retrying reads after a replica recovery conflict."""
 
     def setUp(self):
@@ -85,6 +82,15 @@ class OperationalErrorMiddlewareTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertFalse(this_thread_is_pinned())
+
+    def test_unpins_after_a_retry_that_fails(self):
+        self.get_response.side_effect = recovery_conflict()
+        self.assertFalse(this_thread_is_pinned())
+
+        with self.assertRaises(OperationalError):
+            self.middleware.process_exception(self.factory.get("/"), RECOVERY_CONFLICT)
+
         self.assertFalse(this_thread_is_pinned())
 
     def test_keeps_a_pin_set_before_the_retry(self):

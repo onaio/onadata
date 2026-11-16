@@ -28,6 +28,7 @@ from django.utils import timezone
 import defusedxml.ElementTree as ET
 import geojson
 import requests
+from django_digest import HttpDigestAuthenticator
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock, urlmatch
@@ -66,6 +67,7 @@ from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
 )
+from onadata.libs.test_utils.recovery_conflict import conflicting_rows
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.libs.utils.logger_tools import create_instance
 from onadata.libs.utils.viewer_tools import ENKETO_GENERIC_ERROR
@@ -101,17 +103,6 @@ def enketo_mock_http_413(url, request):
     response.status_code = 413
     response._content = ""
     return response
-
-
-RECOVERY_CONFLICT = OperationalError(
-    "canceling statement due to conflict with recovery"
-)
-
-
-def _conflicting_rows(*args, **kwargs):
-    """Rows whose query a hot standby cancels on the first fetch."""
-    raise RECOVERY_CONFLICT
-    yield  # pylint: disable=unreachable
 
 
 def _data_list(formid):
@@ -232,38 +223,69 @@ class TestDataViewSet(SerializeMixin, TestBase):
         """The streamed query runs before the view returns its response."""
         self._make_submissions()
         view = DataViewSet.as_view({"get": "list"})
-        request = self.factory.get("/", data={"sort": '{"_id": -1}'}, **self.extra)
 
+        for data_format in ("json", "xml"):
+            with (
+                self.subTest(format=data_format),
+                patch(
+                    "onadata.apps.api.viewsets.data_viewset.query_data",
+                    side_effect=conflicting_rows,
+                ) as mock_query_data,
+                self.assertRaises(OperationalError),
+            ):
+                request = self.factory.get(
+                    "/", data={"sort": '{"_id": -1}'}, **self.extra
+                )
+                view(request, pk=self.xform.pk, format=data_format)
+
+            mock_query_data.assert_called_once()
+
+    def _get_with_one_recovery_conflict(self, url, rows, **extra):
+        """GET ``url`` through every middleware while the first query conflicts."""
         with (
             patch(
                 "onadata.apps.api.viewsets.data_viewset.query_data",
-                side_effect=_conflicting_rows,
+                side_effect=[conflicting_rows(), iter(rows)],
             ) as mock_query_data,
-            self.assertRaises(OperationalError),
+            patch("onadata.libs.utils.middleware.sentry_sdk.capture_exception"),
+            self.assertLogs("onadata.libs.utils.middleware", "WARNING") as logs,
         ):
-            view(request, pk=self.xform.pk)
+            response = self.client.get(url, {"sort": '{"_id": -1}'}, **extra)
+            self.assertEqual(response.status_code, 200)
+            content = b"".join(response.streaming_content)
 
-        mock_query_data.assert_called_once()
+        self.assertEqual(mock_query_data.call_count, 2)
+        self.assertEqual(len(logs.records), 1)
+        return content
 
     @override_settings(STREAM_DATA=True)
     def test_streamed_data_is_retried_after_a_recovery_conflict(self):
         self._make_submissions()
         rows = [{"_id": 2}, {"_id": 1}]
 
-        with patch(
-            "onadata.apps.api.viewsets.data_viewset.query_data",
-            side_effect=[_conflicting_rows(), iter(rows)],
-        ) as mock_query_data:
-            response = self.client.get(
-                f"/api/v1/data/{self.xform.pk}.json",
-                {"sort": '{"_id": -1}'},
-                **self.extra,
-            )
-            content = b"".join(response.streaming_content)
+        content = self._get_with_one_recovery_conflict(
+            f"/api/v1/data/{self.xform.pk}.json", rows, **self.extra
+        )
 
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(json.loads(content), rows)
-        self.assertEqual(mock_query_data.call_count, 2)
+
+    @override_settings(STREAM_DATA=True)
+    def test_digest_authenticated_data_is_retried_after_a_recovery_conflict(self):
+        # The retry resends a nonce count the first run used up, which Digest
+        # authentication would otherwise reject and count as a failed login.
+        self._make_submissions()
+        url = f"/api/v1/data/{self.xform.pk}.json"
+        rows = [{"_id": 2}, {"_id": 1}]
+        digest = DigestAuth(
+            self.profile_data["username"], self.profile_data["password1"]
+        )(
+            self.factory.get(url).META,
+            HttpDigestAuthenticator().build_challenge_response(),
+        )
+
+        content = self._get_with_one_recovery_conflict(url, rows, **digest)
+
+        self.assertEqual(json.loads(content), rows)
 
     def test_catch_data_error(self):
         view = DataViewSet.as_view({"get": "list"})

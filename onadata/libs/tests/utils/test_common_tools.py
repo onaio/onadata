@@ -3,6 +3,7 @@
 from django.db import OperationalError
 from django.test import SimpleTestCase
 
+from onadata.libs.test_utils.recovery_conflict import conflicting_rows
 from onadata.libs.utils.common_tools import prefetch_first
 
 
@@ -24,10 +25,6 @@ class PrefetchFirstTestCase(SimpleTestCase):
         self.assertEqual(fetched, [1, 2, 3])
 
     def test_raises_an_error_from_the_first_fetch(self):
-        def conflicting_rows():
-            raise OperationalError("canceling statement due to conflict with recovery")
-            yield  # pylint: disable=unreachable
-
         with self.assertRaises(OperationalError):
             prefetch_first(conflicting_rows())
 

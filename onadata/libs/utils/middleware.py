@@ -143,7 +143,7 @@ class OperationalErrorMiddleware(BaseMiddleware):
 
     @staticmethod
     def _report_retry(request, exception):
-        # A retried request succeeds, so Django never reports the conflict.
+        # Django doesn't report an exception that process_exception handles.
         # Report it here so retries stay measurable.
         logger.warning(
             "Retrying %s %s on the primary after a replica recovery conflict",
