@@ -14,7 +14,7 @@ from django.template import loader
 from django.utils.translation import gettext as _
 from django.utils.translation.trans_real import parse_accept_lang_header
 
-from multidb.pinning import use_master
+from multidb.pinning import pin_this_thread, this_thread_is_pinned, unpin_this_thread
 
 from onadata.apps.main.models.user_activity import record_user_activity
 
@@ -137,8 +137,19 @@ class OperationalErrorMiddleware(BaseMiddleware):
             return None
 
         request.recovery_conflict_retried = True
-        with use_master:
+        return self._get_response_from_primary(request)
+
+    def _get_response_from_primary(self, request):
+        # Not ``use_master``: it keeps a single saved pin state per thread, so
+        # a ``use_master`` block inside the retried view would leave the
+        # thread pinned to the primary after the retry.
+        was_pinned = this_thread_is_pinned()
+        pin_this_thread()
+        try:
             return self.get_response(request)
+        finally:
+            if not was_pinned:
+                unpin_this_thread()
 
     @staticmethod
     def _should_retry(request, exception):

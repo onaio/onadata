@@ -6,7 +6,7 @@ from django.db import OperationalError
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase
 
-from multidb.pinning import this_thread_is_pinned
+from multidb.pinning import this_thread_is_pinned, unpin_this_thread, use_master
 
 from onadata.libs.utils.middleware import OperationalErrorMiddleware
 
@@ -21,6 +21,10 @@ class OperationalErrorMiddlewareTestCase(TestCase):
     """Retrying reads after a replica recovery conflict."""
 
     def setUp(self):
+        # Pinning is thread state that other tests in the process can leave
+        # set, so start every test unpinned.
+        unpin_this_thread()
+        self.addCleanup(unpin_this_thread)
         self.factory = RequestFactory()
         self.get_response = MagicMock(return_value=HttpResponse("OK"))
         self.middleware = OperationalErrorMiddleware(self.get_response)
@@ -47,6 +51,29 @@ class OperationalErrorMiddlewareTestCase(TestCase):
 
         self.assertEqual(pinned_during_retry, [True])
         self.assertFalse(this_thread_is_pinned())
+
+    def test_unpins_after_a_retry_that_uses_the_primary_itself(self):
+        def view_that_pins(request):
+            with use_master:
+                return HttpResponse("OK")
+
+        self.get_response.side_effect = view_that_pins
+        self.assertFalse(this_thread_is_pinned())
+
+        response = self.middleware.process_exception(
+            self.factory.get("/"), RECOVERY_CONFLICT
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(this_thread_is_pinned())
+
+    def test_keeps_a_pin_set_before_the_retry(self):
+        with use_master:
+            response = self.middleware.process_exception(
+                self.factory.get("/"), RECOVERY_CONFLICT
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(this_thread_is_pinned())
 
     def test_retries_every_conflicting_request(self):
         # A retry on one request must not use up the retry of the next one
