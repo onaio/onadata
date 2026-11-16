@@ -238,7 +238,7 @@ def get_api_token(cookie_jwt):
         raise exceptions.AuthenticationFailed(_("Invalid token")) from e
 
 
-DIGEST_AUTHENTICATED_USER = "digest_authenticated_user"
+_DIGEST_AUTHENTICATED_USER = "digest_authenticated_user"
 
 
 class DigestAuthentication(BaseAuthentication):
@@ -253,10 +253,10 @@ class DigestAuthentication(BaseAuthentication):
         if not auth or auth[0].lower() != b"digest":
             return None
 
-        # Re-running a request, as a retry after a replica recovery conflict
-        # does, resends a nonce count the first run used up.
+        # Re-running the same request resends a nonce count the first run used
+        # up, which would fail and count as a failed login.
         http_request = getattr(request, "_request", request)
-        user = getattr(http_request, DIGEST_AUTHENTICATED_USER, None)
+        user = getattr(http_request, _DIGEST_AUTHENTICATED_USER, None)
         if user is not None:
             return user, None
 
@@ -264,7 +264,7 @@ class DigestAuthentication(BaseAuthentication):
             check_lockout(request)
             if self.authenticator.authenticate(request):
                 update_last_login(None, request.user)
-                setattr(http_request, DIGEST_AUTHENTICATED_USER, request.user)
+                setattr(http_request, _DIGEST_AUTHENTICATED_USER, request.user)
                 return request.user, None
             attempts = login_attempts(request)
             remaining_attempts = getattr(settings, "MAX_LOGIN_ATTEMPTS", 10) - attempts

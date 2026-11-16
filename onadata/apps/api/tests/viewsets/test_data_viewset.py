@@ -231,14 +231,13 @@ class TestDataViewSet(SerializeMixin, TestBase):
                     "onadata.apps.api.viewsets.data_viewset.query_data",
                     side_effect=conflicting_rows,
                 ) as mock_query_data,
-                self.assertRaises(OperationalError),
             ):
                 request = self.factory.get(
                     "/", data={"sort": '{"_id": -1}'}, **self.extra
                 )
-                view(request, pk=self.xform.pk, format=data_format)
-
-            mock_query_data.assert_called_once()
+                with self.assertRaises(OperationalError):
+                    view(request, pk=self.xform.pk, format=data_format)
+                mock_query_data.assert_called_once()
 
     def _get_with_one_recovery_conflict(self, url, rows, **extra):
         """GET ``url`` through every middleware while the first query conflicts."""
@@ -271,8 +270,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
     @override_settings(STREAM_DATA=True)
     def test_digest_authenticated_data_is_retried_after_a_recovery_conflict(self):
-        # The retry resends a nonce count the first run used up, which Digest
-        # authentication would otherwise reject and count as a failed login.
+        self.addCleanup(cache.clear)
         self._make_submissions()
         url = f"/api/v1/data/{self.xform.pk}.json"
         rows = [{"_id": 2}, {"_id": 1}]
@@ -288,7 +286,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(json.loads(content), rows)
         # The user is reused only within one request: a new request that
         # replays the header is still rejected.
-        self.addCleanup(cache.clear)
         replay = self.client.get(url, {"sort": '{"_id": -1}'}, **digest)
         self.assertEqual(replay.status_code, 401)
 

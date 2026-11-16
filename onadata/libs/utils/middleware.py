@@ -129,12 +129,9 @@ def _noop():
     pass
 
 
-class _CallAfterReading:
-    """Streamed content that calls ``callback`` once reading ends or it closes.
-
-    Reading a streamed response can run more queries, so a pin taken for the
-    response has to last until then. ``close`` also covers a response closed
-    before it is read, such as a HEAD request's.
+class _CallWhenDone:
+    """Streamed content that calls ``callback`` once, when it is exhausted,
+    fails or is closed, including closed before it is read.
     """
 
     def __init__(self, content, callback):
@@ -193,8 +190,10 @@ class OperationalErrorMiddleware(BaseMiddleware):
             restore_pin()
             raise
 
+        # Reading a streamed response runs queries too, so its pin lasts until
+        # the response is done.
         if response.streaming:
-            response.streaming_content = _CallAfterReading(
+            response.streaming_content = _CallWhenDone(
                 response.streaming_content, restore_pin
             )
         else:
