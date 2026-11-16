@@ -5,7 +5,9 @@ Hi {{ username }},
 IP {{ remote_ip }} has been locked out from your Ona account because the user has entered too many wrong passwords.
 
 Please wait for {{ lockout_time }} minutes before trying to access your account again.
-
+{% endblocktranslate %}{% if email_interval %}{% blocktranslate %}
+We won't email you about further lockouts of your account for {{ email_interval }}.
+{% endblocktranslate %}{% endif %}{% blocktranslate %}
 If this was not you, you can reach out to our support team for help, {{ support_email }}.
 
 Thank you for choosing Ona!

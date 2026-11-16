@@ -43,15 +43,21 @@ from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
 from onadata.libs.permissions import is_organization_user
 from onadata.libs.utils.cache_tools import (
+    LOCKOUT_EMAIL_SENT,
     LOCKOUT_IP,
     LOGIN_ATTEMPTS,
+    safe_cache_add,
+    safe_cache_delete,
     safe_cache_get,
     safe_cache_incr,
     safe_cache_set,
     safe_key,
 )
 from onadata.libs.utils.common_tags import API_TOKEN
-from onadata.libs.utils.email import get_account_lockout_email_data
+from onadata.libs.utils.email import (
+    get_account_lockout_email_data,
+    get_lockout_email_interval,
+)
 
 ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
 TEMP_TOKEN_EXPIRY_TIME = getattr(
@@ -82,6 +88,13 @@ PKCE_S256_MODE_OBSERVE = "observe"
 PKCE_S256_MODES = (PKCE_S256_MODE_ENFORCE, PKCE_S256_MODE_OBSERVE)
 PKCE_S256_METHOD = "S256"
 PKCE_MIGRATION_LOGGER = logging.getLogger("pkce_migration")
+LOCKOUT_LOGGER = logging.getLogger("account_lockout")
+logger = logging.getLogger(__name__)
+
+LOCKOUT_EMAIL_QUEUED = "queued"
+LOCKOUT_EMAIL_NO_ADDRESS = "no_address"
+LOCKOUT_EMAIL_RECENTLY_SENT = "recently_sent"
+LOCKOUT_EMAIL_QUEUE_FAILED = "queue_failed"
 
 
 def _validated_pkce_s256_settings():
@@ -523,7 +536,7 @@ def get_lockout_username(username):
     Lockout state is keyed on the username, so the submitted identifier must be
     resolved to the account's stored username; otherwise ``bob``, ``BOB`` and
     ``bob@example.com`` would each get a separate attempt counter from the same
-    IP, defeating the lockout, and ``send_lockout_email`` (which looks the user
+    IP, defeating the lockout, and the lockout email (which looks the user
     up by exact username) would fail to find the account. Falls back to the
     submitted value when it does not match any user so that brute-forcing a
     non-existent account is still throttled.
@@ -562,8 +575,9 @@ def add_login_attempt(ip_address, username):
     """Track a failed login attempt for an IP + username pair.
 
     Increments the attempt counter and, once MAX_LOGIN_ATTEMPTS is reached,
-    starts a lockout and sends the lockout email. Returns the number of
-    attempts. Raises AuthenticationFailed when the attempt triggers a lockout.
+    starts a lockout and reports it with _report_lockout. Returns the number
+    of attempts. Raises AuthenticationFailed when the attempt triggers a
+    lockout.
     """
     attempts_key = safe_key(f"{LOGIN_ATTEMPTS}{ip_address}-{username}")
     attempts = safe_cache_get(attempts_key)
@@ -571,16 +585,15 @@ def add_login_attempt(ip_address, username):
     if attempts:
         safe_cache_incr(attempts_key)
         attempts = safe_cache_get(attempts_key, 0)
-        if attempts >= getattr(settings, "MAX_LOGIN_ATTEMPTS", 10):
+        if username and attempts >= getattr(settings, "MAX_LOGIN_ATTEMPTS", 10):
             lockout_key = safe_key(f"{LOCKOUT_IP}{ip_address}-{username}")
-            lockout = safe_cache_get(lockout_key)
-            if not lockout:
-                send_lockout_email(username, ip_address)
-                safe_cache_set(
-                    lockout_key,
-                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                    getattr(settings, "LOCKOUT_TIME", 1800),
-                )
+            created = safe_cache_add(
+                lockout_key,
+                datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                getattr(settings, "LOCKOUT_TIME", 1800),
+            )
+            if created:
+                _report_lockout(username, ip_address, attempts)
             assert_not_locked_out(ip_address, username)
             return attempts
         return attempts
@@ -624,38 +637,68 @@ def login_attempts(request):
     return add_login_attempt(ip_address, username)
 
 
-def send_lockout_email(username, ip_address):
-    """
-    Send locked out email
-    """
-    try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
-        pass
-    else:
-        # Accounts without an email address, e.g. the anonymous user
-        # account, cannot be notified of a lockout.
-        if not user.email:
-            return
-        email_data = get_account_lockout_email_data(username, ip_address)
-        end_email_data = get_account_lockout_email_data(username, ip_address, end=True)
+def _report_lockout(username, ip_address, attempts):
+    """Email the owner and log a new lockout of an existing account.
 
-        send_account_lockout_email.apply_async(
-            args=[
-                user.email,
-                email_data.get("message_txt"),
-                email_data.get("subject"),
-            ]
-        )
-        # send end of lockout email 1 minute after lockout time
-        send_account_lockout_email.apply_async(
-            args=[
-                user.email,
-                end_email_data.get("message_txt"),
-                end_email_data.get("subject"),
-            ],
-            countdown=getattr(settings, "LOCKOUT_TIME", 1800) + 60,
-        )
+    Skips usernames that match no account, because the client chose them.
+    """
+    user = User.objects.filter(username=username).only("username", "email").first()
+    if user is None:
+        return
+    email_status = send_lockout_email(user, ip_address)
+    LOCKOUT_LOGGER.info(
+        "Account locked out",
+        extra={
+            "user_id": user.pk,
+            "ip_address": ip_address,
+            "attempts": attempts,
+            "email_status": email_status,
+        },
+    )
+
+
+def send_lockout_email(user, ip_address) -> str:
+    """Queue the lockout start and end emails for an account.
+
+    Sends at most one pair per ``LOCKOUT_EMAIL_INTERVAL``. The interval is per
+    account, not per IP, so a client retrying a stale password from many IPs
+    sends the owner one pair. A zero or negative interval sends a pair for
+    every lockout. Returns one of the ``LOCKOUT_EMAIL_*`` statuses.
+    """
+    if not user.email:
+        return LOCKOUT_EMAIL_NO_ADDRESS
+
+    interval = get_lockout_email_interval()
+    sent_key = safe_key(f"{LOCKOUT_EMAIL_SENT}{user.username}")
+    # Skip the cooldown when throttling is off. A marker left by an earlier
+    # positive interval would otherwise block the email until it expired.
+    throttled = interval is None or interval > 0
+    if throttled and not safe_cache_add(sent_key, True, interval):
+        return LOCKOUT_EMAIL_RECENTLY_SENT
+
+    # A lockout email is best effort, so queuing errors are logged, not raised.
+    try:
+        _queue_lockout_email(user, ip_address)
+    except Exception:  # pylint: disable=broad-exception-caught
+        safe_cache_delete(sent_key)
+        logger.exception("Could not queue the lockout email for user %s", user.pk)
+        return LOCKOUT_EMAIL_QUEUE_FAILED
+
+    # The start email is on its way, so the interval stays even if this fails.
+    try:
+        _queue_lockout_email(user, ip_address, end=True)
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.exception("Could not queue the lockout end email for user %s", user.pk)
+    return LOCKOUT_EMAIL_QUEUED
+
+
+def _queue_lockout_email(user, ip_address, end=False):
+    email_data = get_account_lockout_email_data(user.username, ip_address, end=end)
+    options = {"countdown": getattr(settings, "LOCKOUT_TIME", 1800) + 60} if end else {}
+    send_account_lockout_email.apply_async(
+        args=[user.email, email_data.get("message_txt"), email_data.get("subject")],
+        **options,
+    )
 
 
 class OIDCPromptNoneMixin:
