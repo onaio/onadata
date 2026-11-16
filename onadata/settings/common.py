@@ -499,6 +499,12 @@ LOGGING = {
                 "challenge_method_category=%(challenge_method_category)s"
             )
         },
+        "account_lockout": {
+            "format": (
+                "%(message)s user_id=%(user_id)s ip_address=%(ip_address)s "
+                "attempts=%(attempts)s email_status=%(email_status)s"
+            )
+        },
         "sql": {
             "format": "%(levelname)s %(process)d %(thread)d"
             + " %(time)s seconds %(message)s %(sql)s"
@@ -534,6 +540,12 @@ LOGGING = {
             "formatter": "pkce_migration",
             "stream": sys.stdout,
         },
+        "account_lockout_console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "account_lockout",
+            "stream": sys.stdout,
+        },
         "audit": {
             "level": "DEBUG",
             "class": "onadata.libs.utils.log.AuditLogHandler",
@@ -567,6 +579,11 @@ LOGGING = {
         "audit_logger": {"handlers": ["audit"], "level": "DEBUG", "propagate": True},
         "pkce_migration": {
             "handlers": ["pkce_migration_console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "account_lockout": {
+            "handlers": ["account_lockout_console"],
             "level": "INFO",
             "propagate": False,
         },
@@ -787,6 +804,10 @@ SECRET_KEY = INSECURE_DEFAULT_SECRET_KEY
 # Time in seconds to lock out user from account
 LOCKOUT_TIME = 30 * 60
 MAX_LOGIN_ATTEMPTS = 10
+# Minimum seconds between lockout emails to one account. 0 or less emails on
+# every lockout. None would stop lockout emails to the account for good, because
+# the cache never expires the key.
+LOCKOUT_EMAIL_INTERVAL = 24 * 60 * 60
 MAX_PASSWORD_RESET_ATTEMPTS = 3
 PASSWORD_RESET_ATTEMPT_WINDOW = 15 * 60
 # No SUPPORT_EMAIL default: 2FA emails raise ImproperlyConfigured if unset.

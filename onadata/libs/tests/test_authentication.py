@@ -1,4 +1,5 @@
 import base64
+import logging
 import time
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
@@ -18,6 +19,10 @@ from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.authentication import (
+    LOCKOUT_EMAIL_NO_ADDRESS,
+    LOCKOUT_EMAIL_QUEUE_FAILED,
+    LOCKOUT_EMAIL_QUEUED,
+    LOCKOUT_EMAIL_RECENTLY_SENT,
     DigestAuthentication,
     LockoutBasicAuthentication,
     MasterReplicaOAuth2Validator,
@@ -32,7 +37,12 @@ from onadata.libs.authentication import (
     is_lockout_excluded_path,
     send_lockout_email,
 )
-from onadata.libs.utils.cache_tools import LOCKOUT_IP, safe_cache_set, safe_key
+from onadata.libs.utils.cache_tools import (
+    LOCKOUT_EMAIL_SENT,
+    LOCKOUT_IP,
+    safe_cache_set,
+    safe_key,
+)
 from onadata.libs.utils.common_tags import API_TOKEN
 
 JWT_SECRET_KEY = getattr(settings, "JWT_SECRET_KEY", "jwt")
@@ -330,48 +340,54 @@ class TestGetLockoutUsername(TestCase):
 class TestSendLockoutEmail(TestCase):
     """Test send_lockout_email() function."""
 
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+
     @patch("onadata.apps.api.tasks.send_account_lockout_email.apply_async")
     def test_queues_start_and_end_emails(self, apply_async_mock):
         """The lockout start and end emails are queued for the account."""
-        User.objects.create_user(
+        user = User.objects.create_user(
             username="bob", email="bob@example.com", password="secret"
         )
-        send_lockout_email("bob", "1.2.3.4")
 
+        self.assertEqual(send_lockout_email(user, "1.2.3.4"), LOCKOUT_EMAIL_QUEUED)
         self.assertEqual(apply_async_mock.call_count, 2)
         start_call, end_call = apply_async_mock.call_args_list
         self.assertEqual(start_call.kwargs["args"][0], "bob@example.com")
+        self.assertIn("has been locked out", start_call.kwargs["args"][1])
+        self.assertNotIn("countdown", start_call.kwargs)
         self.assertEqual(end_call.kwargs["args"][0], "bob@example.com")
+        self.assertIn("is no longer locked out", end_call.kwargs["args"][1])
         self.assertEqual(
             end_call.kwargs["countdown"],
             getattr(settings, "LOCKOUT_TIME", 1800) + 60,
         )
 
     @patch("onadata.apps.api.tasks.send_account_lockout_email.apply_async")
-    def test_ignores_unknown_username(self, apply_async_mock):
-        """No lockout email is queued when no account matches the username."""
-        send_lockout_email("nobody", "1.2.3.4")
-
-        self.assertFalse(apply_async_mock.called)
-
-    @patch("onadata.apps.api.tasks.send_account_lockout_email.apply_async")
     def test_skips_account_without_email(self, apply_async_mock):
-        """No lockout email is queued for an account without an email
-        address, e.g. the anonymous user account."""
-        User.objects.get_or_create(username=settings.ANONYMOUS_DEFAULT_USERNAME)
-        send_lockout_email(settings.ANONYMOUS_DEFAULT_USERNAME, "1.2.3.4")
+        """An account without an email address, such as the anonymous user,
+        gets no lockout email and does not start the interval."""
+        user, _ = User.objects.get_or_create(
+            username=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
+        self.assertFalse(user.email)
 
+        self.assertEqual(send_lockout_email(user, "1.2.3.4"), LOCKOUT_EMAIL_NO_ADDRESS)
         self.assertFalse(apply_async_mock.called)
+        self.assertIsNone(cache.get(safe_key(f"{LOCKOUT_EMAIL_SENT}{user.username}")))
 
 
-@override_settings(MAX_LOGIN_ATTEMPTS=3, LOCKOUT_TIME=1800)
+@override_settings(
+    MAX_LOGIN_ATTEMPTS=3, LOCKOUT_TIME=1800, LOCKOUT_EMAIL_INTERVAL=24 * 60 * 60
+)
 class TestAddLoginAttempt(TestCase):
     """Test add_login_attempt() locks out, notifies the owner and logs it."""
 
     def setUp(self):
         cache.clear()
         self.addCleanup(cache.clear)
-        User.objects.create_user(
+        self.user = User.objects.create_user(
             username="bob", email="bob@example.com", password="secret"
         )
         email_patcher = patch(
@@ -379,9 +395,14 @@ class TestAddLoginAttempt(TestCase):
         )
         self.send_email = email_patcher.start()
         self.addCleanup(email_patcher.stop)
-        log_patcher = patch("onadata.libs.authentication.sentry_logger", create=True)
-        self.sentry_logger = log_patcher.start()
+        log_patcher = patch("onadata.libs.authentication.LOCKOUT_LOGGER")
+        self.lockout_logger = log_patcher.start()
         self.addCleanup(log_patcher.stop)
+
+    def _logged(self):
+        return [
+            call.kwargs["extra"] for call in self.lockout_logger.info.call_args_list
+        ]
 
     def _fail_until_locked_out(self, ip_address):
         for _ in range(settings.MAX_LOGIN_ATTEMPTS - 1):
@@ -399,6 +420,8 @@ class TestAddLoginAttempt(TestCase):
         self.assertEqual(self.send_email.call_count, 2)
 
     def test_the_interval_does_not_hold_back_other_accounts(self):
+        """The interval is per account, so a lockout email to one account
+        does not stop another account's lockout email."""
         self._fail_until_locked_out("1.2.3.4")
         User.objects.create_user(
             username="alice", email="alice@example.com", password="secret"
@@ -412,6 +435,8 @@ class TestAddLoginAttempt(TestCase):
 
     @override_settings(LOCKOUT_EMAIL_INTERVAL=1)
     def test_emails_again_once_the_interval_has_passed(self):
+        """A lockout after LOCKOUT_EMAIL_INTERVAL has passed emails the owner
+        again."""
         self._fail_until_locked_out("1.2.3.4")
         self.assertEqual(self.send_email.call_count, 2)
 
@@ -420,13 +445,77 @@ class TestAddLoginAttempt(TestCase):
         self.assertEqual(self.send_email.call_count, 4)
 
     def test_a_failed_send_still_locks_out_and_retries_on_the_next_lockout(self):
+        """When the start email cannot be queued, the request is still locked
+        out, the error is logged and the next lockout tries the email
+        again."""
         self.send_email.side_effect = [OperationalError("broker down"), None, None]
         with self.assertLogs("onadata.libs.authentication", level="ERROR"):
             self._fail_until_locked_out("1.2.3.4")
-        self.assertFalse(self.sentry_logger.info.call_args.kwargs["email_sent"])
+        self.assertEqual(
+            self._logged()[-1]["email_status"],
+            LOCKOUT_EMAIL_QUEUE_FAILED,
+        )
 
         self._fail_until_locked_out("5.6.7.8")
         self.assertEqual(self.send_email.call_count, 3)
+
+    def test_an_unexpected_error_queuing_the_email_still_locks_out(self):
+        """An unexpected error while queuing the start email also gives the
+        lockout response, and the next lockout emails the owner."""
+        self.send_email.side_effect = [RuntimeError("unexpected"), None, None]
+        with self.assertLogs("onadata.libs.authentication", level="ERROR"):
+            self._fail_until_locked_out("1.2.3.4")
+        self.assertEqual(
+            self._logged()[-1]["email_status"],
+            LOCKOUT_EMAIL_QUEUE_FAILED,
+        )
+
+        self._fail_until_locked_out("5.6.7.8")
+        self.assertEqual(self.send_email.call_count, 3)
+
+    def test_a_failed_end_email_keeps_the_interval(self):
+        """Once the start email is queued, failing to queue the end email
+        must not clear the interval, or a lockout from another IP would
+        email the owner again straight away."""
+        self.send_email.side_effect = [None, OperationalError("broker down"), None]
+        with self.assertLogs("onadata.libs.authentication", level="ERROR"):
+            self._fail_until_locked_out("1.2.3.4")
+        self.assertEqual(self.send_email.call_count, 2)
+        self.assertEqual(
+            self._logged()[-1]["email_status"],
+            LOCKOUT_EMAIL_QUEUED,
+        )
+
+        self._fail_until_locked_out("5.6.7.8")
+        self.assertEqual(self.send_email.call_count, 2)
+
+    def test_turning_throttling_off_ignores_an_existing_cooldown(self):
+        """A cooldown left by an earlier positive interval must not hold back
+        emails once LOCKOUT_EMAIL_INTERVAL is zero or negative."""
+        self._fail_until_locked_out("1.2.3.4")
+        self.assertEqual(self.send_email.call_count, 2)
+        self.assertIsNotNone(cache.get(safe_key(f"{LOCKOUT_EMAIL_SENT}bob")))
+
+        with override_settings(LOCKOUT_EMAIL_INTERVAL=0):
+            self._fail_until_locked_out("5.6.7.8")
+        self.assertEqual(self.send_email.call_count, 4)
+        self.assertEqual(self._logged()[-1]["email_status"], LOCKOUT_EMAIL_QUEUED)
+
+        with override_settings(LOCKOUT_EMAIL_INTERVAL=-60):
+            self._fail_until_locked_out("9.9.9.9")
+        self.assertEqual(self.send_email.call_count, 6)
+
+    def test_a_missing_interval_setting_falls_back_to_a_day(self):
+        """Settings modules that don't build on onadata's common settings may
+        lack LOCKOUT_EMAIL_INTERVAL. A lockout must still raise the lockout
+        error and email the owner at most once a day."""
+        with override_settings():
+            del settings.LOCKOUT_EMAIL_INTERVAL
+            self.assertFalse(hasattr(settings, "LOCKOUT_EMAIL_INTERVAL"))
+            self._fail_until_locked_out("1.2.3.4")
+            self._fail_until_locked_out("5.6.7.8")
+
+        self.assertEqual(self.send_email.call_count, 2)
 
     def test_lockouts_of_unknown_accounts_are_not_reported(self):
         """Usernames that match no account are attacker-chosen strings."""
@@ -436,27 +525,27 @@ class TestAddLoginAttempt(TestCase):
             add_login_attempt("1.2.3.4", "nobody")
 
         self.send_email.assert_not_called()
-        self.sentry_logger.info.assert_not_called()
+        self.lockout_logger.info.assert_not_called()
 
-    def test_every_lockout_is_logged_to_sentry(self):
+    def test_every_lockout_is_logged(self):
         """Lockouts whose email was suppressed are still logged."""
         self._fail_until_locked_out("1.2.3.4")
         self._fail_until_locked_out("5.6.7.8")
 
         self.assertEqual(
-            [call.kwargs for call in self.sentry_logger.info.call_args_list],
+            self._logged(),
             [
                 {
-                    "username": "bob",
+                    "user_id": self.user.pk,
                     "ip_address": "1.2.3.4",
                     "attempts": 3,
-                    "email_sent": True,
+                    "email_status": LOCKOUT_EMAIL_QUEUED,
                 },
                 {
-                    "username": "bob",
+                    "user_id": self.user.pk,
                     "ip_address": "5.6.7.8",
                     "attempts": 3,
-                    "email_sent": False,
+                    "email_status": LOCKOUT_EMAIL_RECENTLY_SENT,
                 },
             ],
         )
@@ -477,7 +566,7 @@ class TestAddLoginAttempt(TestCase):
             add_login_attempt("", "bob")
 
         self.assertEqual(self.send_email.call_count, 2)
-        self.sentry_logger.info.assert_called_once()
+        self.lockout_logger.info.assert_called_once()
 
     def test_attempts_racing_past_the_threshold_create_one_lockout(self):
         """Concurrent requests can each read the lockout key before any of
@@ -499,8 +588,40 @@ class TestAddLoginAttempt(TestCase):
             add_login_attempt("1.2.3.4", "bob")
 
         self.assertEqual(self.send_email.call_count, 2)
-        self.assertEqual(self.sentry_logger.info.call_count, 1)
+        self.assertEqual(self.lockout_logger.info.call_count, 1)
         self.assertIsNotNone(cache.get(lockout_key))
+
+
+@override_settings(MAX_LOGIN_ATTEMPTS=3)
+class TestLockoutLogFormat(TestCase):
+    """The lockout log record fits the formatter LOGGING gives it."""
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.user = User.objects.create_user(
+            username="bob", email="bob@example.com", password="secret"
+        )
+        email_patcher = patch(
+            "onadata.libs.authentication.send_account_lockout_email.apply_async"
+        )
+        email_patcher.start()
+        self.addCleanup(email_patcher.stop)
+
+    def test_lockout_record_renders_with_the_configured_format(self):
+        log_format = settings.LOGGING["formatters"]["account_lockout"]["format"]
+        with self.assertLogs("account_lockout", level="INFO") as logs:
+            for _ in range(settings.MAX_LOGIN_ATTEMPTS - 1):
+                add_login_attempt("1.2.3.4", "bob")
+            with self.assertRaises(AuthenticationFailed):
+                add_login_attempt("1.2.3.4", "bob")
+
+        self.assertEqual(len(logs.records), 1)
+        self.assertEqual(
+            logging.Formatter(log_format).format(logs.records[0]),
+            f"Account locked out user_id={self.user.pk} ip_address=1.2.3.4 "
+            f"attempts=3 email_status={LOCKOUT_EMAIL_QUEUED}",
+        )
 
 
 class TestMasterReplicaOAuth2Validator(TestCase):

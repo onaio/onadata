@@ -16,6 +16,8 @@ from django.utils.html import strip_tags
 from rest_framework.reverse import reverse
 from six.moves.urllib.parse import urlencode
 
+DEFAULT_LOCKOUT_EMAIL_INTERVAL = 24 * 60 * 60
+
 
 def get_verification_url(redirect_url, request, verification_key):
     """Returns the verification_url"""
@@ -66,6 +68,11 @@ def get_verification_email_data(email, username, verification_url, request):
         )
 
     return email_data
+
+
+def get_lockout_email_interval():
+    """Return ``LOCKOUT_EMAIL_INTERVAL``, or a day when the setting is absent."""
+    return getattr(settings, "LOCKOUT_EMAIL_INTERVAL", DEFAULT_LOCKOUT_EMAIL_INTERVAL)
 
 
 def get_account_lockout_email_data(username, ip_address, end=False):
