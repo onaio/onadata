@@ -120,6 +120,19 @@ class OperationalErrorMiddlewareTestCase(SimpleTestCase):
 
         self.assertFalse(this_thread_is_pinned())
 
+    def test_unpins_a_streamed_retry_closed_before_reading(self):
+        self.get_response.side_effect = lambda request: StreamingHttpResponse(
+            iter([b"OK"])
+        )
+
+        response = self.middleware.process_exception(
+            self.factory.head("/"), RECOVERY_CONFLICT
+        )
+        self.assertTrue(this_thread_is_pinned())
+        response.close()
+
+        self.assertFalse(this_thread_is_pinned())
+
     def test_unpins_after_a_retry_that_fails(self):
         self.get_response.side_effect = recovery_conflict()
         self.assertFalse(this_thread_is_pinned())

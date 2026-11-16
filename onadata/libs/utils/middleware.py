@@ -129,15 +129,27 @@ def _noop():
     pass
 
 
-def _call_after_reading(content, callback):
-    """Yield ``content``, then call ``callback`` when reading finishes or stops.
+class _CallAfterReading:
+    """Streamed content that calls ``callback`` once reading ends or it closes.
 
     Reading a streamed response can run more queries, so a pin taken for the
-    response has to last until then.
+    response has to last until then. ``close`` also covers a response closed
+    before it is read, such as a HEAD request's.
     """
-    try:
-        yield from content
-    finally:
+
+    def __init__(self, content, callback):
+        self._content = content
+        self._callback = callback
+
+    def __iter__(self):
+        try:
+            yield from self._content
+        finally:
+            self.close()
+
+    def close(self):
+        """Call the callback, once."""
+        callback, self._callback = self._callback, _noop
         callback()
 
 
@@ -182,7 +194,7 @@ class OperationalErrorMiddleware(BaseMiddleware):
             raise
 
         if response.streaming:
-            response.streaming_content = _call_after_reading(
+            response.streaming_content = _CallAfterReading(
                 response.streaming_content, restore_pin
             )
         else:
