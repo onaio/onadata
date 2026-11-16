@@ -125,6 +125,22 @@ RECOVERY_CONFLICT_MESSAGE = "canceling statement due to conflict with recovery"
 RECOVERY_CONFLICT_RETRY_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
+def _noop():
+    pass
+
+
+def _call_after_reading(content, callback):
+    """Yield ``content``, then call ``callback`` when reading finishes or stops.
+
+    Reading a streamed response can run more queries, so a pin taken for the
+    response has to last until then.
+    """
+    try:
+        yield from content
+    finally:
+        callback()
+
+
 # pylint: disable=too-few-public-methods
 class OperationalErrorMiddleware(BaseMiddleware):
     """
@@ -138,8 +154,7 @@ class OperationalErrorMiddleware(BaseMiddleware):
             return None
 
         request.recovery_conflict_retried = True
-        self._report_retry(request, exception)
-        return self._get_response_from_primary(request)
+        return self._retry_on_primary(request, exception)
 
     @staticmethod
     def _report_retry(request, exception):
@@ -152,17 +167,27 @@ class OperationalErrorMiddleware(BaseMiddleware):
         )
         sentry_sdk.capture_exception(exception, level="info")
 
-    def _get_response_from_primary(self, request):
+    def _retry_on_primary(self, request, exception):
         # Not ``use_master``: it keeps a single saved pin state per thread, so
         # a ``use_master`` block inside the retried view would leave the
         # thread pinned to the primary after the retry.
-        was_pinned = this_thread_is_pinned()
+        restore_pin = _noop if this_thread_is_pinned() else unpin_this_thread
         pin_this_thread()
         try:
-            return self.get_response(request)
-        finally:
-            if not was_pinned:
-                unpin_this_thread()
+            # Pinned first: reporting can query, through reprs of locals.
+            self._report_retry(request, exception)
+            response = self.get_response(request)
+        except BaseException:
+            restore_pin()
+            raise
+
+        if response.streaming:
+            response.streaming_content = _call_after_reading(
+                response.streaming_content, restore_pin
+            )
+        else:
+            restore_pin()
+        return response
 
     @staticmethod
     def _should_retry(request, exception):
