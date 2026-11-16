@@ -83,7 +83,7 @@ from onadata.libs.utils.common_tools import (
     prefetch_first,
     str_to_bool,
 )
-from onadata.libs.utils.signed_urls import SignedAttachmentURLs
+from onadata.libs.utils.signed_urls import SignedAttachmentURLs, batched_iterator
 from onadata.libs.utils.viewer_tools import (
     get_enketo_attachment_params,
     get_enketo_urls,
@@ -1010,11 +1010,15 @@ class DataViewSet(
                 content_type="application/xml",
             )
         else:
-            items = self.object_list
-            if self.signed_attachment_urls is not None:
-                items = self.signed_attachment_urls.transform(items)
+            if self.signed_attachment_urls is None:
+                items = prefetch_first(self.object_list)
+            else:
+                # Run the query now, but sign attachment URLs only as the
+                # stream is read.
+                rows = prefetch_first(batched_iterator(self.object_list))
+                items = self.signed_attachment_urls.transform(rows)
             response = StreamingHttpResponse(
-                json_stream(prefetch_first(items), get_json_string),
+                json_stream(items, get_json_string),
                 content_type="application/json",
             )
 

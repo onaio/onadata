@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import OperationalError
 from django.test import Client, override_settings
 from django.utils import timezone
 
@@ -17,7 +18,13 @@ from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.main.models import MetaData
 from onadata.libs.models.share_xform import ShareXForm
 from onadata.libs.permissions import EditorMinorRole, EditorRole
-from onadata.libs.utils.signed_urls import SignedAttachmentURLs
+from onadata.libs.utils.signed_urls import SignedAttachmentURLs, batched_iterator
+
+
+def _conflicting_rows():
+    """Rows whose query a hot standby cancels on the first fetch."""
+    raise OperationalError("canceling statement due to conflict with recovery")
+    yield  # pylint: disable=unreachable
 
 
 @override_settings(
@@ -337,6 +344,29 @@ class TestDataSignedURLs(TestAbstractViewSet):
         second = self.get(HTTP_IF_MODIFIED_SINCE="Wed, 31 Dec 2098 23:59:59 GMT")
         self.assertEqual(second.status_code, 200)
         self.assertEqual(json.loads(b"".join(second.streaming_content)), first)
+        self.assertEqual(self.signer.call_count, 1)
+
+    @override_settings(STREAM_DATA=True)
+    def test_stream_retries_a_replica_conflict_before_signing(self):
+        calls = []
+
+        def conflict_once(items):
+            calls.append(items)
+            if len(calls) == 1:
+                return _conflicting_rows()
+            return batched_iterator(items)
+
+        with patch(
+            "onadata.apps.api.viewsets.data_viewset.batched_iterator",
+            side_effect=conflict_once,
+        ):
+            response = self.get()
+            self.signer.assert_not_called()
+            rows = json.loads(b"".join(response.streaming_content))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual([row["_id"] for row in rows], [self.instance.pk])
         self.assertEqual(self.signer.call_count, 1)
 
     @override_settings(STREAM_DATA=True)

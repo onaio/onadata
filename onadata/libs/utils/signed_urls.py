@@ -23,6 +23,13 @@ SAFETY_MARGIN = 30
 BATCH_SIZE = 100
 
 
+def batched_iterator(items):
+    """Iterates ``items``, reading a queryset ``BATCH_SIZE`` rows at a time."""
+    if isinstance(items, QuerySet):
+        return items.iterator(chunk_size=BATCH_SIZE)
+    return iter(items)
+
+
 def _url_expiry(url, issued_at, lifetime):
     """Bound validity by the URL and any available signing credential expiry."""
     expires_at = issued_at + timedelta(seconds=lifetime)
@@ -175,11 +182,7 @@ class SignedAttachmentURLs:
 
     def transform(self, items):
         """Copy and sign at most one batch of submissions at a time."""
-        iterator = (
-            items.iterator(chunk_size=BATCH_SIZE)
-            if isinstance(items, QuerySet)
-            else iter(items)
-        )
+        iterator = batched_iterator(items)
         while batch := list(islice(iterator, BATCH_SIZE)):
             rows = [item.json if isinstance(item, Instance) else item for item in batch]
             attachments = self._get_attachments(rows)
