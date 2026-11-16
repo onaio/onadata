@@ -7,7 +7,6 @@ import logging
 import traceback
 from sys import stdout
 
-from django.conf import settings
 from django.db import DatabaseError, OperationalError, connection
 from django.http import HttpResponseNotAllowed
 from django.middleware.locale import LocaleMiddleware
@@ -121,27 +120,31 @@ class SqlLogging:  # pylint: disable=too-few-public-methods
         return response
 
 
+RECOVERY_CONFLICT_MESSAGE = "canceling statement due to conflict with recovery"
+RECOVERY_CONFLICT_RETRY_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
 # pylint: disable=too-few-public-methods
 class OperationalErrorMiddleware(BaseMiddleware):
     """
-    Captures requests returning 500 status code.
-    Then retry it against master database.
+    Retries a read request once on the primary database when a replica
+    cancels one of its queries because of a recovery conflict.
     """
 
     def process_exception(self, request, exception):
-        """
-        Handle retrying OperatuonalError exceptions.
-        """
-        # Filter out OperationalError Exceptions
-        if isinstance(exception, OperationalError):
-            already_raised = getattr(settings, "ALREADY_RAISED", False)
-            message = "canceling statement due to conflict with recovery"
-            if message in str(exception):
-                if not already_raised:
-                    settings.ALREADY_RAISED = True
-                    with use_master:
-                        response = self.get_response(request)
-                        return response
-                settings.ALREADY_RAISED = False
+        """Re-run the request with reads pinned to the primary database."""
+        if not self._should_retry(request, exception):
+            return None
 
-        return None
+        request.recovery_conflict_retried = True
+        with use_master:
+            return self.get_response(request)
+
+    @staticmethod
+    def _should_retry(request, exception):
+        return (
+            isinstance(exception, OperationalError)
+            and RECOVERY_CONFLICT_MESSAGE in str(exception)
+            and request.method in RECOVERY_CONFLICT_RETRY_METHODS
+            and not getattr(request, "recovery_conflict_retried", False)
+        )
