@@ -130,8 +130,9 @@ def _noop():
 
 
 class _CallWhenDone:
-    """Streamed content that calls ``callback`` once, when it is exhausted,
-    fails or is closed, including closed before it is read.
+    """Streamed content that calls ``callback`` once it is read, fails or closes.
+
+    ``close`` covers content closed before it is read.
     """
 
     def __init__(self, content, callback):

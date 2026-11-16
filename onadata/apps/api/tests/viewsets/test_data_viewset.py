@@ -274,9 +274,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self._make_submissions()
         url = f"/api/v1/data/{self.xform.pk}.json"
         rows = [{"_id": 2}, {"_id": 1}]
-        digest = DigestAuth(
-            self.profile_data["username"], self.profile_data["password1"]
-        )(
+        digest = DigestAuth(self.login_username, self.login_password)(
             self.factory.get(url).META,
             HttpDigestAuthenticator().build_challenge_response(),
         )

@@ -43,7 +43,7 @@ class OperationalErrorMiddlewareTestCase(SimpleTestCase):
                 self.assertEqual(response.status_code, 200)
                 self.get_response.assert_called_once()
 
-    def test_reports_each_retry_from_the_primary(self):
+    def test_reports_a_retry_while_pinned(self):
         pinned_while_reporting = []
         self.capture_exception.side_effect = lambda *args, **kwargs: (
             pinned_while_reporting.append(this_thread_is_pinned())
@@ -104,6 +104,21 @@ class OperationalErrorMiddlewareTestCase(SimpleTestCase):
 
         self.assertTrue(this_thread_is_pinned())
         self.assertEqual(b"".join(response.streaming_content), b"True")
+        self.assertFalse(this_thread_is_pinned())
+
+    def test_unpins_a_streamed_retry_that_fails_partway(self):
+        def stream():
+            yield b"first"
+            raise recovery_conflict()
+
+        self.get_response.side_effect = lambda request: StreamingHttpResponse(stream())
+
+        response = self.middleware.process_exception(
+            self.factory.get("/"), RECOVERY_CONFLICT
+        )
+        with self.assertRaises(OperationalError):
+            b"".join(response.streaming_content)
+
         self.assertFalse(this_thread_is_pinned())
 
     def test_unpins_a_streamed_retry_closed_partway(self):
