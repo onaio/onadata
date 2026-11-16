@@ -78,7 +78,11 @@ from onadata.libs.utils.cache_tools import (
     XFORM_SUBMISSIONS_DELETING_TTL,
     safe_cache_set,
 )
-from onadata.libs.utils.common_tools import json_stream, str_to_bool
+from onadata.libs.utils.common_tools import (
+    json_stream,
+    prefetch_first,
+    str_to_bool,
+)
 from onadata.libs.utils.signed_urls import SignedAttachmentURLs
 from onadata.libs.utils.viewer_tools import (
     get_enketo_attachment_params,
@@ -1001,7 +1005,7 @@ class DataViewSet(
         if self.kwargs.get("format") == "xml":
             response = StreamingHttpResponse(
                 renderers.InstanceXMLRenderer().stream_data(
-                    self.object_list, self.get_serializer
+                    prefetch_first(self.object_list), self.get_serializer
                 ),
                 content_type="application/xml",
             )
@@ -1010,7 +1014,7 @@ class DataViewSet(
             if self.signed_attachment_urls is not None:
                 items = self.signed_attachment_urls.transform(items)
             response = StreamingHttpResponse(
-                json_stream(items, get_json_string),
+                json_stream(prefetch_first(items), get_json_string),
                 content_type="application/json",
             )
 

@@ -11,6 +11,7 @@ import time
 import traceback
 import uuid
 from io import BytesIO
+from itertools import chain
 
 from django.conf import settings
 from django.core.mail import mail_admins
@@ -164,6 +165,21 @@ def get_response_content(response, decode=True):
     if decode:
         return contents.decode("utf-8")
     return contents
+
+
+def prefetch_first(items):
+    """
+    Returns an iterator over ``items`` that has already fetched the first item.
+
+    Fetching it runs a lazy database query straight away, so a query error is
+    raised to the caller instead of partway through a streamed response.
+    """
+    iterator = iter(items)
+    try:
+        first = next(iterator)
+    except StopIteration:
+        return iter(())
+    return chain((first,), iterator)
 
 
 def json_stream(data, json_string):

@@ -103,6 +103,17 @@ def enketo_mock_http_413(url, request):
     return response
 
 
+RECOVERY_CONFLICT = OperationalError(
+    "canceling statement due to conflict with recovery"
+)
+
+
+def _conflicting_rows(*args, **kwargs):
+    """Rows whose query a hot standby cancels on the first fetch."""
+    raise RECOVERY_CONFLICT
+    yield  # pylint: disable=unreachable
+
+
 def _data_list(formid):
     return [
         {
@@ -215,6 +226,44 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertIsInstance(response.data, dict)
         self.assertLessEqual(data.items(), response.data.items())
+
+    @override_settings(STREAM_DATA=True)
+    def test_streamed_data_query_errors_are_raised_by_the_view(self):
+        """The streamed query runs before the view returns its response."""
+        self._make_submissions()
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", data={"sort": '{"_id": -1}'}, **self.extra)
+
+        with (
+            patch(
+                "onadata.apps.api.viewsets.data_viewset.query_data",
+                side_effect=_conflicting_rows,
+            ) as mock_query_data,
+            self.assertRaises(OperationalError),
+        ):
+            view(request, pk=self.xform.pk)
+
+        mock_query_data.assert_called_once()
+
+    @override_settings(STREAM_DATA=True)
+    def test_streamed_data_is_retried_after_a_recovery_conflict(self):
+        self._make_submissions()
+        rows = [{"_id": 2}, {"_id": 1}]
+
+        with patch(
+            "onadata.apps.api.viewsets.data_viewset.query_data",
+            side_effect=[_conflicting_rows(), iter(rows)],
+        ) as mock_query_data:
+            response = self.client.get(
+                f"/api/v1/data/{self.xform.pk}.json",
+                {"sort": '{"_id": -1}'},
+                **self.extra,
+            )
+            content = b"".join(response.streaming_content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(content), rows)
+        self.assertEqual(mock_query_data.call_count, 2)
 
     def test_catch_data_error(self):
         view = DataViewSet.as_view({"get": "list"})
