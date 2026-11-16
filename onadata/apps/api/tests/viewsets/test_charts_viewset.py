@@ -18,6 +18,7 @@ from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.permissions import DataEntryOnlyRole
 from onadata.libs.renderers.renderers import DecimalJSONRenderer
 from onadata.libs.utils.cache_tools import XFORM_CHARTS
 from onadata.libs.utils.timing import calculate_duration
@@ -226,6 +227,30 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data["field_type"], "select one")
         self.assertEqual(response.data["field_name"], "gender")
         self.assertEqual(response.data["data_type"], "categorized")
+
+        self.xform.shared = True
+        self.xform.shared_data = False
+        self.xform.save()
+        alice = self._create_user("alice", "alice")
+
+        def charts_read_by(user=None):
+            chart_request = self.factory.get("/charts", data)
+            if user is not None:
+                force_authenticate(chart_request, user=user)
+            return self.view(chart_request, pk=self.xform.id)
+
+        self.assertEqual(charts_read_by().status_code, 404)
+        self.assertEqual(charts_read_by(alice).status_code, 404)
+        DataEntryOnlyRole.add(alice, self.xform)
+        self.assertEqual(charts_read_by(alice).status_code, 404)
+        self.assertEqual(charts_read_by(self.user).status_code, 200)
+
+        self.xform.shared_data = True
+        self.xform.save()
+        self.assertTrue(charts_read_by().data["data"])
+        self.assertTrue(
+            charts_read_by(self._create_user("carol", "carol")).data["data"]
+        )
 
     def test_get_on_select_field_xpath(self):
         data = {"field_xpath": "gender"}

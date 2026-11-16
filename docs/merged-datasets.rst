@@ -159,6 +159,8 @@ Retrieving Data from a Merged Dataset
 
 Returns the data from all linked forms.
 
+Reading this data needs ``public_data`` or a role on the form. See :ref:`access to submissions <submission-access>`.
+
 .. raw:: html
 
 	<pre class="prettyprint"><b>GET</b> /api/v1/merged-datasets/{pk}/data</pre>

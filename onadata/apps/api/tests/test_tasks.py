@@ -6,6 +6,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
+from django.utils import timezone
 
 from onadata.apps.api.tasks import (
     ShareProject,
@@ -14,10 +15,11 @@ from onadata.apps.api.tasks import (
     send_project_invitation_email_async,
     share_project_async,
 )
-from onadata.apps.logger.models import Instance, ProjectInvitation
+from onadata.apps.logger.models import Instance, ProjectInvitation, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import ManagerRole
 from onadata.libs.serializers.organization_serializer import OrganizationSerializer
+from onadata.libs.test_utils.lagging_replica import lagging_replica
 from onadata.libs.utils.cache_tools import ORG_PROFILE_CACHE
 from onadata.libs.utils.email import ProjectInvitationEmail
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -179,6 +181,30 @@ class ShareProjectAsyncTestCase(TestBase):
 
                 mock_retry.reset_mock()
                 mock_share.reset_mock()
+
+
+class DeleteXFormSubmissionsAsyncLaggingReplicaTestCase(TestBase):
+    """delete_xform_submissions_async against a lagging read replica"""
+
+    def test_form_is_loaded_from_the_primary(self):
+        """A count change the replica hasn't replayed doesn't hide the recount"""
+        self._publish_transportation_form()
+        self._make_submissions()
+        restored, deleted = self.xform.instances.order_by("pk")[:2]
+        Instance.objects.filter(pk=restored.pk).update(deleted_at=timezone.now())
+        XForm.objects.filter(pk=self.xform.pk).update(num_of_submissions=3)
+
+        with lagging_replica():
+            Instance.objects.filter(pk=restored.pk).update(deleted_at=None)
+            XForm.objects.filter(pk=self.xform.pk).update(num_of_submissions=4)
+            self.assertEqual(XForm.objects.get(pk=self.xform.pk).num_of_submissions, 3)
+
+            delete_xform_submissions_async.delay(
+                self.xform.pk, self.user.pk, [deleted.pk]
+            )
+
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 3)
 
 
 @patch("onadata.apps.api.tasks.delete_xform_submissions")

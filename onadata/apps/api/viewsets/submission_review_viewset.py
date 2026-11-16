@@ -14,6 +14,7 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import SubmissionReview
 from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEWED
 from onadata.apps.messaging.serializers import send_message
+from onadata.libs.filters import SubmissionReviewFilter
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.bulk_create_mixin import BulkCreateMixin
@@ -32,10 +33,11 @@ class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
     """
     Submission Review ViewSet class
     """
-    queryset = SubmissionReview.objects.filter(deleted_at__isnull=True)
+    queryset = SubmissionReview.objects.filter(
+        deleted_at__isnull=True).order_by('pk')
     serializer_class = SubmissionReviewSerializer
     permission_classes = [SubmissionReviewPermissions]
-    filter_backends = (DjangoFilterBackend, )
+    filter_backends = (SubmissionReviewFilter, DjangoFilterBackend)
     filterset_fields = ('instance', 'created_by', 'status')
 
     def destroy(self, request, *args, **kwargs):

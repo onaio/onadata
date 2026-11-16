@@ -30,6 +30,7 @@ from openpyxl import load_workbook
 from six import iteritems
 
 from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models.instance import clear_merged_dataset_caches_on_commit
 from onadata.apps.messaging.constants import SUBMISSION_DELETED, XFORM
 from onadata.apps.messaging.serializers import send_message
 from onadata.celeryapp import app
@@ -396,6 +397,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
         )
         # updates the form count
         xform.submission_count(True)
+        clear_merged_dataset_caches_on_commit(xform.pk)
         # send message
         send_message(
             instance_id=instance_ids,

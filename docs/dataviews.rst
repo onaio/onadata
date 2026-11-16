@@ -432,7 +432,7 @@ If the job is done:
        HTTP 202 Accepted
        {
            "job_status": "SUCCESS",
-           "export_url": "https://api.ona.io/api/v1/dataviews/28058/data.xls"
+           "export_url": "https://api.ona.io/api/v1/export/123?dataview=28058"
        }
 
 Export Dataview Data Synchronously

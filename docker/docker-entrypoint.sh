@@ -17,7 +17,7 @@ virtualenv -p "$(which "${SELECTED_PYTHON}")" "/srv/onadata/.virtualenv/${SELECT
 . /srv/onadata/.virtualenv/"${SELECTED_PYTHON}"/bin/activate
 
 cd /srv/onadata
-pip install --upgrade pip
+python -m pip install --upgrade "pip>=26.2.2"
 yes w | pip install -r requirements/base.pip
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput

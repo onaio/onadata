@@ -17,12 +17,13 @@ from django.db.models.functions import (
     TruncWeek,
     TruncYear,
 )
+from django.utils.cache import add_never_cache_headers
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
 from actstream.models import Action
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import exceptions, mixins, viewsets
+from rest_framework import exceptions, viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from onadata.apps.messaging.constants import MESSAGE_VERBS
@@ -43,14 +44,11 @@ User = get_user_model()
 
 
 # pylint: disable=too-many-ancestors
-@method_decorator(cache_page(10 * 60), name="list")
-class MessagingViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet,
-):
+# DRF checks target permissions before entering the cached list handler.
+@method_decorator(
+    cache_page(10 * 60, key_prefix="messaging-authorized-v1"), name="list"
+)
+class MessagingViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for the Messaging app - implements /messaging API endpoint
     """
@@ -66,6 +64,15 @@ class MessagingViewSet(
     )
     filterset_class = ActionFilterSet
     pagination_class = StandardPageNumberPagination
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        """Prevent downstream caching after the authorized server cache is filled."""
+        response = super().finalize_response(request, response, *args, **kwargs)
+        if hasattr(response, "add_post_render_callback"):
+            response.add_post_render_callback(add_never_cache_headers)
+        else:
+            add_never_cache_headers(response)
+        return response
 
     # Grouping dimensions the ``group_by`` param accepts, mapped to the
     # Action column they aggregate on.

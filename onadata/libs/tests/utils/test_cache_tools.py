@@ -35,6 +35,7 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_decr,
     safe_cache_delete,
     safe_cache_get,
+    safe_cache_get_many,
     safe_cache_incr,
     safe_cache_set,
     safe_key,
@@ -439,3 +440,11 @@ class SafeCacheDeleteTestCase(TestCase):
                 # Reset mocks for next iteration
                 mock_logger.reset_mock()
                 mock_delete.reset_mock()
+
+
+class TestSafeCacheGetMany(TestCase):
+    @patch("onadata.libs.utils.cache_tools.cache.get_many")
+    def test_unreachable_cache_returns_nothing(self, get_many_mock):
+        get_many_mock.side_effect = ConnectionError
+
+        self.assertEqual(safe_cache_get_many(["many-a"]), {})

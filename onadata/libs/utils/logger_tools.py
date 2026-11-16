@@ -58,6 +58,7 @@ from onadata.apps.logger.models.instance import (
     FormInactiveError,
     FormIsMergedDatasetError,
     InstanceHistory,
+    clear_merged_dataset_caches_on_commit,
     get_id_string_from_xml_str,
 )
 from onadata.apps.logger.models.xform import DuplicateUUIDError, XLSFormError
@@ -174,6 +175,10 @@ def _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml):
     instance.last_edited_by = submitted_by
     instance.uuid = new_uuid
     instance.checksum = checksum
+
+    if instance.xform.is_was_managed and is_encrypted_submission(xml):
+        instance.decryption_status = Instance.DecryptionStatus.PENDING
+
     instance.save()
 
     # call webhooks
@@ -1401,6 +1406,7 @@ def delete_xform_submissions(
         xform.save(update_fields=["num_of_submissions"])
     # Force update of submission counts since Queryset.update() does not trigger signals
     xform.submission_count(force_update=True)
+    clear_merged_dataset_caches_on_commit(xform.pk)
     xform.update_num_of_decrypted_submissions()
 
     xform.project.date_modified = timezone.now()

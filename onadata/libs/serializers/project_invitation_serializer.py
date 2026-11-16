@@ -117,7 +117,9 @@ class ProjectInvitationUpdateBaseSerializer(serializers.Serializer):
     def validate_invitation_id(self, invitation_id):
         """Validate `invitation_id` field"""
         try:
-            ProjectInvitation.objects.get(pk=invitation_id)
+            ProjectInvitation.objects.get(
+                pk=invitation_id, project=self.context["project"]
+            )
 
         except ProjectInvitation.DoesNotExist as error:
             raise serializers.ValidationError(_("Invalid invitation_id.")) from error

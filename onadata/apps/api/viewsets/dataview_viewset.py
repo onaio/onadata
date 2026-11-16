@@ -73,7 +73,7 @@ def get_dataview_instances(dataview):
     """
     return apply_filters(
         dataview.xform.instances.filter(deleted_at__isnull=True), dataview.query
-    )
+    ).order_by("pk")
 
 
 def _runtime_query_columns(query):
@@ -118,13 +118,17 @@ class DataViewViewSet(
     A simple ViewSet for viewing and editing DataViews.
     """
 
-    queryset = DataView.objects.filter(
-        deleted_at__isnull=True,
-        xform__deleted_at__isnull=True,
-        xform__project__organization__is_active=True,
-        project__deleted_at__isnull=True,
-        project__organization__is_active=True,
-    ).select_related()
+    queryset = (
+        DataView.objects.filter(
+            deleted_at__isnull=True,
+            xform__deleted_at__isnull=True,
+            xform__project__organization__is_active=True,
+            project__deleted_at__isnull=True,
+            project__organization__is_active=True,
+        )
+        .select_related()
+        .order_by("pk")
+    )
     serializer_class = DataViewSerializer
     permission_classes = [DataViewViewsetPermissions]
     lookup_field = "pk"

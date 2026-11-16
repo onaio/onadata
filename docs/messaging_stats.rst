@@ -3,6 +3,10 @@ Messaging Stats
 
 Provides a count of each unique messaging event grouped by either day, month or year.
 
+Access rules, errors and target availability are the same as for
+:ref:`messaging <messaging-access>`. Stats responses are not cached, so counts
+include new events immediately.
+
 The endpoint accepts the following *required* query parameters:
 
 * *group_by* - field specifying whether to group events by `day`, `month` or `year`.

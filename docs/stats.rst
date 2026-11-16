@@ -3,6 +3,8 @@ Stats
 
 Stats summary for median, mean, mode, range, max, min. A query parameter ``method`` can be used to limit the results to either ``mean``, ``median``, ``mode`` or ``range`` only results.
 
+Reading this data needs ``public_data`` or a role on the form. See :ref:`access to submissions <submission-access>`.
+
 Stats Endpoints
 ---------------
 

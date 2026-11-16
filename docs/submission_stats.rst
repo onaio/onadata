@@ -9,6 +9,8 @@ If a date field is used as the group, the result will be grouped by day.
 * *group* - field to group submission counts by
 * *name* - name to be applied to the group on results
 
+Reading this data needs ``public_data`` or a role on the form. See :ref:`access to submissions <submission-access>`.
+
 Example
 ^^^^^^^^^
 ::

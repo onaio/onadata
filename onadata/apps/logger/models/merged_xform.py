@@ -24,6 +24,18 @@ class MergedXForm(XForm):
         set_uuid(self)
         return super().save(*args, **kwargs)
 
+    def active_xforms(self):
+        """Return the source forms that are not soft deleted."""
+        return self.xforms.filter(deleted_at__isnull=True)
+
+    def active_xform_pks_for_sql(self):
+        """Return the active source form pks for a raw SQL `IN %s`.
+
+        `IN ()` is invalid SQL, so this returns the merged dataset's own pk when
+        no source form is active. A merged dataset has no submissions of its own.
+        """
+        return tuple(self.active_xforms().values_list("pk", flat=True)) or (self.pk,)
+
 
 # pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):

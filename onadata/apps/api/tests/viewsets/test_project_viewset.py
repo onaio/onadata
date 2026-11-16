@@ -2036,6 +2036,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._login_user_and_profile(alice_data)
+        ShareProject(self.project, "alice", "readonly").save()
 
         # add star as alice
         request = self.factory.post("/", **self.extra)
@@ -2051,6 +2052,103 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_profile, bob_profile = sorted(response.data, key=itemgetter("username"))
         self.assertEqual(sorted(bob_profile.items()), sorted(user_profile_data.items()))
         self.assertEqual(alice_profile["username"], "alice")
+
+    def test_star_private_project_requires_view_access(self):
+        """A user without view access cannot star a private project."""
+        self._project_create()
+
+        view = ProjectViewSet.as_view({"post": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        request = self.factory.post("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.user_stars.count(), 0)
+
+    # pylint: disable=invalid-name
+    def test_read_stars_of_private_project_requires_view_access(self):
+        """A user without view access cannot read a private project's stars."""
+        self._project_create()
+        self.project.user_stars.add(self.user)
+
+        view = ProjectViewSet.as_view({"get": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+        # anonymous users cannot read them either
+        request = self.factory.get("/")
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_unstar_private_project_requires_view_access(self):
+        """A user without view access cannot unstar a private project."""
+        self._project_create()
+        self.project.user_stars.add(self.user)
+
+        view = ProjectViewSet.as_view({"delete": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        request = self.factory.delete("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.user_stars.count(), 1)
+
+    def test_cannot_star_soft_deleted_project(self):
+        """A soft-deleted project cannot be starred, even by a collaborator."""
+        self._project_create()
+
+        view = ProjectViewSet.as_view({"post": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        ShareProject(self.project, "alice", "readonly").save()
+        self.project.soft_delete()
+
+        request = self.factory.post("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    # pylint: disable=invalid-name
+    def test_cannot_star_project_of_deactivated_account(self):
+        """A project owned by a deactivated account cannot be starred."""
+        self._project_create()
+        bob = self.user
+
+        view = ProjectViewSet.as_view({"post": "star"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        ShareProject(self.project, "alice", "readonly").save()
+        bob.is_active = False
+        bob.save()
+
+        request = self.factory.post("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_can_read_public_project_stars(self):
+        """Anonymous users can read a public project's stars."""
+        self._project_create()
+        self.project.shared = True
+        self.project.save()
+        self.project.user_stars.add(self.user)
+
+        view = ProjectViewSet.as_view({"get": "star"})
+        request = self.factory.get("/")
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["username"], self.user.username)
 
     def test_user_can_view_public_projects(self):
         public_project = Project(
@@ -3950,6 +4048,71 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
         # invitation email not updated
         self.assertEqual(self.invitation.email, "janedoe@example.com")
 
+    def test_malformed_invitation_id(self, mock_send_mail):
+        """A malformed invitation_id is handled"""
+        for invitation_id in ["abc", ["abc"], {"a": 1}]:
+            payload = {
+                "email": "rihanna@example.com",
+                "role": "readonly",
+                "invitation_id": invitation_id,
+            }
+            request = self.factory.put(
+                "/",
+                data=json.dumps(payload),
+                content_type="application/json",
+                **self.extra,
+            )
+            response = self.view(request, pk=self.project.pk)
+            self.assertEqual(response.status_code, 404)
+        # 1e999 cannot be produced by json.dumps; as a raw JSON literal it
+        # parses to float infinity rather than failing JSON validation
+        request = self.factory.put(
+            "/",
+            data=(
+                '{"email": "rihanna@example.com", "role": "readonly", '
+                '"invitation_id": 1e999}'
+            ),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 404)
+        mock_send_mail.assert_not_called()
+
+    def test_another_project_invitation(self, mock_send_mail):
+        """An invitation belonging to another project cannot be updated"""
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        alice_project = Project.objects.create(
+            name="Alice project",
+            organization=alice_profile.user,
+            created_by=alice_profile.user,
+            metadata="{}",
+        )
+        alice_invitation = alice_project.invitations.create(
+            email="johndoe@example.com",
+            role="editor",
+            status=ProjectInvitation.Status.PENDING,
+        )
+        payload = {
+            "email": "rihanna@example.com",
+            "role": "readonly",
+            "invitation_id": alice_invitation.id,
+        }
+        request = self.factory.put(
+            "/",
+            data=json.dumps(payload),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 404)
+        alice_invitation.refresh_from_db()
+        self.assertEqual(alice_invitation.project, alice_project)
+        self.assertEqual(alice_invitation.email, "johndoe@example.com")
+        self.assertEqual(alice_invitation.role, "editor")
+        mock_send_mail.assert_not_called()
+
 
 class RevokeInvitationTestCase(TestAbstractViewSet):
     """Tests for revoke invitation"""
@@ -4045,6 +4208,27 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
 
             else:
                 self.assertEqual(response.status_code, 400)
+
+    def test_another_project_invitation(self):
+        """An invitation belonging to another project cannot be revoked"""
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        alice_project = Project.objects.create(
+            name="Alice project",
+            organization=alice_profile.user,
+            created_by=alice_profile.user,
+            metadata="{}",
+        )
+        alice_invitation = alice_project.invitations.create(
+            email="johndoe@example.com", role="editor"
+        )
+        post_data = {"invitation_id": alice_invitation.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"invitation_id": ["Invalid invitation_id."]})
+        alice_invitation.refresh_from_db()
+        self.assertEqual(alice_invitation.status, ProjectInvitation.Status.PENDING)
 
 
 @patch(
@@ -4158,3 +4342,25 @@ class ResendInvitationTestCase(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 400)
 
         mock_send_mail.assert_called_once()
+
+    def test_another_project_invitation(self, mock_send_mail):
+        """An invitation belonging to another project is not resent"""
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        alice_project = Project.objects.create(
+            name="Alice project",
+            organization=alice_profile.user,
+            created_by=alice_profile.user,
+            metadata="{}",
+        )
+        alice_invitation = alice_project.invitations.create(
+            email="johndoe@example.com", role="editor"
+        )
+        post_data = {"invitation_id": alice_invitation.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"invitation_id": ["Invalid invitation_id."]})
+        alice_invitation.refresh_from_db()
+        self.assertIsNone(alice_invitation.resent_at)
+        mock_send_mail.assert_not_called()

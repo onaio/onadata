@@ -40,7 +40,10 @@ from onadata.libs.exceptions import (
     NoRecordsPermission,
     ServiceUnavailable,
 )
-from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
+from onadata.libs.permissions import (
+    export_dataview_query_string,
+    filter_queryset_xform_meta_perms_sql,
+)
 from onadata.libs.utils import log
 from onadata.libs.utils.async_status import (
     FAILED,
@@ -130,6 +133,19 @@ def _get_export_type(export_type):
     return EXPORT_EXT[export_type]
 
 
+def _limited_to_own_submissions(user, xform):
+    return filter_queryset_xform_meta_perms_sql(xform, user, None) is not None
+
+
+def _exports_requestable_by_id(user, xform, dataview_pk):
+    exports = Export.objects.filter(xform=xform)
+    if dataview_pk:
+        return exports.filter(options__dataview_pk=dataview_pk)
+    if _limited_to_own_submissions(user, xform):
+        return exports.filter(options__query___submitted_by=user.username)
+    return exports
+
+
 # pylint: disable=too-many-arguments,too-many-positional-arguments
 # pylint: disable=too-many-locals,too-many-branches
 def custom_response_handler(  # noqa: C0901
@@ -185,7 +201,10 @@ def custom_response_handler(  # noqa: C0901
     export_id = request.query_params.get("export_id")
 
     if export_id:
-        export = get_object_or_404(Export, id=export_id, xform=xform)
+        export = get_object_or_404(
+            _exports_requestable_by_id(request.user, xform, dataview_pk),
+            id=export_id,
+        )
     else:
         if export_type == Export.GOOGLE_SHEETS_EXPORT:
             return Response(
@@ -581,7 +600,7 @@ def export_async_export_response(request, export):
         ]:
             export_url = reverse(
                 "export-detail", kwargs={"pk": export.pk}, request=request
-            )
+            ) + export_dataview_query_string(request.user, export)
         else:
             export_url = export.export_url
         resp = async_status(SUCCESSFUL)

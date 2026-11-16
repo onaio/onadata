@@ -13,6 +13,8 @@ GET JSON List of data end points
 
 Lists the data endpoints accessible to requesting user, for anonymous access a list of public data endpoints is returned.
 
+Reading this data needs ``public_data`` or a role on the form. See :ref:`access to submissions <submission-access>`.
+
 .. raw:: html
 
   <pre class="prettyprint">
@@ -193,6 +195,44 @@ Response
             ....
         ]
 
+Request signed attachment URLs
+------------------------------
+
+Add ``signed_urls=true`` to JSON submission list or detail requests to receive
+storage download URLs directly::
+
+    GET /api/v1/data/{pk}?signed_urls=true
+    GET /api/v1/data/{pk}/{dataid}?signed_urls=true
+
+This replaces only ``_attachments[].download_url``. Thumbnail links and the
+response structure stay the same. Omitting the parameter or setting it to
+``false`` returns the usual ``/files`` links. Signing applies to paginated,
+sorted, field-selected, and streaming JSON responses. Field selection must
+include ``_attachments`` to receive attachment links.
+
+Signed attachment access follows submission access, including when the attachment
+was submitted by a different user. The data endpoint authorizes submissions
+before their attachment URLs are generated or reused from cache. Missing,
+deleted, or mismatched attachments, local or unsupported storage, and unavailable
+signing retain their original ``/files`` links. Signed URLs are never saved in
+submission JSON or history.
+
+Deployments control link lifetime through ``ATTACHMENT_SIGNED_URL_EXPIRATION``,
+in seconds, with a default of 3600. Original attachment downloads through
+``/files`` use the same setting. Requests cannot override this lifetime.
+
+The server caches signed URLs for at most the normal response cache lifetime
+and their remaining validity, with a 30-second safety margin. Known shorter
+credential lifetimes also limit reuse. Cache hits do not extend these deadlines.
+Buffered signed responses use private caching and ETags that change when the
+response or signed URLs change. Their freshness decreases on cache hits and
+conditional responses.
+
+Signed JSON streams reuse cached URLs while processing submissions in bounded
+batches. They send ``Cache-Control: private, max-age=0, must-revalidate`` without
+ETag or Last-Modified validators, so revalidation returns the response body with
+status 200. This avoids a preliminary attachment scan or buffering the dataset.
+
 GET XML list of submitted data for a specific form
 --------------------------------------------------
 
@@ -334,6 +374,10 @@ There are a few important facts to note about retrieving paginated data:
 
 1. The maximum number of items that can be requested in a page via the ``page_size`` query param is 10,000
 2. Information regrading transversal of the paginated responses can be found in `the Link header <https://tools.ietf.org/html/rfc5988>`_ returned in the response. *Note: Some relational links may not be present depending on the page accessed i.e the ``first`` relational page link won't be present on the first page response*
+
+Page links omit ``start`` and ``limit`` so subsequent requests can traverse the
+complete filtered result set. They preserve filters, sorting, selected fields,
+and ``signed_urls``.
 
 JSON Example
 ^^^^^^^^^^^^^
@@ -963,7 +1007,7 @@ Example
 
 Filter submissions using the decryption_status field.
 
-Use ``pending`` to get submissions that are pending decryption, ``success`` to get submissions that were successfully decrypted, ``failed`` to get submissions that failed decryption.
+Use ``pending`` to get submissions that are waiting to be decrypted, ``in_progress`` to get submissions that are being decrypted, ``success`` to get submissions that were successfully decrypted, ``failed`` to get submissions that failed decryption.
 
 Example
 ^^^^^^^^^
@@ -974,10 +1018,13 @@ Example
 
 For submissions that have a status of ``failed``, there exists a ``_decryption_error`` field that contains an error name and message. The following are the possible errors:
 
-- ``MAX_RETRIES_EXCEEDED``: System was unable to decrypt the submission after multiple attempts.
 - ``KMS_KEY_DISABLED``: Encryption key is disabled.
 - ``KMS_KEY_NOT_FOUND``: Encryption key used for encryption not found.
 - ``INVALID_SUBMISSION``: Data is corrupted.
+
+A submission with a status of ``pending`` can be decrypted again. Another attempt is made when the submission is saved with all its media files received, such as when its last media file arrives. If an earlier attempt to decrypt it did not succeed, its ``_decryption_error`` field contains the reason. The following are the possible errors:
+
+- ``MAX_RETRIES_EXCEEDED``: System was unable to decrypt the submission after multiple attempts.
 - ``NOT_ALL_MEDIA_RECEIVED``: Not all media files have been received.
 
 Tag a submission data point

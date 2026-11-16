@@ -492,11 +492,7 @@ class DataView(models.Model):
         if data_view.xform.is_merged_dataset:
             sql += " WHERE xform_id IN %s " + sql_where + " AND deleted_at IS NULL"
             params = [
-                tuple(
-                    list(
-                        data_view.xform.mergedxform.xforms.values_list("pk", flat=True)
-                    )
-                )
+                data_view.xform.mergedxform.active_xform_pks_for_sql()
             ] + where_params
         else:
             sql += " WHERE xform_id = %s " + sql_where + " AND deleted_at IS NULL"

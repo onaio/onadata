@@ -2,10 +2,16 @@
 """
 The ExportSerializer class - create, list exports.
 """
+from functools import cached_property, lru_cache
+
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from onadata.apps.viewer.models.export import Export
+from onadata.libs.permissions import (
+    can_read_all_xform_data,
+    export_dataview_query_string,
+)
 from onadata.libs.utils.async_status import status_msg
 
 
@@ -42,6 +48,11 @@ class ExportSerializer(serializers.HyperlinkedModelSerializer):
         """Returns export type - CSV,XLS,..."""
         return obj.export_type
 
+    @cached_property
+    def _can_read_all_data(self):
+        """Checks each form once, because a form can have many dataview exports."""
+        return lru_cache(maxsize=None)(can_read_all_xform_data)
+
     def get_export_url(self, obj):
         """Returns the export download URL."""
         if obj.export_url:
@@ -54,6 +65,6 @@ class ExportSerializer(serializers.HyperlinkedModelSerializer):
                 kwargs={"pk": obj.pk},
                 request=request,
                 format=obj.export_type.replace("_", ""),
-            )
+            ) + export_dataview_query_string(request.user, obj, self._can_read_all_data)
 
         return None

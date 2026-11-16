@@ -16,10 +16,13 @@ from django.utils.translation import gettext as _
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
-from rest_framework import exceptions, serializers
+from rest_framework import serializers
 
 from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS
-from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
+from onadata.apps.messaging.utils import (
+    TargetDoesNotExist,
+    get_target,
+)
 from onadata.libs.utils.common_tools import report_exception
 
 User = get_user_model()
@@ -82,9 +85,7 @@ class MessageSerializer(serializers.ModelSerializer):
                 self.fields.pop(field)
 
     def create(self, validated_data):
-        """
-        Creates the Message in the Action model
-        """
+        """Record an event from trusted internal code, including deleted targets."""
         request = self.context["request"]
         target_type = validated_data.get("target_content_type")
         target_id = validated_data.get("target_object_id")
@@ -101,16 +102,6 @@ class MessageSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"target_id": _("target_id not found")}
             ) from exc  # yapf: disable
-        # check if request.user has permission to the target_object
-        permission = (
-            f"{target_object._meta.app_label}.change_{target_object._meta.model_name}"
-        )
-        if not request.user.has_perm(permission, target_object) and verb == MESSAGE:
-            message = (
-                _("You do not have permission to add messages to target_id %s.")
-                % target_object
-            )
-            raise exceptions.PermissionDenied(detail=message)
         results = action.send(
             request.user,
             verb=verb,
