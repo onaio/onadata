@@ -6,6 +6,7 @@ Test onadata.utils.emails module.
 from datetime import datetime, timezone
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core import mail
 from django.core.exceptions import ImproperlyConfigured
 from django.test import RequestFactory
@@ -18,6 +19,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.email import (
     ProjectInvitationEmail,
     get_account_deactivation_email_data,
+    get_account_lockout_email_data,
     get_project_invitation_url,
     get_two_factor_email_data,
     get_verification_email_data,
@@ -189,6 +191,62 @@ class TestEmail(TestBase):
         self.assertIn("Hi janedoe", email_data["message_txt"])
         self.assertIn("30 days", email_data["message_txt"])
         self.assertIn("help@example.com", email_data["message_txt"])
+
+    @override_settings(LOCKOUT_EMAIL_INTERVAL=24 * 60 * 60)
+    def test_lockout_start_email_says_further_lockouts_are_not_emailed(self):
+        message = get_account_lockout_email_data("bob", "1.2.3.4")["message_txt"]
+
+        self.assertIn("IP 1.2.3.4 has been locked out", message)
+        self.assertIn(
+            "We won't email you about further lockouts of your account for 24 hours.",
+            message,
+        )
+
+    def test_lockout_start_email_defaults_to_a_day_without_the_setting(self):
+        """Settings modules that don't build on onadata's common settings may
+        lack LOCKOUT_EMAIL_INTERVAL."""
+        with override_settings():
+            del settings.LOCKOUT_EMAIL_INTERVAL
+            self.assertFalse(hasattr(settings, "LOCKOUT_EMAIL_INTERVAL"))
+            message = get_account_lockout_email_data("bob", "1.2.3.4")["message_txt"]
+
+        self.assertIn("further lockouts of your account for 24 hours.", message)
+
+    def test_lockout_start_email_gives_other_intervals_in_minutes(self):
+        """Intervals that are not whole hours are rounded down to a minute, so
+        the email never promises a longer quiet period than the real one."""
+        for seconds, text in [
+            (60, "1 minute"),
+            (90 * 60, "90 minutes"),
+            (90 * 60 + 59, "90 minutes"),
+        ]:
+            with self.subTest(seconds=seconds), override_settings(
+                LOCKOUT_EMAIL_INTERVAL=seconds
+            ):
+                message = get_account_lockout_email_data("bob", "1.2.3.4")[
+                    "message_txt"
+                ]
+                self.assertIn(f"further lockouts of your account for {text}.", message)
+
+    def test_lockout_start_email_has_no_note_for_an_interval_under_a_minute(self):
+        for seconds in [0, -60, 30]:
+            with self.subTest(seconds=seconds), override_settings(
+                LOCKOUT_EMAIL_INTERVAL=seconds
+            ):
+                message = get_account_lockout_email_data("bob", "1.2.3.4")[
+                    "message_txt"
+                ]
+                self.assertIn("IP 1.2.3.4 has been locked out", message)
+                self.assertNotIn("further lockouts", message)
+
+    @override_settings(LOCKOUT_EMAIL_INTERVAL=24 * 60 * 60)
+    def test_lockout_end_email_has_no_note(self):
+        message = get_account_lockout_email_data("bob", "1.2.3.4", end=True)[
+            "message_txt"
+        ]
+
+        self.assertIn("IP 1.2.3.4 is no longer locked out", message)
+        self.assertNotIn("further lockouts", message)
 
     def test_send_generic_email_plain_only(self):
         mail.outbox = []

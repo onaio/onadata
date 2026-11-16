@@ -12,6 +12,7 @@ from django.http import HttpRequest
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
+from django.utils.translation import ngettext
 
 from rest_framework.reverse import reverse
 from six.moves.urllib.parse import urlencode
@@ -75,6 +76,23 @@ def get_lockout_email_interval():
     return getattr(settings, "LOCKOUT_EMAIL_INTERVAL", DEFAULT_LOCKOUT_EMAIL_INTERVAL)
 
 
+def _lockout_email_interval_text():
+    """Return the lockout email interval in whole hours, or in minutes rounded
+    down when it is not a whole number of hours. Return "" when it is under a
+    minute.
+    """
+    seconds = get_lockout_email_interval()
+    if not seconds or seconds < 60:
+        return ""
+    hours, remainder = divmod(seconds, 60 * 60)
+    if not remainder:
+        return ngettext("%(count)d hour", "%(count)d hours", hours) % {"count": hours}
+    minutes = seconds // 60
+    return ngettext("%(count)d minute", "%(count)d minutes", minutes) % {
+        "count": minutes
+    }
+
+
 def get_account_lockout_email_data(username, ip_address, end=False):
     """Generates both the email upon start and end of account lockout"""
     message_path = "account_lockout/lockout_start.txt"
@@ -86,6 +104,7 @@ def get_account_lockout_email_data(username, ip_address, end=False):
         "remote_ip": ip_address,
         "lockout_time": getattr(settings, "LOCKOUT_TIME", 1800) / 60,
         "support_email": getattr(settings, "SUPPORT_EMAIL", "support@example.com"),
+        "email_interval": "" if end else _lockout_email_interval_text(),
     }
 
     email_data = {
