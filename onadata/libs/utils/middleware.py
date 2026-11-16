@@ -14,6 +14,7 @@ from django.template import loader
 from django.utils.translation import gettext as _
 from django.utils.translation.trans_real import parse_accept_lang_header
 
+import sentry_sdk
 from multidb.pinning import pin_this_thread, this_thread_is_pinned, unpin_this_thread
 
 from onadata.apps.main.models.user_activity import record_user_activity
@@ -137,7 +138,19 @@ class OperationalErrorMiddleware(BaseMiddleware):
             return None
 
         request.recovery_conflict_retried = True
+        self._report_retry(request, exception)
         return self._get_response_from_primary(request)
+
+    @staticmethod
+    def _report_retry(request, exception):
+        # A retried request succeeds, so Django never reports the conflict.
+        # Report it here so retries stay measurable.
+        logger.warning(
+            "Retrying %s %s on the primary after a replica recovery conflict",
+            request.method,
+            request.path,
+        )
+        sentry_sdk.capture_exception(exception, level="info")
 
     def _get_response_from_primary(self, request):
         # Not ``use_master``: it keeps a single saved pin state per thread, so

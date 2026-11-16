@@ -1,6 +1,6 @@
 """Tests for onadata.libs.utils.middleware."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.db import OperationalError
 from django.http import HttpResponse
@@ -25,17 +25,37 @@ class OperationalErrorMiddlewareTestCase(TestCase):
         # set, so start every test unpinned.
         unpin_this_thread()
         self.addCleanup(unpin_this_thread)
+        capture_patcher = patch(
+            "onadata.libs.utils.middleware.sentry_sdk.capture_exception"
+        )
+        self.capture_exception = capture_patcher.start()
+        self.addCleanup(capture_patcher.stop)
         self.factory = RequestFactory()
         self.get_response = MagicMock(return_value=HttpResponse("OK"))
         self.middleware = OperationalErrorMiddleware(self.get_response)
 
     def test_retries_a_read_after_a_recovery_conflict(self):
-        response = self.middleware.process_exception(
-            self.factory.get("/"), RECOVERY_CONFLICT
-        )
+        for method in ("GET", "HEAD", "OPTIONS"):
+            with self.subTest(method=method):
+                self.get_response.reset_mock()
 
-        self.assertEqual(response.status_code, 200)
-        self.get_response.assert_called_once()
+                response = self.middleware.process_exception(
+                    self.factory.generic(method, "/"), RECOVERY_CONFLICT
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.get_response.assert_called_once()
+
+    def test_reports_each_retry(self):
+        with self.assertLogs("onadata.libs.utils.middleware", "WARNING") as logs:
+            self.middleware.process_exception(
+                self.factory.get("/api/v1/data/1.json?page=2"), RECOVERY_CONFLICT
+            )
+
+        self.assertEqual(len(logs.records), 1)
+        self.assertIn("GET /api/v1/data/1.json", logs.output[0])
+        self.assertNotIn("page=2", logs.output[0])
+        self.capture_exception.assert_called_once_with(RECOVERY_CONFLICT, level="info")
 
     def test_retries_on_the_primary_database(self):
         pinned_during_retry = []
@@ -103,6 +123,7 @@ class OperationalErrorMiddlewareTestCase(TestCase):
 
         self.assertIsNone(response)
         self.get_response.assert_not_called()
+        self.capture_exception.assert_not_called()
 
     def test_does_not_retry_other_operational_errors(self):
         response = self.middleware.process_exception(
@@ -112,3 +133,4 @@ class OperationalErrorMiddlewareTestCase(TestCase):
 
         self.assertIsNone(response)
         self.get_response.assert_not_called()
+        self.capture_exception.assert_not_called()
