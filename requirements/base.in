@@ -8,7 +8,7 @@ idna>=3.20
 urllib3>=2.8.0
 # Not used by onadata itself, but optional_packages installs them into the
 # image's venv first; these floors upgrade them past known CVEs.
-msgpack>=1.2.1
+msgpack>=1.2.4
 setuptools>=84.2.1
 
 # Two-factor authentication. Bounded below 2 because this is the login path:
