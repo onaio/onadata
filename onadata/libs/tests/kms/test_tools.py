@@ -1033,10 +1033,10 @@ class DecryptInstanceTestCase(TestBase):
             "sunset.png": BytesIO(b"Fake PNG image data"),
             "forest.mp4": BytesIO(b"Fake MP4 video data"),
         }
-        self.dec_aes_key = dec_aes_key = b"0123456789abcdef0123456789abcdef"
+        self.dec_aes_key = b"0123456789abcdef0123456789abcdef"
         self.kms_key = create_key(self.org)
         self.enc_aes_key = self._kms_encrypt(
-            key_id=self.kms_key.key_id, plain_text=dec_aes_key
+            key_id=self.kms_key.key_id, plain_text=self.dec_aes_key
         )
         enc_signature = self._create_encrypted_signature(
             key_id=self.kms_key.key_id,
@@ -1088,7 +1088,7 @@ class DecryptInstanceTestCase(TestBase):
         for index, (name, file) in enumerate(dec_files, start=1):
             enc_file_name = f"{name}.enc"
             enc_file = self._encrypt_submission_file(
-                dec_aes_key, self.instance_uuid, index, file.getvalue()
+                self.dec_aes_key, self.instance_uuid, index, file.getvalue()
             )
             attachment = Attachment(
                 instance=self.instance,
