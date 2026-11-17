@@ -1033,7 +1033,7 @@ class DecryptInstanceTestCase(TestBase):
             "sunset.png": BytesIO(b"Fake PNG image data"),
             "forest.mp4": BytesIO(b"Fake MP4 video data"),
         }
-        dec_aes_key = b"0123456789abcdef0123456789abcdef"
+        self.dec_aes_key = dec_aes_key = b"0123456789abcdef0123456789abcdef"
         self.kms_key = create_key(self.org)
         self.enc_aes_key = self._kms_encrypt(
             key_id=self.kms_key.key_id, plain_text=dec_aes_key
@@ -1541,6 +1541,38 @@ class DecryptInstanceTestCase(TestBase):
             decrypt_instance(self.instance)
 
         self.assertIn("Invalid padding", str(exc_info.exception))
+
+        self.instance.refresh_from_db()
+
+        # No change in XML
+        self.assertEqual(self.instance.xml, old_xml)
+        # Decryption status is updated to failed
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.FAILED
+        )
+        self.assertEqual(
+            self.instance.json.get("_decryption_error"), "INVALID_SUBMISSION"
+        )
+
+    def test_decrypted_submission_not_valid_utf8(self):
+        """Submission that decrypts to bytes that are not UTF-8 is failed."""
+        # Encrypt a submission whose plaintext is not valid UTF-8, as
+        # decrypting with a wrongly generated IV produces
+        attachment = self.instance.attachments.get(name="submission.xml.enc")
+        enc_file = self._encrypt_submission_file(
+            self.dec_aes_key,
+            self.instance_uuid,
+            3,
+            b"\xf8" + self.dec_submission_xml.encode("utf-8"),
+        )
+        attachment.media_file.save("submission.xml.enc", File(enc_file), save=True)
+
+        old_xml = self.instance.xml
+
+        with self.assertRaises(DecryptionError) as exc_info:
+            decrypt_instance(self.instance)
+
+        self.assertEqual(str(exc_info.exception), "Corrupted data.")
 
         self.instance.refresh_from_db()
 

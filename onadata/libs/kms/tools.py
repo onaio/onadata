@@ -503,7 +503,7 @@ def decrypt_instance(instance: Instance) -> None:
         raise
 
 
-# pylint: disable=too-many-locals,too-many-statements
+# pylint: disable=too-many-locals,too-many-statements,too-many-branches
 def _decrypt_instance(instance: Instance) -> None:
     """Decrypt an Instance the caller has claimed for decryption.
 
@@ -656,6 +656,12 @@ def _decrypt_instance(instance: Instance) -> None:
     except InvalidSubmissionException as exc:
         save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)
         raise DecryptionError(str(exc)) from exc
+
+    except UnicodeDecodeError as exc:
+        save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)
+        raise DecryptionError(
+            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_INVALID_SUBMISSION]
+        ) from exc
 
     if validation_status is ValidationStatus.NOT_VALID:
         logger.warning(
