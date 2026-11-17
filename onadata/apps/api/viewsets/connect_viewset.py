@@ -31,6 +31,12 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.user_profile_serializer import (
     UserProfileWithTokenSerializer,
 )
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.capabilities import account_capabilities
+from onadata.libs.stepup.policy import (
+    GATE_REGENERATE_API_KEY,
+    GATE_REGENERATE_ODK_TOKEN,
+)
 from onadata.libs.utils.cache_tools import (
     USER_PROFILE_PREFIX,
     safe_cache_get,
@@ -71,6 +77,7 @@ def user_profile_w_token_response(request, status_code):
 
 # pylint: disable=too-many-ancestors
 class ConnectViewSet(
+    RequiresStepUp,
     mixins.CreateModelMixin,
     AuthenticateHeaderMixin,
     CacheControlMixin,
@@ -146,7 +153,16 @@ class ConnectViewSet(
         Implements the /regenerate_auth_token endpoint
 
         Allows a user to expire and create a new API Token.
+
+        Needs a step-up grant where ``regenerate-api-key`` is gated, because
+        rotating the token invalidates every integration holding the old one.
+        The gate protects the rotation, not the secret. A signed-in session can
+        still read the current token from ``GET /api/v1/user``. A GET has no
+        body, so send the grant in the ``X-Step-Up-Grant`` header.
         """
+        refusal = self.check_step_up(request, GATE_REGENERATE_API_KEY)
+        if refusal is not None:
+            return refusal
         try:
             Token.objects.get(user=request.user).delete()
         except Token.DoesNotExist as exc:
@@ -162,6 +178,10 @@ class ConnectViewSet(
         Implements the /odk_token endpoint
 
         Allows a user to get or create or expire an ODKToken for use with ODK Collect.
+
+        A POST regenerates the token and needs a step-up grant where
+        ``regenerate-odk-token`` is gated. A grant for the API token cannot
+        rotate this one. A GET fetches or creates the token and is not gated.
         """
         user = request.user
         status_code = status.HTTP_200_OK
@@ -185,6 +205,9 @@ class ConnectViewSet(
                 token = ODKToken.objects.create(user=user)
 
         if request.method == "POST":
+            refusal = self.check_step_up(request, GATE_REGENERATE_ODK_TOKEN)
+            if refusal is not None:
+                return refusal
             # Regenerates the ODK Token if one is already existant
             ODKToken.objects.filter(user=user, status=ODKToken.ACTIVE).update(
                 status=ODKToken.INACTIVE
@@ -197,3 +220,8 @@ class ConnectViewSet(
             data={"odk_token": token.raw_key, "expires": token.expires},
             status=status_code,
         )
+
+    @action(methods=["GET"], detail=False)
+    def capabilities(self, request, *args, **kwargs):
+        """What this deployment lets the caller manage about their credentials."""
+        return Response(account_capabilities())

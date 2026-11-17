@@ -10,12 +10,10 @@ demand, so it takes the login session alone.
 
 import base64
 import io
-import secrets
 from contextlib import suppress
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
@@ -23,6 +21,7 @@ from django.views.decorators.debug import sensitive_post_parameters, sensitive_v
 
 import qrcode
 from django_otp import devices_for_user
+from oidc.stepup_grants import issue_grant, spend_grant
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.decorators import action
@@ -46,6 +45,9 @@ from onadata.libs.authentication import (
     assert_not_locked_out,
     get_client_ip,
 )
+from onadata.libs.stepup.capabilities import account_capabilities
+from onadata.libs.stepup.gate import has_second_factor
+from onadata.libs.stepup.policy import KNOWN_ACTIONS, is_local_mode
 from onadata.libs.utils.field_encryption import encrypt
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.two_factor import (
@@ -61,13 +63,14 @@ from onadata.libs.utils.two_factor import (
 TOTP_DEVICE_NAME = "default"
 RECOVERY_DEVICE_NAME = "backup"
 
-STEP_UP_GRANT_TTL = 5 * 60
+#: Why a management route refuses when an identity provider owns the factor.
+NOT_MANAGED_HERE = "not_managed_here"
 
 #: The step-up operations this viewset owns. The single source of truth for
 #: the audience strings the endpoints pass, and always recognised by
 #: ``_known_audiences`` so a deployment's ``TWO_FACTOR_STEP_UP_AUDIENCES`` can
-#: only ADD account-action gates, never drop a lifecycle one and silently break
-#: its grants.
+#: only ADD audiences, never drop a lifecycle one and silently break its
+#: grants.
 AUDIENCE_ENROLL_START = "enroll-start"
 AUDIENCE_DISABLE = "disable"
 AUDIENCE_RECOVERY_GENERATE = "recovery-generate"
@@ -82,44 +85,19 @@ LIFECYCLE_AUDIENCES = frozenset(
 )
 
 
-def _grant_key(user, audience: str, grant: str) -> str:
-    return f"totp-step-up:{user.pk}:{audience}:{grant}"
-
-
-def _issue_grant(user, audience: str) -> str:
-    """Proof that this user showed a second factor a moment ago.
-
-    django-otp records the counter a code was used at, so a caller that
-    verifies first and acts second has nothing to resend.
-
-    Grants live in the cache, as do the lockout and repeated-failure counters,
-    so the deployment must run a cache shared across workers (Redis/memcached);
-    a per-process cache would fragment all three and weaken them.
-    """
-    grant = secrets.token_urlsafe(32)
-    cache.set(_grant_key(user, audience, grant), True, STEP_UP_GRANT_TTL)
-    return grant
-
-
-def _spend_grant(user, audience: str, grant: str) -> bool:
-    """Redeem a grant, once. False if minted for a different operation.
-
-    The delete is the check: ``cache.delete`` reports whether it removed
-    anything, so two requests racing on one grant cannot both be told yes.
-    """
-    if not grant:
-        return False
-    return bool(cache.delete(_grant_key(user, audience, grant)))
-
-
 def _known_audiences() -> frozenset[str]:
     """The operations a grant may be minted for.
+
+    These are this viewset's own, every action a deployment can gate, and any
+    the deployment adds.
 
     Read per call rather than at import so a deployment's override -- and a
     test's -- takes effect.
     """
-    return LIFECYCLE_AUDIENCES | frozenset(
-        getattr(settings, "TWO_FACTOR_STEP_UP_AUDIENCES", ())
+    return (
+        LIFECYCLE_AUDIENCES
+        | KNOWN_ACTIONS
+        | frozenset(getattr(settings, "TWO_FACTOR_STEP_UP_AUDIENCES", ()))
     )
 
 
@@ -195,17 +173,6 @@ def _recovery_device(user, lock: bool = False) -> EncryptedRecoveryDevice | None
         else EncryptedRecoveryDevice.objects
     )
     return devices.filter(user=user, name=RECOVERY_DEVICE_NAME).first()
-
-
-def _has_second_factor(user) -> bool:
-    """Whether the login view would challenge this user for a second factor.
-
-    Through ``default_device``, not an EncryptedTOTPDevice lookup: two_factor challenges
-    on any confirmed device named ``"default"`` whatever its class.
-    ``_verify_code`` understands only TOTP and recovery codes -- teach it any
-    new device type in the same change.
-    """
-    return default_device(user) is not None
 
 
 def _verify_totp(user, code: str) -> bool:
@@ -419,12 +386,12 @@ class TOTPViewSet(ViewSet):
 
         Applied to every operation that weakens or replaces it -- otherwise a
         stolen session could switch 2FA off. A grant from a recent ``verify``
-        counts, but only one earned for this same ``audience``.
+        counts, but only one minted for this same audience.
         """
         locked = self._locked_out_response(request)
         if locked is not None:
             return locked
-        if _spend_grant(request.user, audience, _str_field(request, "grant")):
+        if spend_grant(request.user.pk, audience, _str_field(request, "grant")):
             clear_verification_failures(request.user)
             return None
         code = _str_field(request, "code")
@@ -450,14 +417,15 @@ class TOTPViewSet(ViewSet):
         The only proof available at first enrolment: with no factor yet,
         ``_require_code`` has nothing to demand.
 
+        Reached only in local mode, because ``enroll_start`` refuses a
+        federated deployment first.
+
         An account with no password is refused rather than let through, or
         having no password would itself be the way past it. Its own reason, so
         a caller can say what is wrong instead of prompting for one that
         cannot exist. The stored value is tested directly: Django reports the
         empty string ``objects.create`` leaves behind as *usable*.
         """
-        if not getattr(settings, "TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD", True):
-            return None
         user = request.user
         if not user.password or not user.has_usable_password():
             return Response(
@@ -525,14 +493,35 @@ class TOTPViewSet(ViewSet):
         """The account's second factor and recovery-code state."""
         device = default_device(request.user)
         recovery = _recovery_device(request.user)
+        two_factor = account_capabilities()["twoFactor"]
         return Response(
             {
+                # This route answers in every mode, so a caller can learn
+                # here that the management routes are refused.
+                "managedBy": two_factor["managedBy"],
+                "capabilities": {
+                    key: two_factor[key]
+                    for key in ("enroll", "disable", "recoveryCodes", "verify")
+                },
                 "methods": _method_entries(device),
                 "recoveryCodes": {
                     "generated": recovery is not None,
                     "remaining": 0 if recovery is None else recovery.remaining,
                 },
             }
+        )
+
+    def _refuse_if_not_local(self):
+        """``None`` in local mode, or a 409 refusing the request.
+
+        Otherwise a user could enrol a device that nothing in the login path
+        will ever challenge.
+        """
+        if is_local_mode():
+            return None
+        return Response(
+            {"error": NOT_MANAGED_HERE},
+            status=status.HTTP_409_CONFLICT,
         )
 
     @action(detail=False, methods=["post"], url_path="enroll/start")
@@ -543,10 +532,13 @@ class TOTPViewSet(ViewSet):
         Re-starting replaces the previous attempt rather than accumulating
         dead devices.
         """
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
         refusal = self._require_login_session(request)
         if refusal is not None:
             return refusal
-        if _has_second_factor(request.user):
+        if has_second_factor(request.user):
             # Swapping in a new authenticator weakens the old one just as
             # removing it does, so it needs the same proof.
             refusal = self._require_code(request, AUDIENCE_ENROLL_START)
@@ -571,6 +563,9 @@ class TOTPViewSet(ViewSet):
     @action(detail=False, methods=["post"], url_path="enroll/confirm")
     def enroll_confirm(self, request):
         """Activate the pending device once the user echoes a code from it."""
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
         refusal = self._require_login_session(request)
         if refusal is not None:
             return refusal
@@ -639,13 +634,16 @@ class TOTPViewSet(ViewSet):
     @action(detail=False, methods=["post"], url_path="disable")
     def disable(self, request):
         """Remove every device the login view could challenge on."""
-        if not _has_second_factor(request.user):
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
+        if not has_second_factor(request.user):
             return Response({"enrolled": False})
         refusal = self._require_code(request, AUDIENCE_DISABLE)
         if refusal is not None:
             return refusal
         with transaction.atomic():
-            # _has_second_factor asks default_device(), which answers on any
+            # has_second_factor asks default_device(), which answers on any
             # device class named "default". Deleting only the classes this
             # module creates would report two-factor off while leaving one
             # standing that nothing here can verify, so never removable.
@@ -665,7 +663,10 @@ class TOTPViewSet(ViewSet):
     @action(detail=False, methods=["post"], url_path="recovery/generate")
     def recovery_generate(self, request):
         """Replace the recovery set and return the new codes once."""
-        if not _has_second_factor(request.user):
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
+        if not has_second_factor(request.user):
             return Response(
                 {"error": "Set up an authenticator before generating recovery codes."},
                 status=status.HTTP_409_CONFLICT,
@@ -696,6 +697,9 @@ class TOTPViewSet(ViewSet):
         Disclosing them without a step-up would make a stolen session enough to
         read a durable second factor.
         """
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
         recovery = _recovery_device(request.user)
         if recovery is None:
             return Response(
@@ -722,7 +726,7 @@ class TOTPViewSet(ViewSet):
         )
 
     @action(detail=False, methods=["post"], url_path="verify")
-    def verify(self, request):
+    def verify(self, request):  # pylint: disable=too-many-return-statements
         """Check a code without changing anything -- the step-up challenge.
 
         The caller names what it intends to do with the proof, and the grant is
@@ -730,6 +734,9 @@ class TOTPViewSet(ViewSet):
         recognises: minting a grant for an unknown operation would spend the
         user's code on something they can never redeem.
         """
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
         locked = self._locked_out_response(request)
         if locked is not None:
             return locked
@@ -761,5 +768,5 @@ class TOTPViewSet(ViewSet):
             )
         clear_verification_failures(request.user)
         return Response(
-            {"verified": True, "grant": _issue_grant(request.user, audience)}
+            {"verified": True, "grant": issue_grant(request.user.pk, audience)}
         )

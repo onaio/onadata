@@ -8,6 +8,7 @@ List, Retrieve, Update, Create/Register Organizations.
 import json
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.utils.module_loading import import_string
 
 from rest_framework import status
@@ -17,7 +18,10 @@ from rest_framework.viewsets import ModelViewSet
 from reversion.views import RevisionMixin
 
 from onadata.apps.api import permissions
-from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.models.organization_profile import (
+    OrganizationProfile,
+    get_organization_members_team,
+)
 from onadata.apps.api.tools import (
     get_baseviewset_class,
     get_org_profile_cache_key,
@@ -42,6 +46,20 @@ from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer,
     RotateOrganizationKeySerializer,
 )
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.gate import changed_gated_actions
+from onadata.libs.stepup.policy import (
+    GATE_GRANT_ORG_ADMIN,
+    GATE_REQUIRE_AUTH,
+    GATE_ROTATE_ORG_KEY,
+    GATE_SHARE_TEAM_ADMIN,
+)
+from onadata.libs.stepup.sharing import (
+    admin_role,
+    holds_roles,
+    member_admin_roles,
+    team_reaches_admin_role,
+)
 from onadata.libs.utils.cache_tools import (
     safe_cache_delete,
     safe_cache_get,
@@ -50,6 +68,7 @@ from onadata.libs.utils.cache_tools import (
 from onadata.libs.utils.common_tools import merge_dicts
 
 BaseViewset = get_baseviewset_class()
+User = get_user_model()
 
 
 def serializer_from_settings():
@@ -67,6 +86,7 @@ class OrganizationProfileViewSet(
     ETagsMixin,
     ObjectLookupMixin,
     RevisionMixin,
+    RequiresStepUp,
     BaseViewset,
     ModelViewSet,
 ):
@@ -123,9 +143,58 @@ class OrganizationProfileViewSet(
         safe_cache_delete(cache_key)
         return super().destroy(request, *args, **kwargs)
 
-    def update(self, request, *args, **kwargs):
+    def _require_auth_refusal(self, organization, validated_data):
+        """An organisation's profile is a UserProfile, so toggling its
+        require_auth needs the same proof as on a personal profile.
+        """
+        current = organization.require_auth
+        if validated_data.get("require_auth", current) == current:
+            return None
+        return self.check_step_up(self.request, GATE_REQUIRE_AUTH)
+
+    def member_role_refusal(self, request, organization, validated_data):
+        """Refuse a member change that appoints an admin without a grant.
+
+        An organisation owner or manager can change every gated setting with
+        their own factor. Adding a member, even one already added, also shares
+        every organisation project with them and puts them in the members
+        team. That can make them an owner or manager of a project or form. One
+        grant covers both, under the first audience the deployment gates."""
+        username = validated_data.get("username")
+        if validated_data.get("remove") or not username:
+            return None
+        user = User.objects.get(username=username)
+        role_name = validated_data.get("role")
+        role = admin_role(role_name)
+        members_team = get_organization_members_team(organization)
+
+        def appoints_org_admin():
+            return role is not None and not role.user_has_role(user, organization)
+
+        def appoints_project_or_form_admin():
+            joins = not members_team.user_set.filter(pk=user.pk).exists()
+            shared = member_admin_roles(
+                organization.user.project_org.all(), members_team, user, role_name
+            )
+            return (joins and team_reaches_admin_role(members_team)) or not (
+                holds_roles(user, shared)
+            )
+
+        gated = changed_gated_actions(
+            (
+                (GATE_GRANT_ORG_ADMIN, appoints_org_admin),
+                (GATE_SHARE_TEAM_ADMIN, appoints_project_or_form_admin),
+            )
+        )
+        return self.check_step_up(request, gated[0]) if gated else None
+
+    def update(self, request, *args, **kwargs):  # pylint: disable=unused-argument
         """Update org in cache and db"""
-        response = super().update(request, *args, **kwargs)
+        response = self.gated_update(
+            request, self._require_auth_refusal, partial=kwargs.get("partial", False)
+        )
+        if not status.is_success(response.status_code):
+            return response
         organization = self.get_object()
         invalidate_organization_cache(organization.user.username)
         cache_key = get_org_profile_cache_key(
@@ -173,6 +242,11 @@ class OrganizationProfileViewSet(
         if not serializer.is_valid():
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        refusal = self.member_role_refusal(
+            request, organization, serializer.validated_data
+        )
+        if refusal is not None:
+            return refusal
         serializer.save()
 
         data = self.serializer_class(organization, context={"request": request}).data
@@ -194,6 +268,9 @@ class OrganizationProfileViewSet(
             context={**self.get_serializer_context(), "organization": organization},
         )
         serializer.is_valid(raise_exception=True)
+        refusal = self.check_step_up(request, GATE_ROTATE_ORG_KEY)
+        if refusal is not None:
+            return refusal
         old_key = serializer.validated_data["id"]
         new_key = serializer.save()
         # Capture audit log

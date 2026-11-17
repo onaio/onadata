@@ -35,10 +35,17 @@ from onadata.libs.utils.cache_tools import (
     clear_project_owner_cache,
     safe_cache_delete,
 )
-from onadata.libs.utils.common_tags import MEMBERS
+from onadata.libs.utils.common_tags import MEMBERS, XFORM_META_PERMS
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.project_utils import get_project_users
+
+#: The roles each slot of an ``xform_meta_perms`` value replaces, in order.
+META_PERMS_SLOTS = (
+    frozenset({EditorNoDownload.name, EditorRole.name, EditorMinorRole.name}),
+    frozenset({DataEntryMinorRole.name, DataEntryOnlyRole.name, DataEntryRole.name}),
+    frozenset({ReadOnlyRole.name, ReadOnlyRoleNoDownload.name}),
+)
 
 
 def get_team_members(org_username):
@@ -162,16 +169,7 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
     # pylint: disable=invalid-name
     MetaData = apps.get_model("main", "MetaData")  # noqa: N806
     metadata = MetaData.xform_meta_permission(xform)
-    editor_role = {
-        role.name: role for role in [EditorNoDownload, EditorRole, EditorMinorRole]
-    }
-
-    dataentry_role = {
-        role.name: role
-        for role in [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
-    }
-
-    readonly_role = {role.name: role for role in [ReadOnlyRole, ReadOnlyRoleNoDownload]}
+    editor_role, dataentry_role, readonly_role = META_PERMS_SLOTS
 
     project_users = get_project_users(xform.project)
 
@@ -205,6 +203,28 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
                 ):
                     role = ROLES.get(meta_perms[2])
                     role.add(xform_user, xform)
+
+
+def role_under_meta_perms(meta_perms, role_name):
+    """The role ``role_name`` becomes on a form whose ``xform_meta_perms`` value
+    is ``meta_perms``. A role outside every slot stays as it is."""
+    for replacement, role_names in zip(meta_perms.split("|"), META_PERMS_SLOTS):
+        if role_name in role_names:
+            return replacement
+    return role_name
+
+
+def meta_perms_roles(xform, role_name):
+    """Every role sharing ``xform`` as ``role_name`` can end up granting once
+    the form's meta permissions apply.
+
+    Counts the readonly slot even for a user the share would leave alone, so
+    it may name a role the share does not grant but never misses one it does.
+    """
+    values = xform.metadata_set.filter(data_type=XFORM_META_PERMS).values_list(
+        "data_value", flat=True
+    )
+    return {role_under_meta_perms(value, role_name) for value in values} or {role_name}
 
 
 # pylint: disable=invalid-name

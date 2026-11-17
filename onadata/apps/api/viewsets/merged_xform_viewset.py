@@ -26,6 +26,8 @@ from onadata.libs.serializers.merged_xform_serializer import (
     SOURCE_XFORM_FIELDS,
     MergedXFormSerializer,
 )
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.policy import GATE_PUBLISH_DATA, GATE_TRANSFER_PROJECT
 from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.cache_tools import (
     MERGED_XFORM_BBOX_CACHE,
@@ -35,8 +37,20 @@ from onadata.libs.utils.cache_tools import (
 )
 
 
+def _transfers_data(project, xforms):
+    """A merged dataset belongs to its project's account, whose admins read
+    every source form's data through it."""
+    return any(xform.user != project.organization for xform in xforms)
+
+
+def _publishes_data(project, xforms):
+    """A merged dataset in a public project is public, data included."""
+    return project.shared and any(not xform.shared_data for xform in xforms)
+
+
 # pylint: disable=too-many-ancestors
 class MergedXFormViewSet(
+    RequiresStepUp,
     mixins.CreateModelMixin,
     mixins.DestroyModelMixin,
     mixins.ListModelMixin,
@@ -62,6 +76,22 @@ class MergedXFormViewSet(
         renderers.StaticXMLRenderer,
         renderers.GeoJsonRenderer,
     ]
+
+    def create(self, request, *args, **kwargs):
+        return self.gated_create(
+            request, lambda data: self._create_refusal(request, data)
+        )
+
+    def _create_refusal(self, request, validated_data):
+        project = validated_data["project"]
+        xforms = validated_data["xforms"]
+        return self.gated_change_refusal(
+            request,
+            (
+                (GATE_TRANSFER_PROJECT, _transfers_data(project, xforms)),
+                (GATE_PUBLISH_DATA, _publishes_data(project, xforms)),
+            ),
+        )
 
     def get_queryset(self):
         """Limit the queries of the actions that serialize a merged dataset"""

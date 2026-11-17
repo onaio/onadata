@@ -152,6 +152,18 @@ def _get_registration_params(attrs):
     return params
 
 
+def _check_current_password(user, params):
+    """Refuse an email change without the current password, and any password
+    sent with an update that is not the current one."""
+    password = params.get("password1")
+    if params.get("email") and not password:
+        raise serializers.ValidationError(
+            _("Your password is required when updating your email address.")
+        )
+    if password and not user.check_password(password):
+        raise serializers.ValidationError(_("Invalid password"))
+
+
 def _send_verification_email(redirect_url, user, request):
     verification_key = user.registrationprofile.create_new_activation_key()
     verification_url = get_verification_url(redirect_url, request, verification_key)
@@ -280,14 +292,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         params = validated_data
         password = params.get("password1")
         email = params.get("email")
-
-        # Check password if email is being updated
-        if email and not password:
-            raise serializers.ValidationError(
-                _("Your password is required when updating your email address.")
-            )
-        if password and not instance.user.check_password(password):
-            raise serializers.ValidationError(_("Invalid password"))
 
         # get user
         instance.user.email = email or instance.user.email
@@ -450,6 +454,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 {"name": _("Either name or first_name should be provided")}
             )
+        if self.instance is not None:
+            _check_current_password(self.instance.user, params)
 
         return params
 
