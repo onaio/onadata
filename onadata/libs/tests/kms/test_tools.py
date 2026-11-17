@@ -1555,9 +1555,9 @@ class DecryptInstanceTestCase(TestBase):
         )
 
     def test_decrypted_submission_not_valid_utf8(self):
-        """Submission that decrypts to bytes that are not UTF-8 is failed."""
-        # Encrypt a submission whose plaintext is not valid UTF-8, as
-        # decrypting with a wrongly generated IV produces
+        """Decryption fails if the submission plaintext is not valid UTF-8."""
+        # A wrongly generated IV decrypts to bytes that are not valid
+        # UTF-8. Encrypt such bytes as the submission
         attachment = self.instance.attachments.get(name="submission.xml.enc")
         enc_file = self._encrypt_submission_file(
             self.dec_aes_key,
@@ -1576,9 +1576,7 @@ class DecryptInstanceTestCase(TestBase):
 
         self.instance.refresh_from_db()
 
-        # No change in XML
         self.assertEqual(self.instance.xml, old_xml)
-        # Decryption status is updated to failed
         self.assertEqual(
             self.instance.decryption_status, Instance.DecryptionStatus.FAILED
         )
