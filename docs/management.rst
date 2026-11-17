@@ -50,6 +50,62 @@ by the ID of a registration form (XForm) that creates entities in it.
     python manage.py restore_entity_list --contributor xform_id
 
 
+Restore submissions to their original version
+---------------------------------------------
+
+Restores submissions to the XML they were first submitted with, undoing every edit made since. The submissions are identified by their IDs, or by the ID of their form.
+
+The version being replaced is saved to the submission's history, so it can still be recovered.
+
+Usage
+^^^^^
+
+.. code-block:: bash
+
+    python manage.py restore_original_submissions (--instance-ids <id>[,<id>...] | --form-id <form_id>) [--commit-changes]
+
+Options
+^^^^^^^
+
+Exactly one of ``--instance-ids`` and ``--form-id`` is required.
+
+- ``--instance-ids``, ``-i``: A submission ID, or several separated by commas with no spaces.
+- ``--form-id``, ``-f``: A form ID. Every submission in the form that has been edited is restored.
+- ``--commit-changes``, ``-c``: Save the restored XML. If omitted, the command only reports what it would do.
+
+Examples
+^^^^^^^^
+
+Report only (no writes):
+
+.. code-block:: bash
+
+    python manage.py restore_original_submissions -i 1,2,3
+
+Restore chosen submissions:
+
+.. code-block:: bash
+
+    python manage.py restore_original_submissions -i 1,2,3 -c
+
+Restore every edited submission in a form:
+
+.. code-block:: bash
+
+    python manage.py restore_original_submissions -f 123 -c
+
+Notes
+^^^^^
+
+- One line is printed per submission, stating whether it was restored, skipped or failed.
+- A submission is skipped if it is deleted or does not exist, was never edited, or is already at its original version.
+- A submission is skipped if its original version is encrypted, or if its earliest history record has no uuid or checksum.
+- A failure on one submission is reported and does not stop the rest.
+- The restore is recorded as an edit with no user.
+- Attachments are not restored. Run ``recover_deleted_attachments --form <form_id>`` afterwards to recover the ones the original XML refers to.
+- Webhooks are not triggered.
+
+
 Soft delete user
 ----------------
 
