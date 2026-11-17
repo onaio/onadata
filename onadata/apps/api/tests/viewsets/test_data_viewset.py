@@ -28,6 +28,7 @@ from django.utils import timezone
 import defusedxml.ElementTree as ET
 import geojson
 import requests
+from django_digest import HttpDigestAuthenticator
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock, urlmatch
@@ -66,6 +67,7 @@ from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
 )
+from onadata.libs.test_utils.recovery_conflict import conflicting_rows
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.libs.utils.logger_tools import create_instance
 from onadata.libs.utils.viewer_tools import ENKETO_GENERIC_ERROR
@@ -215,6 +217,75 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertIsInstance(response.data, dict)
         self.assertLessEqual(data.items(), response.data.items())
+
+    @override_settings(STREAM_DATA=True)
+    def test_streamed_data_query_errors_are_raised_by_the_view(self):
+        """The streamed query runs before the view returns its response."""
+        self._make_submissions()
+        view = DataViewSet.as_view({"get": "list"})
+
+        for data_format in ("json", "xml"):
+            with (
+                self.subTest(format=data_format),
+                patch(
+                    "onadata.apps.api.viewsets.data_viewset.query_data",
+                    side_effect=conflicting_rows,
+                ) as mock_query_data,
+            ):
+                request = self.factory.get(
+                    "/", data={"sort": '{"_id": -1}'}, **self.extra
+                )
+                with self.assertRaises(OperationalError):
+                    view(request, pk=self.xform.pk, format=data_format)
+                mock_query_data.assert_called_once()
+
+    def _get_with_one_recovery_conflict(self, url, rows, **extra):
+        """GET ``url`` through every middleware while the first query conflicts."""
+        with (
+            patch(
+                "onadata.apps.api.viewsets.data_viewset.query_data",
+                side_effect=[conflicting_rows(), iter(rows)],
+            ) as mock_query_data,
+            patch("onadata.libs.utils.middleware.sentry_sdk.capture_exception"),
+            self.assertLogs("onadata.libs.utils.middleware", "WARNING") as logs,
+        ):
+            response = self.client.get(url, {"sort": '{"_id": -1}'}, **extra)
+            self.assertEqual(response.status_code, 200)
+            content = b"".join(response.streaming_content)
+
+        self.assertEqual(mock_query_data.call_count, 2)
+        self.assertEqual(len(logs.records), 1)
+        return content
+
+    @override_settings(STREAM_DATA=True)
+    def test_streamed_data_is_retried_after_a_recovery_conflict(self):
+        self._make_submissions()
+        rows = [{"_id": 2}, {"_id": 1}]
+
+        content = self._get_with_one_recovery_conflict(
+            f"/api/v1/data/{self.xform.pk}.json", rows, **self.extra
+        )
+
+        self.assertEqual(json.loads(content), rows)
+
+    @override_settings(STREAM_DATA=True)
+    def test_digest_authenticated_data_is_retried_after_a_recovery_conflict(self):
+        self.addCleanup(cache.clear)
+        self._make_submissions()
+        url = f"/api/v1/data/{self.xform.pk}.json"
+        rows = [{"_id": 2}, {"_id": 1}]
+        digest = DigestAuth(self.login_username, self.login_password)(
+            self.factory.get(url).META,
+            HttpDigestAuthenticator().build_challenge_response(),
+        )
+
+        content = self._get_with_one_recovery_conflict(url, rows, **digest)
+
+        self.assertEqual(json.loads(content), rows)
+        # The user is reused only within one request: a new request that
+        # replays the header is still rejected.
+        replay = self.client.get(url, {"sort": '{"_id": -1}'}, **digest)
+        self.assertEqual(replay.status_code, 401)
 
     def test_catch_data_error(self):
         view = DataViewSet.as_view({"get": "list"})

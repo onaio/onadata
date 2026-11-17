@@ -7,7 +7,6 @@ import logging
 import traceback
 from sys import stdout
 
-from django.conf import settings
 from django.db import DatabaseError, OperationalError, connection
 from django.http import HttpResponseNotAllowed
 from django.middleware.locale import LocaleMiddleware
@@ -15,7 +14,8 @@ from django.template import loader
 from django.utils.translation import gettext as _
 from django.utils.translation.trans_real import parse_accept_lang_header
 
-from multidb.pinning import use_master
+import sentry_sdk
+from multidb.pinning import pin_this_thread, this_thread_is_pinned, unpin_this_thread
 
 from onadata.apps.main.models.user_activity import record_user_activity
 
@@ -121,27 +121,91 @@ class SqlLogging:  # pylint: disable=too-few-public-methods
         return response
 
 
+RECOVERY_CONFLICT_MESSAGE = "canceling statement due to conflict with recovery"
+RECOVERY_CONFLICT_RETRY_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def _noop():
+    pass
+
+
+class _CallWhenDone:
+    """Streamed content that calls ``callback`` once it is read, fails or closes.
+
+    ``close`` covers content closed before it is read.
+    """
+
+    def __init__(self, content, callback):
+        self._content = content
+        self._callback = callback
+
+    def __iter__(self):
+        try:
+            yield from self._content
+        finally:
+            self.close()
+
+    def close(self):
+        """Call the callback, once."""
+        callback, self._callback = self._callback, _noop
+        callback()
+
+
 # pylint: disable=too-few-public-methods
 class OperationalErrorMiddleware(BaseMiddleware):
     """
-    Captures requests returning 500 status code.
-    Then retry it against master database.
+    Retries a read request once on the primary database when a replica
+    cancels one of its queries because of a recovery conflict.
     """
 
     def process_exception(self, request, exception):
-        """
-        Handle retrying OperatuonalError exceptions.
-        """
-        # Filter out OperationalError Exceptions
-        if isinstance(exception, OperationalError):
-            already_raised = getattr(settings, "ALREADY_RAISED", False)
-            message = "canceling statement due to conflict with recovery"
-            if message in str(exception):
-                if not already_raised:
-                    settings.ALREADY_RAISED = True
-                    with use_master:
-                        response = self.get_response(request)
-                        return response
-                settings.ALREADY_RAISED = False
+        """Re-run the request with reads pinned to the primary database."""
+        if not self._should_retry(request, exception):
+            return None
 
-        return None
+        request.recovery_conflict_retried = True
+        return self._retry_on_primary(request, exception)
+
+    @staticmethod
+    def _report_retry(request, exception):
+        # Django doesn't report an exception that process_exception handles.
+        # Report it here so retries stay measurable.
+        logger.warning(
+            "Retrying %s %s on the primary after a replica recovery conflict",
+            request.method,
+            request.path,
+        )
+        sentry_sdk.capture_exception(exception, level="info")
+
+    def _retry_on_primary(self, request, exception):
+        # Not ``use_master``: it keeps a single saved pin state per thread, so
+        # a ``use_master`` block inside the retried view would leave the
+        # thread pinned to the primary after the retry.
+        restore_pin = _noop if this_thread_is_pinned() else unpin_this_thread
+        pin_this_thread()
+        try:
+            # Pinned first: reporting can query, through reprs of locals.
+            self._report_retry(request, exception)
+            response = self.get_response(request)
+        except BaseException:
+            restore_pin()
+            raise
+
+        # Reading a streamed response runs queries too, so its pin lasts until
+        # the response is done.
+        if response.streaming:
+            response.streaming_content = _CallWhenDone(
+                response.streaming_content, restore_pin
+            )
+        else:
+            restore_pin()
+        return response
+
+    @staticmethod
+    def _should_retry(request, exception):
+        return (
+            isinstance(exception, OperationalError)
+            and RECOVERY_CONFLICT_MESSAGE in str(exception)
+            and request.method in RECOVERY_CONFLICT_RETRY_METHODS
+            and not getattr(request, "recovery_conflict_retried", False)
+        )
