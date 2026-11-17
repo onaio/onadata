@@ -231,6 +231,7 @@ def share_project_async(project_id, username, role, remove=False):
 
 
 @app.task(base=AutoRetryTask)
+@use_master
 def delete_xform_submissions_async(
     xform_id: int,
     deleted_by_id: int,
