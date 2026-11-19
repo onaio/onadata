@@ -36,10 +36,10 @@ class PasswordGrantRemovedTestCase(TestCase):
             redirect_uris="https://app.example/callback",
         )
 
-    def _password_grant(self, password, query=""):
+    def _password_grant(self, password):
         application = self._application(self.application_model.GRANT_PASSWORD)
         return self.client.post(
-            f"/o/token/{query}",
+            "/o/token/",
             {
                 "grant_type": "password",
                 "username": self.user.username,
@@ -92,8 +92,9 @@ class PasswordGrantRemovedTestCase(TestCase):
         self.assertEqual(wrong.status_code, right.status_code)
         self.assertEqual(wrong.json(), right.json())
 
-    def test_the_password_grant_in_the_query_string_is_refused(self):
-        """oauthlib reads the query string too."""
+    def test_the_password_grant_in_the_query_string_issues_no_token(self):
+        """oauthlib refuses query parameters on a POST before it picks a
+        grant, so this route stays closed even past the view's check."""
         application = self._application(self.application_model.GRANT_PASSWORD)
 
         response = self.client.post(
@@ -107,8 +108,8 @@ class PasswordGrantRemovedTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["error"], "unsupported_grant_type")
-        self.assertFalse(AccessToken.objects.exists())
+        self.assertNotIn("access_token", response.json())
+        self.assertFalse(AccessToken.objects.filter(user=self.user).exists())
 
     def test_a_password_grant_application_cannot_renew_its_tokens(self):
         """A refresh token issued through the password grant never expires by
@@ -119,7 +120,7 @@ class PasswordGrantRemovedTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, 400, response.content)
-        self.assertNotIn("access_token", response.json())
+        self.assertEqual(response.json()["error"], "unauthorized_client")
 
     def test_other_applications_still_renew_their_tokens(self):
         """The refusal is tied to the password grant, not to refreshing."""
@@ -167,19 +168,80 @@ class ApplicationFormsTestCase(TestCase):
         self.assertIn(self.application_model.GRANT_AUTHORIZATION_CODE, choices)
         self.assertNotIn(self.application_model.GRANT_PASSWORD, choices)
 
+    def _form(self, grant_type, **overrides):
+        return {
+            "name": f"{grant_type}-app",
+            "client_id": f"{grant_type}-client",
+            "client_secret": "client-secret",
+            "client_type": self.application_model.CLIENT_CONFIDENTIAL,
+            "authorization_grant_type": grant_type,
+            "redirect_uris": "https://app.example/callback",
+            "post_logout_redirect_uris": "",
+            "allowed_origins": "",
+            "algorithm": "",
+            **overrides,
+        }
+
     def test_registering_a_password_grant_application_is_refused(self):
-        response = self.client.post(
-            "/o/applications/register/",
-            {
-                "name": "password-app",
-                "client_type": self.application_model.CLIENT_CONFIDENTIAL,
-                "authorization_grant_type": self.application_model.GRANT_PASSWORD,
-            },
+        """The same form registers a code application, so the grant type is
+        the only thing wrong with the refused one."""
+        code = self.application_model.GRANT_AUTHORIZATION_CODE
+        password = self.application_model.GRANT_PASSWORD
+
+        registered = self.client.post("/o/applications/register/", self._form(code))
+        refused = self.client.post("/o/applications/register/", self._form(password))
+
+        self.assertEqual(
+            registered.status_code,
+            302,
+            registered.context and registered.context["form"].errors,
+        )
+        self.assertEqual(refused.status_code, 200)
+        self.assertEqual(
+            set(refused.context["form"].errors), {"authorization_grant_type"}
+        )
+        self.assertEqual(
+            list(
+                self.application_model.objects.values_list(
+                    "authorization_grant_type", flat=True
+                )
+            ),
+            [code],
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("authorization_grant_type", response.context["form"].errors)
-        self.assertFalse(self.application_model.objects.exists())
+    def test_a_password_grant_application_keeps_its_grant_type(self):
+        """Switching it to another grant would let its old refresh tokens be
+        renewed again, so the field is locked while the rest stays editable."""
+        application = self.application_model.objects.create(
+            name="password-app",
+            user=self.user,
+            client_type=self.application_model.CLIENT_CONFIDENTIAL,
+            authorization_grant_type=self.application_model.GRANT_PASSWORD,
+        )
+        url = f"/o/applications/{application.pk}/update/"
+        form = self.client.get(url).context["form"]
+        self.assertTrue(form.fields["authorization_grant_type"].disabled)
+
+        response = self.client.post(
+            url,
+            self._form(
+                self.application_model.GRANT_AUTHORIZATION_CODE,
+                name="renamed",
+                client_id=application.client_id,
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            302,
+            response.context and response.context["form"].errors,
+        )
+        application.refresh_from_db()
+        self.assertEqual(application.name, "renamed")
+        self.assertEqual(
+            application.authorization_grant_type,
+            self.application_model.GRANT_PASSWORD,
+        )
 
     def test_editing_an_application_offers_every_grant_but_password(self):
         application = self.application_model.objects.create(

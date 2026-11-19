@@ -1837,9 +1837,7 @@ class TokenViewWithoutPasswordGrant(TokenView):
     """
 
     def post(self, request, *args, **kwargs):
-        # oauthlib reads parameters from the query string as well as the body.
-        grant_types = {request.POST.get("grant_type"), request.GET.get("grant_type")}
-        if "password" in grant_types:
+        if request.POST.get("grant_type") == "password":
             return JsonResponse(
                 {
                     "error": "unsupported_grant_type",
@@ -1854,12 +1852,21 @@ class TokenViewWithoutPasswordGrant(TokenView):
 
 
 def _without_password_grant(form_class):
-    """``form_class`` with the password grant removed from its grant types."""
+    """``form_class`` with the password grant removed from its grant types.
+
+    An application already registered for it keeps it, locked. Its refresh
+    tokens are refused only while it stays a password-grant application, so
+    switching its grant type would bring them back; its owner registers a new
+    application instead.
+    """
 
     class FormWithoutPasswordGrant(form_class):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             field = self.fields["authorization_grant_type"]
+            if self.instance.authorization_grant_type == self.instance.GRANT_PASSWORD:
+                field.disabled = True
+                return
             field.choices = [
                 choice
                 for choice in field.choices
@@ -1877,7 +1884,8 @@ class ApplicationRegistrationWithoutPasswordGrant(ApplicationRegistration):
 
 
 class ApplicationUpdateWithoutPasswordGrant(ApplicationUpdate):
-    """Edits an OAuth application, offering any grant but the password grant."""
+    """Edits an OAuth application, offering any grant but the password grant,
+    which an application already using it cannot leave."""
 
     def get_form_class(self):
         return _without_password_grant(super().get_form_class())

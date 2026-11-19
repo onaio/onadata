@@ -75,8 +75,9 @@ The password grant (``grant_type=password``) is not supported. It would let
 an application exchange a username and password for a token, skipping the
 second factor and handing the user's password to the application. ``/o/token/``
 answers it with **400** ``unsupported_grant_type``. Applications registered
-for it before can no longer obtain or refresh tokens; re-register them for
-the Authorization Code flow.
+for it before can no longer obtain or refresh tokens, and their grant type can
+no longer be changed; register a new application for the Authorization Code
+flow.
 
 1. Register your client application with Ona - `register`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
