@@ -672,6 +672,27 @@ class TestXForm(TestBase):
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_decrypted_submissions, 1)
 
+    def test_update_keeps_submission_count(self):
+        """Updating an out-of-date copy keeps submissions made since it was loaded"""
+        self._publish_transportation_form()
+        stale_xform = XForm.objects.get(pk=self.xform.pk)
+
+        self._make_submissions()
+        stale_xform.update()
+
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 4)
+
+    def test_full_save_leaves_deferred_fields_unloaded(self):
+        """Saving a form loaded without some fields doesn't load them"""
+        self._publish_transportation_form()
+        xform = XForm.objects.defer("xls").get(pk=self.xform.pk)
+
+        xform.title = "Transportation"
+        xform.save()
+
+        self.assertIn("xls", xform.get_deferred_fields())
+
     def test_time_of_last_submission_stores_missing_time(self):
         """A missing last submission time is filled in and stored"""
         self._publish_transportation_form()
