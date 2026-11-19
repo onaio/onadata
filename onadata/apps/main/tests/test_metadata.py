@@ -49,7 +49,7 @@ class TestMetaData(TestBase):
                 object_id=self.xform.id, data_type=GOOGLE_SHEET_DATA_TYPE
             )
         )
-        google_sheets_actions = ("{} ABC100| " "{} True | " "{} 123").format(
+        google_sheets_actions = ("{} ABC100| {} True | {} 123").format(
             GOOGLE_SHEET_ID, UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, USER_ID
         )
         MetaData.set_google_sheet_details(self.xform, google_sheets_actions)
@@ -156,7 +156,7 @@ class TestMetaData(TestBase):
     def test_caches_cleared(self):
         """Related caches are cleared on creating or updating"""
         key_1 = f"xfs-get_xform_metadata{self.xform.pk}"
-        key_2 = f"xfm-manifest-{self.xform.pk}"
+        key_2 = f"xfm-host-manifest-{self.xform.pk}"
         cache.set(key_1, "foo")
         cache.set(key_2, "bar")
         enketo_url = "https://dmfrm.enketo.org/webform"
