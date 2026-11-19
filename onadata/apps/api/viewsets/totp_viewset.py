@@ -5,7 +5,8 @@ Every endpoint acts on the authenticated caller; none accepts a username, so
 none can be pointed at another user's second factor. Token auth is accepted
 alongside the SSO cookie wherever a current code is demanded -- that demand is
 what makes a stolen token insufficient. Enrolment has no incumbent code to
-demand, so it takes the login session alone.
+demand, so it takes the login session alone. An OAuth token reaches
+``verify`` alone, and only with the ``stepup`` scope.
 """
 
 import base64
@@ -21,11 +22,12 @@ from django.views.decorators.debug import sensitive_post_parameters, sensitive_v
 
 import qrcode
 from django_otp import devices_for_user
+from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 from oidc.stepup_grants import issue_grant, spend_grant
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.decorators import action
-from rest_framework.exceptions import AuthenticationFailed, NotFound
+from rest_framework.exceptions import AuthenticationFailed, NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
@@ -47,7 +49,7 @@ from onadata.libs.authentication import (
 )
 from onadata.libs.stepup.capabilities import account_capabilities
 from onadata.libs.stepup.gate import has_second_factor
-from onadata.libs.stepup.policy import KNOWN_ACTIONS, is_local_mode
+from onadata.libs.stepup.policy import KNOWN_ACTIONS, STEP_UP_SCOPE, is_local_mode
 from onadata.libs.utils.field_encryption import encrypt
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.two_factor import (
@@ -287,15 +289,17 @@ def _enrollment_payload(device) -> dict[str, str]:
 class TOTPViewSet(ViewSet):
     """Enroll, disable and verify the authenticator for the calling user."""
 
-    # Three credentials: an API token and two cookie-borne ones (the Django
-    # session and the ambient SSO cookie/header). SSOHeaderAuthentication runs
-    # first, so an ambient SSO cookie is authenticated here rather than by
+    # An API token, an OAuth token, and two cookie-borne credentials (the
+    # Django session and the ambient SSO cookie/header). SSOHeaderAuthentication
+    # runs first, so an ambient SSO cookie is authenticated here rather than by
     # SessionAuthentication; initial() -> _enforce_cookie_sso_csrf applies the
     # CSRF check to it, as SessionAuthentication does for the session cookie.
+    # initial() -> _limit_oauth_to_verify confines the OAuth token.
     authentication_classes = (
         SSOHeaderAuthentication,
         SessionAuthentication,
         TokenAuthentication,
+        OAuth2Authentication,
     )
     permission_classes = (IsAuthenticated,)
     renderer_classes = (JSONRenderer,)
@@ -332,6 +336,26 @@ class TOTPViewSet(ViewSet):
             raise NotFound("Two-factor authentication is not enabled.")
         super().initial(request, *args, **kwargs)
         self._enforce_cookie_sso_csrf(request)
+        self._limit_oauth_to_verify(request)
+
+    def _limit_oauth_to_verify(self, request):
+        """Let an OAuth token do no more than earn a grant for a gated action.
+
+        An application can collect a code from its user to step up, but must
+        not enrol, disable or read recovery codes, nor mint the grants that
+        unlock those routes. The ``stepup`` scope makes the user consent to
+        this on the authorization page.
+        """
+        if not isinstance(request.successful_authenticator, OAuth2Authentication):
+            return
+        if self.action != "verify":
+            raise PermissionDenied(_("OAuth applications can only verify a code."))
+        if not request.auth.allow_scopes([STEP_UP_SCOPE]):
+            raise PermissionDenied(_("This token lacks the stepup scope."))
+        if _str_field(request, "audience") in LIFECYCLE_AUDIENCES:
+            raise PermissionDenied(
+                _("OAuth applications cannot verify for this audience.")
+            )
 
     def _enforce_cookie_sso_csrf(self, request):
         """Demand a CSRF token when the SSO credential rode in on the cookie.

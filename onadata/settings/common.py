@@ -319,6 +319,7 @@ OAUTH2_PROVIDER = {
         "read": "Read scope",
         "write": "Write scope",
         "groups": "Access to your groups",
+        "stepup": "Confirm sensitive changes with your second factor",
     },
     "OAUTH2_VALIDATOR_CLASS": "onadata.libs.authentication.MasterReplicaOAuth2Validator",  # noqa
 }

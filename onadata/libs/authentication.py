@@ -42,6 +42,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
 from onadata.libs.permissions import is_organization_user
+from onadata.libs.stepup.policy import STEP_UP_SCOPE
 from onadata.libs.utils.cache_tools import (
     LOCKOUT_EMAIL_SENT,
     LOCKOUT_IP,
@@ -746,6 +747,12 @@ class MasterReplicaOAuth2Validator(OIDCPromptNoneMixin, OAuth2Validator):
     def introspect_token(self, token, token_type_hint, request, *args, **kwargs):
         """See oauthlib.oauth2.rfc6749.request_validator"""
         raise NotImplementedError("Subclasses must implement this method.")
+
+    def get_default_scopes(self, client_id, request, *args, **kwargs):
+        """Every scope but ``stepup``, which an application gets only by
+        asking for it, so the user sees it on the consent page."""
+        scopes = super().get_default_scopes(client_id, request, *args, **kwargs)
+        return [scope for scope in scopes if scope != STEP_UP_SCOPE]
 
     def is_pkce_required(self, client_id, request):
         """Require PKCE for code grants when the effective policy enforces it."""
