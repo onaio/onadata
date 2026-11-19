@@ -74,8 +74,8 @@ XFORM_SUBMISSION_COUNT_FOR_DAY_DATE = "xfm-get_submission_count_date-"
 XFORM_SUBMISSION_STAT = "xfm-get_form_submissions_grouped_by_field-"
 XFORM_CHARTS = "xfm-get_form_charts-"
 XFORM_REGENERATE_INSTANCE_JSON_TASK = "xfm-regenerate_instance_json_task-"
-XFORM_MANIFEST_CACHE = "xfm-manifest-"
-XFORM_LIST_CACHE = "xfm-list-"
+XFORM_MANIFEST_CACHE = "xfm-host-manifest-"
+XFORM_LIST_CACHE = "xfm-host-list-"
 XFROM_LIST_CACHE_TTL = 10 * 60  # 10 minutes converted to seconds
 XFORM_SUBMISSIONS_DELETING = "xfm-submissions-deleting-"
 XFORM_SUBMISSIONS_DELETING_TTL = 60 * 60  # 1 hour converted to seconds
@@ -91,6 +91,7 @@ XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT = (
 XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 24 * 60 * 60  # 24 hrs converted to seconds
 XFORM_MANIFEST_CACHE_TTL = 10 * 60  # 10 minutes converted to seconds
 XFORM_MANIFEST_CACHE_LOCK_TTL = 300  # 5 minutes converted to seconds
+CACHE_MAX_BASE_URLS = 10
 
 # Project date modified cache
 PROJECT_DATE_MODIFIED_CACHE = "project_date_modified"
@@ -180,6 +181,51 @@ def safe_cache_get(key, default=None):
     :return: The value from the cache or the default value.
     """
     return _safe_cache_operation(lambda: cache.get(key, default), default)
+
+
+def _unexpired_base_url_entries(key, now):
+    entries = safe_cache_get(key) or {}
+    return {
+        base_url: (expires_at, value)
+        for base_url, (expires_at, value) in entries.items()
+        if expires_at > now
+    }
+
+
+def safe_cache_get_for_base_url(key, base_url):
+    """
+    Get the value cached under ``key`` for the request base URL ``base_url``.
+
+    A value holding absolute URLs is only valid for the host that built it, so
+    each base URL gets its own entry, with its own expiry, under one shared key.
+    Deleting that key invalidates every host at once.
+
+    :param key: The cache key to get.
+    :param base_url: The request base URL, e.g. ``request.build_absolute_uri("/")``.
+    :return: The cached value, or None if there is no live entry.
+    """
+    entry = _unexpired_base_url_entries(key, time.time()).get(base_url)
+    return entry[1] if entry else None
+
+
+def safe_cache_set_for_base_url(key, base_url, value, timeout):
+    """
+    Cache ``value`` for ``base_url`` under ``key`` for ``timeout`` seconds.
+
+    Other base URLs keep their own expiry. A new base URL beyond
+    ``CACHE_MAX_BASE_URLS`` replaces the others, so arbitrary Host headers
+    cannot grow the value without bound.
+
+    :param key: The cache key to set.
+    :param base_url: The request base URL the value was built for.
+    :param value: The value to store for ``base_url``.
+    :param timeout: The cache timeout in seconds.
+    """
+    now = time.time()
+    entries = _unexpired_base_url_entries(key, now)
+    if base_url not in entries and len(entries) >= CACHE_MAX_BASE_URLS:
+        entries = {}
+    safe_cache_set(key, {**entries, base_url: (now + timeout, value)}, timeout)
 
 
 def safe_cache_add(key, value, timeout=DEFAULT_TIMEOUT):

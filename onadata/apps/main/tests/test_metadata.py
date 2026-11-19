@@ -156,7 +156,7 @@ class TestMetaData(TestBase):
     def test_caches_cleared(self):
         """Related caches are cleared on creating or updating"""
         key_1 = f"xfs-get_xform_metadata{self.xform.pk}"
-        key_2 = f"xfm-manifest-{self.xform.pk}"
+        key_2 = f"xfm-host-manifest-{self.xform.pk}"
         cache.set(key_1, "foo")
         cache.set(key_2, "bar")
         enketo_url = "https://dmfrm.enketo.org/webform"

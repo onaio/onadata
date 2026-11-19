@@ -388,11 +388,11 @@ class DataDictionaryTestCase(TestBase):
         cache_keys = [
             f"ps-project_forms-{self.project.pk}",
             f"ps-project_base_forms-{self.project.pk}",
-            f"xfm-list-{self.project.pk}-Project-anon",
+            f"xfm-host-list-{self.project.pk}-Project-anon",
         ]
 
         for role in ROLES:
-            cache_keys.append(f"xfm-list-{self.project.pk}-Project-{role}")
+            cache_keys.append(f"xfm-host-list-{self.project.pk}-Project-{role}")
 
         for key in cache_keys:
             cache.set(key, "data")
@@ -404,10 +404,10 @@ class DataDictionaryTestCase(TestBase):
 
         # Reset caches
         xform = XForm.objects.get(pk=data_dict.pk)
-        cache_keys.append(f"xfm-list-{xform.pk}-XForm-anon")
+        cache_keys.append(f"xfm-host-list-{xform.pk}-XForm-anon")
 
         for role in ROLES:
-            cache_keys.append(f"xfm-list-{xform.pk}-XForm-{role}")
+            cache_keys.append(f"xfm-host-list-{xform.pk}-XForm-{role}")
 
         for key in cache_keys:
             cache.set(key, "data")

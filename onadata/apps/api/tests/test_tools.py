@@ -214,16 +214,16 @@ class InvalidateXFormListCacheTestCase(TestBase):
 
         self._publish_transportation_form()
         self.cache_keys = [
-            f"xfm-list-{self.xform.pk}-XForm-anon",
-            f"xfm-list-{self.xform.project.pk}-Project-anon",
+            f"xfm-host-list-{self.xform.pk}-XForm-anon",
+            f"xfm-host-list-{self.xform.project.pk}-Project-anon",
         ]
 
         # Simulate cached data
         for role in ROLES:
             self.cache_keys.extend(
                 [
-                    f"xfm-list-{self.xform.pk}-XForm-{role}",
-                    f"xfm-list-{self.xform.project.pk}-Project-{role}",
+                    f"xfm-host-list-{self.xform.pk}-XForm-{role}",
+                    f"xfm-host-list-{self.xform.project.pk}-Project-{role}",
                 ]
             )
 
@@ -232,24 +232,28 @@ class InvalidateXFormListCacheTestCase(TestBase):
 
     def test_cache_invalidated(self):
         """Cache invalidated for xform and project"""
-        self.assertIsNotNone(cache.get(f"xfm-list-{self.xform.pk}-XForm-anon"))
+        self.assertIsNotNone(cache.get(f"xfm-host-list-{self.xform.pk}-XForm-anon"))
         self.assertIsNotNone(
-            cache.get(f"xfm-list-{self.xform.project.pk}-Project-anon")
+            cache.get(f"xfm-host-list-{self.xform.project.pk}-Project-anon")
         )
 
         for role in ROLES:
-            self.assertIsNotNone(cache.get(f"xfm-list-{self.xform.pk}-XForm-{role}"))
             self.assertIsNotNone(
-                cache.get(f"xfm-list-{self.xform.project.pk}-Project-{role}")
+                cache.get(f"xfm-host-list-{self.xform.pk}-XForm-{role}")
+            )
+            self.assertIsNotNone(
+                cache.get(f"xfm-host-list-{self.xform.project.pk}-Project-{role}")
             )
 
         invalidate_xform_list_cache(self.xform)
 
-        self.assertIsNone(cache.get(f"xfm-list-{self.xform.pk}-XForm-anon"))
-        self.assertIsNone(cache.get(f"xfm-list-{self.xform.project.pk}-Project-anon"))
+        self.assertIsNone(cache.get(f"xfm-host-list-{self.xform.pk}-XForm-anon"))
+        self.assertIsNone(
+            cache.get(f"xfm-host-list-{self.xform.project.pk}-Project-anon")
+        )
 
         for role in ROLES:
-            self.assertIsNone(cache.get(f"xfm-list-{self.xform.pk}-XForm-{role}"))
+            self.assertIsNone(cache.get(f"xfm-host-list-{self.xform.pk}-XForm-{role}"))
             self.assertIsNone(
-                cache.get(f"xfm-list-{self.xform.project.pk}-Project-{role}")
+                cache.get(f"xfm-host-list-{self.xform.project.pk}-Project-{role}")
             )
