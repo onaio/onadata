@@ -1281,8 +1281,28 @@ class XForm(XFormMixin, BaseModel):
         """Returns the form JSON in survey.to_json_dict() format."""
         return self.survey.to_json_dict()
 
+    def _exclude_counters_from_full_save(self, kwargs):
+        """Saves every loaded field except the counters on a full update.
+
+        A loaded copy's counters may be out of date, so only the code that
+        maintains them writes them.
+        """
+        if (
+            kwargs.get("update_fields") is None
+            and self.pk is not None
+            and not self._state.adding
+            and not kwargs.get("force_insert")
+        ):
+            skipped = set(self.COUNTER_FIELDS) | self.get_deferred_fields()
+            kwargs["update_fields"] = [
+                field.name
+                for field in self._meta.concrete_fields
+                if not field.primary_key and field.attname not in skipped
+            ]
+
     def update(self, *args, **kwargs):
         """Persists the form to the DB."""
+        self._exclude_counters_from_full_save(kwargs)
         super().save(*args, **kwargs)
 
     # pylint: disable=too-many-branches,arguments-differ
@@ -1362,19 +1382,7 @@ class XForm(XFormMixin, BaseModel):
 
         self.description = conditional_escape(self.description)
 
-        if (
-            update_fields is None
-            and self.pk is not None
-            and not self._state.adding
-            and not kwargs.get("force_insert")
-        ):
-            # A loaded copy's counters may be out of date, so only the code
-            # that maintains them writes them.
-            kwargs["update_fields"] = [
-                field.name
-                for field in self._meta.concrete_fields
-                if not field.primary_key and field.name not in self.COUNTER_FIELDS
-            ]
+        self._exclude_counters_from_full_save(kwargs)
 
         super().save(*args, **kwargs)
 
