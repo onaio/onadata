@@ -90,6 +90,9 @@ KNOWN_ACTIONS = frozenset(
     }
 )
 
+#: The OAuth scope that lets an application ask for step-up grants.
+STEP_UP_SCOPE = "stepup"
+
 #: Roles that can share, delete and re-share what they hold.
 ADMIN_ROLE_NAMES = frozenset({"owner", "manager"})
 

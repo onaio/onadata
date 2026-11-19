@@ -171,6 +171,14 @@ or one listed in ``TWO_FACTOR_STEP_UP_AUDIENCES``. Unknown values answer
 operation it was minted for. ``method`` optionally pins which factor the code
 must prove -- ``totp`` or ``recovery`` -- and defaults to accepting either.
 
+An OAuth application can call ``verify`` with its bearer token to step up for
+a gated action, once the user has granted it the ``stepup`` scope. The scope
+is never granted by default: request it at ``/o/authorize/`` alongside the
+others. Such a token gets **403** on every other route here, and for any
+audience other than a gated action. ``authorize-oauth-app``,
+``regenerate-api-key`` and ``regenerate-odk-token`` are refused too: each
+would let the application obtain a broader credential.
+
 Step-up for account actions
 ---------------------------
 
