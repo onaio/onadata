@@ -49,7 +49,14 @@ from onadata.libs.authentication import (
 )
 from onadata.libs.stepup.capabilities import account_capabilities
 from onadata.libs.stepup.gate import has_second_factor
-from onadata.libs.stepup.policy import KNOWN_ACTIONS, STEP_UP_SCOPE, is_local_mode
+from onadata.libs.stepup.policy import (
+    GATE_AUTHORIZE_OAUTH_APP,
+    GATE_REGENERATE_API_KEY,
+    GATE_REGENERATE_ODK_TOKEN,
+    KNOWN_ACTIONS,
+    STEP_UP_SCOPE,
+    is_local_mode,
+)
 from onadata.libs.utils.field_encryption import encrypt
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.two_factor import (
@@ -85,6 +92,15 @@ LIFECYCLE_AUDIENCES = frozenset(
         AUDIENCE_RECOVERY_VIEW,
     }
 )
+
+#: The gated actions an OAuth token may earn a grant for. Not those that
+#: return a new credential or approve another application, which would let an
+#: app trade its scoped token for a broader one.
+OAUTH_STEP_UP_AUDIENCES = KNOWN_ACTIONS - {
+    GATE_AUTHORIZE_OAUTH_APP,
+    GATE_REGENERATE_API_KEY,
+    GATE_REGENERATE_ODK_TOKEN,
+}
 
 
 def _known_audiences() -> frozenset[str]:
@@ -342,9 +358,9 @@ class TOTPViewSet(ViewSet):
         """Let an OAuth token do no more than earn a grant for a gated action.
 
         An application can collect a code from its user to step up, but must
-        not enrol, disable or read recovery codes, nor mint the grants that
-        unlock those routes. The ``stepup`` scope makes the user consent to
-        this on the authorization page.
+        not enrol, disable or read recovery codes, nor earn a grant outside
+        ``OAUTH_STEP_UP_AUDIENCES``. The ``stepup`` scope makes the user
+        consent to this on the authorization page.
         """
         if not isinstance(request.successful_authenticator, OAuth2Authentication):
             return
@@ -352,7 +368,7 @@ class TOTPViewSet(ViewSet):
             raise PermissionDenied(_("OAuth applications can only verify a code."))
         if not request.auth.allow_scopes([STEP_UP_SCOPE]):
             raise PermissionDenied(_("This token lacks the stepup scope."))
-        if _str_field(request, "audience") in LIFECYCLE_AUDIENCES:
+        if _str_field(request, "audience") not in OAUTH_STEP_UP_AUDIENCES:
             raise PermissionDenied(
                 _("OAuth applications cannot verify for this audience.")
             )
