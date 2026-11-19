@@ -1075,6 +1075,11 @@ class XForm(XFormMixin, BaseModel):
 
     CLONED_SUFFIX = "_cloned"
     MAX_ID_LENGTH = 100
+    COUNTER_FIELDS = (
+        "num_of_submissions",
+        "num_of_decrypted_submissions",
+        "last_submission_time",
+    )
 
     xls = models.FileField(upload_to=upload_to, null=True)
     # pylint: disable=no-member
@@ -1357,6 +1362,20 @@ class XForm(XFormMixin, BaseModel):
 
         self.description = conditional_escape(self.description)
 
+        if (
+            update_fields is None
+            and self.pk is not None
+            and not self._state.adding
+            and not kwargs.get("force_insert")
+        ):
+            # A loaded copy's counters may be out of date, so only the code
+            # that maintains them writes them.
+            kwargs["update_fields"] = [
+                field.name
+                for field in self._meta.concrete_fields
+                if not field.primary_key and field.name not in self.COUNTER_FIELDS
+            ]
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -1547,7 +1566,7 @@ class XForm(XFormMixin, BaseModel):
                 pass
             else:
                 self.last_submission_time = last_submission.date_created
-                self.save()
+                self.save(update_fields=["last_submission_time"])
         return self.last_submission_time
 
     def time_of_last_submission_update(self):

@@ -634,6 +634,57 @@ class TestXForm(TestBase):
 
         self.assertEqual(self.xform.num_of_pending_decryption_submissions, 0)
 
+    def test_full_save_keeps_submission_count(self):
+        """Saving an out-of-date copy keeps submissions made since it was loaded"""
+        self._publish_transportation_form()
+        stale_xform = XForm.objects.get(pk=self.xform.pk)
+
+        self._make_submissions()
+        stale_xform.title = "Transportation"
+        stale_xform.save()
+
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 4)
+
+    def test_full_save_keeps_last_submission_time(self):
+        """Saving an out-of-date copy keeps the time of a later submission"""
+        self._publish_transportation_form()
+        stale_xform = XForm.objects.get(pk=self.xform.pk)
+
+        self._make_submissions()
+        stale_xform.title = "Transportation"
+        stale_xform.save()
+
+        self.xform.refresh_from_db()
+        latest = self.xform.instances.latest("date_created").date_created
+        self.assertEqual(self.xform.last_submission_time, latest)
+
+    def test_full_save_keeps_num_of_decrypted_submissions(self):
+        """Saving an out-of-date copy keeps a later decrypted count"""
+        self._publish_managed_form_and_submit_instance()
+        stale_xform = XForm.objects.get(pk=self.xform.pk)
+
+        self._submit_decrypted_instance()
+        XForm.objects.get(pk=self.xform.pk).update_num_of_decrypted_submissions()
+        stale_xform.title = "Managed"
+        stale_xform.save()
+
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 1)
+
+    def test_time_of_last_submission_stores_missing_time(self):
+        """A missing last submission time is filled in and stored"""
+        self._publish_transportation_form()
+        self._make_submissions()
+        XForm.objects.filter(pk=self.xform.pk).update(last_submission_time=None)
+        xform = XForm.objects.get(pk=self.xform.pk)
+        latest = xform.instances.latest("date_created").date_created
+
+        self.assertEqual(xform.time_of_last_submission(), latest)
+
+        xform.refresh_from_db()
+        self.assertEqual(xform.last_submission_time, latest)
+
     def test_get_media_survey_xpaths(self):
         """Test that get_media_survey_xpaths includes all media-type elements"""
         md = """
