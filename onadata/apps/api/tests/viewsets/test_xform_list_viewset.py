@@ -492,8 +492,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             {
                 "name": "organization_project",
                 "owner": (
-                    "http://testserver/api/v1/users/"
-                    f"{self.organization.user.username}"
+                    f"http://testserver/api/v1/users/{self.organization.user.username}"
                 ),
             }
         )
