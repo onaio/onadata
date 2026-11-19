@@ -16,9 +16,17 @@ COPY requirements/ /srv/onadata/requirements/
 WORKDIR /srv/onadata
 
 # ca-certificates-java uses which to find the JRE and generate its trust store.
+# The base image's nettle libraries carry DHI version strings that sort above
+# the same builds in the DHI repository (3.10.1-1+dhi1 vs 3.10.1-1+deb13u0+dhi1),
+# and nettle-dev depends on the repository's exact version. Pinning only these
+# packages above 1000 lets apt replace them; every other package keeps apt's
+# usual highest-version choice. Remove the pin once the base image ships the
+# repository's builds.
 # hadolint ignore=DL3008
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates gnu-which git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev default-jre-headless \
+RUN printf 'Package: libnettle8t64 libhogweed6t64 nettle-dev\nPin: origin "dhi.io"\nPin-Priority: 1001\n' \
+  > /etc/apt/preferences.d/dhi-nettle \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends --allow-downgrades ca-certificates gnu-which git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev default-jre-headless \
   && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20250419+deb13u1' \
   && update-ca-certificates --fresh \
   && test -s /etc/ssl/certs/java/cacerts \
