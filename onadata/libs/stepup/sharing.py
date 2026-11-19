@@ -86,8 +86,8 @@ def team_reaches_admin_role(team):
     that is not deleted.
 
     The team may hold that role outright, or hold one that a form's meta
-    permissions turn into owner or manager. A manager's permissions are a subset of an owner's, so matching them finds
-    both."""
+    permissions turn into owner or manager. A manager's permissions are a
+    subset of an owner's, so matching them finds both."""
     holds_outright = any(
         get_objects_for_group(
             team,
