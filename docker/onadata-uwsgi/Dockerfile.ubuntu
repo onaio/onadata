@@ -15,9 +15,17 @@ COPY requirements/ /srv/onadata/requirements/
 # Install service requirements
 WORKDIR /srv/onadata
 
+# The base image's nettle libraries carry DHI version strings that sort above
+# the same builds in the DHI repository (3.10.1-1+dhi1 vs 3.10.1-1+deb13u0+dhi1),
+# and nettle-dev depends on the repository's exact version. Pinning only these
+# packages above 1000 lets apt replace them; every other package keeps apt's
+# usual highest-version choice. Remove the pin once the base image ships the
+# repository's builds.
 # hadolint ignore=DL3008
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev default-jre-headless \
+RUN printf 'Package: libnettle8t64 libhogweed6t64 nettle-dev\nPin: origin "dhi.io"\nPin-Priority: 1001\n' \
+  > /etc/apt/preferences.d/dhi-nettle \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends --allow-downgrades git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev default-jre-headless \
   && ldconfig \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /srv/java-conf \
