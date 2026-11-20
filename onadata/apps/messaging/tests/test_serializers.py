@@ -6,6 +6,7 @@ Tests for messaging serializers.
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase
 
 from actstream.models import Action
@@ -131,3 +132,20 @@ class TestSendMessage(TestCase):
         event = Action.objects.get(verb=SUBMISSION_CREATED)
         self.assertEqual(event.target, self.user)
         self.assertEqual(event.description, '{"id": [1]}')
+
+    def test_send_message_with_anonymous_user(self):
+        """
+        Test send_message is a no-op for anonymous users
+        """
+        with patch(
+            "onadata.apps.messaging.serializers.MessageSerializer"
+        ) as mock_serializer:
+            send_message(
+                instance_id=1,
+                target_id=100,
+                target_type=XFORM,
+                user=AnonymousUser(),
+                message_verb=EXPORT_CREATED,
+            )
+
+            mock_serializer.assert_not_called()
