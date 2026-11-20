@@ -5,7 +5,6 @@ at /api/v1/user.
 
 from datetime import timedelta
 
-from django.core.cache import cache
 from django.utils import timezone
 
 from oauth2_provider.models import AccessToken, get_application_model
@@ -27,10 +26,6 @@ class TestConnectViewSetOAuth(TestAbstractViewSet):
 
     def setUp(self):
         super().setUp()
-        # change_password counts failed attempts in the cache, which the test
-        # runner does not roll back.
-        cache.clear()
-        self.addCleanup(cache.clear)
         application_model = get_application_model()
         application = application_model.objects.create(
             name="third-party-app",
@@ -67,6 +62,7 @@ class TestConnectViewSetOAuth(TestAbstractViewSet):
 
         response = self._call("get", "list", self.extra)
 
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["api_token"], self.user.auth_token.key)
         self.assertIn("temp_token", response.data)
 
@@ -79,7 +75,9 @@ class TestConnectViewSetOAuth(TestAbstractViewSet):
 
         response = self._call("post", "create", self.extra)
 
+        self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["api_token"], self.user.auth_token.key)
+        self.assertIn("temp_token", response.data)
 
     def test_an_oauth_caller_cannot_regenerate_the_api_token(self):
         key = self.user.auth_token.key
@@ -104,6 +102,11 @@ class TestConnectViewSetOAuth(TestAbstractViewSet):
             self.assertEqual(response.status_code, 403, method)
             self.assertEqual(str(response.data["detail"]), REFUSED)
         self.assertFalse(ODKToken.objects.filter(user=self.user).exists())
+
+        response = self._call("get", "odk_token", self.extra)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("odk_token", response.data)
 
         response = self._call("post", "odk_token", self.extra)
 
