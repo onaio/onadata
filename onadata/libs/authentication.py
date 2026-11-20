@@ -24,6 +24,7 @@ from django.utils.translation import gettext as _
 import jwt
 from django_digest import HttpDigestAuthenticator
 from multidb.pinning import use_master
+from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 from oauth2_provider.models import AccessToken
 from oauth2_provider.oauth2_validators import OAuth2Validator
 from oauth2_provider.settings import oauth2_settings
@@ -38,6 +39,7 @@ from rest_framework.authentication import (
 )
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
+from two_factor.utils import default_device
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
@@ -227,6 +229,28 @@ def expired(time_token_created):
     token_expiry_time = TEMP_TOKEN_EXPIRY_TIME
 
     return time_diff > token_expiry_time
+
+
+def account_token_refusal(request) -> Optional[str]:
+    """Why this request may not receive the account's own API, temp or ODK
+    token, or None when it may.
+
+    An OAuth token is scoped and revocable, and Digest and Basic never ask for
+    the second factor. Handing either the account's own tokens would let the
+    caller step around both.
+    """
+    authenticator = getattr(request, "successful_authenticator", None)
+    if isinstance(authenticator, OAuth2Authentication):
+        return _("OAuth applications cannot obtain API or ODK tokens.")
+    if (
+        isinstance(authenticator, (DigestAuthentication, BasicAuthentication))
+        and default_device(request.user) is not None
+    ):
+        return _(
+            "Accounts with two-factor authentication cannot obtain API or ODK "
+            "tokens with a password alone."
+        )
+    return None
 
 
 def get_api_token(cookie_jwt):
