@@ -125,8 +125,18 @@ urlpatterns += [
     ),
     re_path(
         r"^o/token/$",
-        main_views.LockoutTokenView.as_view(),
+        main_views.TokenViewWithoutPasswordGrant.as_view(),
         name="oauth2_provider_token",
+    ),
+    re_path(
+        r"^o/applications/register/$",
+        main_views.ApplicationRegistrationWithoutPasswordGrant.as_view(),
+        name="oauth2_provider_register",
+    ),
+    re_path(
+        r"^o/applications/(?P<pk>[-\w]+)/update/$",
+        main_views.ApplicationUpdateWithoutPasswordGrant.as_view(),
+        name="oauth2_provider_update",
     ),
     re_path(r"^o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
     # main website views

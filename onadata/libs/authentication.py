@@ -747,6 +747,25 @@ class MasterReplicaOAuth2Validator(OIDCPromptNoneMixin, OAuth2Validator):
         """See oauthlib.oauth2.rfc6749.request_validator"""
         raise NotImplementedError("Subclasses must implement this method.")
 
+    def validate_user(self, username, password, client, request, *args, **kwargs):
+        """Refuse the password grant without checking the password.
+
+        ``TokenViewWithoutPasswordGrant`` turns the grant away first; this
+        holds for any other route into oauthlib.
+        """
+        return False
+
+    def validate_grant_type(
+        self, client_id, grant_type, client, request, *args, **kwargs
+    ):
+        """Refuse every grant to an application registered for the password
+        grant, so a refresh token it was issued cannot be renewed."""
+        if client.authorization_grant_type == client.GRANT_PASSWORD:
+            return False
+        return super().validate_grant_type(
+            client_id, grant_type, client, request, *args, **kwargs
+        )
+
     def is_pkce_required(self, client_id, request):
         """Require PKCE for code grants when the effective policy enforces it."""
         application = getattr(request, "client", None)
