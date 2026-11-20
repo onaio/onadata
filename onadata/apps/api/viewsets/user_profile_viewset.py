@@ -34,6 +34,7 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
 from onadata.libs import filters
+from onadata.libs.authentication import authenticated_by_oauth
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -292,7 +293,9 @@ class UserProfileViewSet(
         user_profile.metadata = metadata
         user_profile.user.save()
         user_profile.save()
-        data.update(invalidate_and_regen_tokens(user=user_profile.user))
+        new_tokens = invalidate_and_regen_tokens(user=user_profile.user)
+        if not authenticated_by_oauth(request):
+            data = {**data, **new_tokens}
 
         return Response(status=status.HTTP_200_OK, data=data)
 

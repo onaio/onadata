@@ -34,6 +34,12 @@ Response
 
 }
 
+A request authenticated with an OAuth access token gets the profile without
+``api_token`` or ``temp_token``. Such a request also can't call
+``/api/v1/user/regenerate_auth_token`` or ``/api/v1/user/odk_token``; both
+answer **403**. An application gets only the access its OAuth token was
+granted, not the account's own credentials.
+
 Get projects that the authenticating user has starred
 =====================================================
 

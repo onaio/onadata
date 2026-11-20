@@ -15,7 +15,7 @@ from multidb.pinning import use_master
 from rest_framework import mixins, status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
 from onadata.apps.api.models.odk_token import ODKToken
@@ -23,6 +23,7 @@ from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.viewsets.user_profile_viewset import serializer_from_settings
 from onadata.apps.main.models.user_profile import UserProfile
+from onadata.libs.authentication import authenticated_by_oauth
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -37,6 +38,8 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_set,
 )
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
+
+CREDENTIAL_ACTIONS = frozenset({"regenerate_auth_token", "odk_token"})
 
 
 def user_profile_w_token_response(request, status_code):
@@ -86,6 +89,13 @@ class ConnectViewSet(
     queryset = UserProfile.objects.all()
     permission_classes = (ConnectViewsetPermissions,)
     serializer_class = UserProfileWithTokenSerializer
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if self.action in CREDENTIAL_ACTIONS and authenticated_by_oauth(request):
+            raise PermissionDenied(
+                _("OAuth applications cannot obtain API or ODK tokens.")
+            )
 
     def create(self, request, *args, **kwargs):
         return user_profile_w_token_response(request, status.HTTP_201_CREATED)

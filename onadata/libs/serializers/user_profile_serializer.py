@@ -29,7 +29,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.apps.messaging.constants import PROFILE_UPDATED, USER
 from onadata.apps.messaging.serializers import send_message
-from onadata.libs.authentication import expired
+from onadata.libs.authentication import authenticated_by_oauth, expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
@@ -490,6 +490,18 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
             "api_token",
             "temp_token",
         )
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # An OAuth token is scoped and revocable. Handing it the account's
+        # API or temp token would let an application outlive both.
+        if authenticated_by_oauth(self.context.get("request")):
+            return {
+                name: field
+                for name, field in fields.items()
+                if name not in ("api_token", "temp_token")
+            }
+        return fields
 
     def get_api_token(self, obj):
         """

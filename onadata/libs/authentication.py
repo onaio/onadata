@@ -24,6 +24,7 @@ from django.utils.translation import gettext as _
 import jwt
 from django_digest import HttpDigestAuthenticator
 from multidb.pinning import use_master
+from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 from oauth2_provider.models import AccessToken
 from oauth2_provider.oauth2_validators import OAuth2Validator
 from oauth2_provider.settings import oauth2_settings
@@ -227,6 +228,13 @@ def expired(time_token_created):
     token_expiry_time = TEMP_TOKEN_EXPIRY_TIME
 
     return time_diff > token_expiry_time
+
+
+def authenticated_by_oauth(request):
+    """Whether DRF authenticated this request with an OAuth access token."""
+    return isinstance(
+        getattr(request, "successful_authenticator", None), OAuth2Authentication
+    )
 
 
 def get_api_token(cookie_jwt):
