@@ -39,6 +39,7 @@ from rest_framework.authentication import (
 )
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
+from two_factor.utils import default_device
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
@@ -230,11 +231,26 @@ def expired(time_token_created):
     return time_diff > token_expiry_time
 
 
-def authenticated_by_oauth(request):
-    """Whether DRF authenticated this request with an OAuth access token."""
-    return isinstance(
-        getattr(request, "successful_authenticator", None), OAuth2Authentication
-    )
+def account_token_refusal(request) -> Optional[str]:
+    """Why this request may not receive the account's own API, temp or ODK
+    token, or None when it may.
+
+    An OAuth token is scoped and revocable, and Digest and Basic never ask for
+    the second factor. Handing either the account's own tokens would let the
+    caller step around both.
+    """
+    authenticator = getattr(request, "successful_authenticator", None)
+    if isinstance(authenticator, OAuth2Authentication):
+        return _("OAuth applications cannot obtain API or ODK tokens.")
+    if (
+        isinstance(authenticator, (DigestAuthentication, BasicAuthentication))
+        and default_device(request.user) is not None
+    ):
+        return _(
+            "Accounts with two-factor authentication cannot obtain API or ODK "
+            "tokens with a password alone."
+        )
+    return None
 
 
 def get_api_token(cookie_jwt):

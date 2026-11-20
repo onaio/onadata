@@ -240,8 +240,9 @@ Response
     }
 
 The change replaces the user's API and temporary tokens. With an OAuth access
-token the response carries only ``username``: the old tokens stop working,
-but the new ones are not returned.
+token, or with a password alone for an account with two-factor
+authentication, the response carries only ``username``: the old tokens stop
+working, but the new ones are not returned.
 
 Get the total number of monthly submissions
 -------------------------------------------

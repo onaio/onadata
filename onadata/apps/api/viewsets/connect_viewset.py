@@ -23,7 +23,7 @@ from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.viewsets.user_profile_viewset import serializer_from_settings
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.libs.authentication import authenticated_by_oauth
+from onadata.libs.authentication import account_token_refusal
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -92,10 +92,9 @@ class ConnectViewSet(
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        if self.action in CREDENTIAL_ACTIONS and authenticated_by_oauth(request):
-            raise PermissionDenied(
-                _("OAuth applications cannot obtain API or ODK tokens.")
-            )
+        refusal = account_token_refusal(request)
+        if self.action in CREDENTIAL_ACTIONS and refusal:
+            raise PermissionDenied(refusal)
 
     def create(self, request, *args, **kwargs):
         return user_profile_w_token_response(request, status.HTTP_201_CREATED)

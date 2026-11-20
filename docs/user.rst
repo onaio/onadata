@@ -34,11 +34,18 @@ Response
 
 }
 
-A request authenticated with an OAuth access token gets the profile without
-``api_token`` or ``temp_token``. Such a request also can't call
-``/api/v1/user/regenerate_auth_token`` or ``/api/v1/user/odk_token``; both
-answer **403**. An application gets only the access its OAuth token was
-granted, not the account's own credentials.
+Two kinds of request get the profile without ``api_token`` or
+``temp_token``:
+
+-  one authenticated with an OAuth access token
+-  one authenticated with a password alone (Digest or Basic) for an account
+   with two-factor authentication
+
+Neither can call ``/api/v1/user/regenerate_auth_token`` or
+``/api/v1/user/odk_token``; both answer **403**. An application gets only the
+access its OAuth token was granted, and a password can't stand in for the
+second factor. A two-factor account gets its tokens after signing in to the
+website, or by calling the API with an existing token.
 
 Get projects that the authenticating user has starred
 =====================================================
