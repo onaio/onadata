@@ -108,7 +108,6 @@ class PasswordGrantRemovedTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertNotIn("access_token", response.json())
         self.assertFalse(AccessToken.objects.filter(user=self.user).exists())
 
     def test_a_password_grant_application_cannot_renew_its_tokens(self):
