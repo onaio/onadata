@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """Tests that organization accounts cannot establish a login session."""
 
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest, HttpResponseRedirect
 from django.test import RequestFactory, TestCase, override_settings
+from django.utils import timezone
 
 import jwt
 from rest_framework import status
@@ -200,7 +202,7 @@ class TestOIDCSessionEndpoint(TestCase):
 
     def _sso_cookie(self, email):
         return jwt.encode(
-            {"email": email},
+            {"email": email, "exp": timezone.now() + timedelta(hours=1)},
             SESSION_VIEWSET_CONFIG["JWT_SECRET_KEY"],
             algorithm="HS256",
         )

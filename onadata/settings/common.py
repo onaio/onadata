@@ -23,6 +23,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
 
 from celery.signals import after_setup_logger
+from corsheaders.defaults import default_headers
 
 # setting default encoding to utf-8
 if sys.version[0] == "2":
@@ -151,25 +152,19 @@ TWO_FACTOR_REMEMBER_COOKIE_SAMESITE = "Strict"
 TWO_FACTOR_CALL_GATEWAY = None
 TWO_FACTOR_SMS_GATEWAY = None
 
-# Operations a step-up grant may be minted for. /api/v1/totp/verify refuses
-# anything else, so a client typo cannot spend a code on a grant nothing will
-# honour. These are the operations this module gates itself; a deployment
-# whose client gates more of its own adds them, rather than OnaData naming
-# actions it does not check.
-TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
-    {"enroll-start", "disable", "recovery-generate", "recovery-view"}
-)
+# Extra audiences /api/v1/totp/verify may mint a grant for. It already accepts
+# the two-factor lifecycle operations and every action STEP_UP can gate. It
+# refuses anything else, so a typo cannot spend a code on a grant nothing
+# honours. Add any operation a client of this deployment gates itself.
+TWO_FACTOR_STEP_UP_AUDIENCES = frozenset()
 
-# Demand the account password before a first authenticator enrolment, where
-# there is no factor yet for ``_require_code`` to challenge.
-#
-# On by default: without it, an SSO credential alone can enrol an authenticator
-# and lock the owner out of their own second factor, so the safe default is to
-# require recent primary-credential proof. A deployment whose users hold no
-# usable local password (identity lives entirely in an IdP) turns it off
-# deliberately, accepting that trade -- or owns the factor federally, per
-# ``STEP_UP``.
-TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = True
+# Step-up authentication. ACTIONS is empty, so each deployment opts in to
+# gating. Set MODE to "federated" when an identity provider owns the factor.
+STEP_UP = {
+    "ACTIONS": set(),
+    "MODE": "local",
+    "NO_FACTOR_POLICY": "skip_gate",
+}
 
 # Symmetric keys the authenticator seed and recovery codes are encrypted under
 # at rest (Fernet, url-safe base64). Ordered: the first key encrypts, every key
@@ -432,6 +427,9 @@ SWAGGER_SETTINGS = {
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = ("http://dev.ona.io",)
+# A deployment that overrides this list must keep x-step-up-grant. It carries
+# a step-up grant on requests with no body.
+CORS_ALLOW_HEADERS = (*default_headers, "x-step-up-grant")
 CORS_URLS_ALLOW_ALL_REGEX = (r"^/api/v1/osm/.*$",)
 
 USE_THOUSAND_SEPARATOR = True

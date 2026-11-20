@@ -7,6 +7,7 @@ import hmac
 import struct
 import time
 from contextlib import contextmanager
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
@@ -16,11 +17,13 @@ from django.core.cache import cache
 from django.middleware.csrf import get_token
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django.views.debug import SafeExceptionReporterFilter
 
 import jwt
 from cryptography.fernet import Fernet
 from django_otp.plugins.otp_static.models import StaticDevice
+from oidc.stepup_grants import spend_grant
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIRequestFactory
 from two_factor.utils import default_device
@@ -38,6 +41,7 @@ from onadata.apps.api.viewsets.totp_viewset import (
     TOTPViewSet,
     _verify_recovery,
 )
+from onadata.libs.stepup.policy import GATE_REQUIRE_AUTH
 from onadata.libs.utils.field_encryption import decrypt
 
 #: Lowercase base32, the alphabet recovery codes are drawn from.
@@ -81,13 +85,12 @@ def current_code(hex_key, step=30, digits=6):
     return str(truncated % (10**digits)).zfill(digits)
 
 
-# The password requirement is pinned off for the class so these cases assert
-# enrolment mechanics rather than whichever way the running deployment has it
-# set -- the local stack turns it on, CI does not. The cases that are about
-# the password say so individually.
+# Pin these settings. Inherited values would make the tests depend on the
+# environment. Every case here runs OnaData-managed two-factor on a deployment
+# that enabled it.
 @override_settings(
     ENABLE_TWO_FACTOR=True,
-    TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False,
+    STEP_UP={"MODE": "local"},
     TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_ENCRYPTION_KEY],
 )
 class TestTOTPViewSet(TestAbstractViewSet):
@@ -116,7 +119,10 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """
         config = settings.OPENID_CONNECT_VIEWSET_CONFIG
         token = jwt.encode(
-            {"email": (user or self.user).email},
+            {
+                "email": (user or self.user).email,
+                "exp": timezone.now() + timedelta(hours=1),
+            },
             config["JWT_SECRET_KEY"],
             algorithm=config["JWT_ALGORITHM"],
         )
@@ -168,7 +174,10 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """The SSO token as the ambient cookie a browser sends, not the header."""
         config = settings.OPENID_CONNECT_VIEWSET_CONFIG
         return jwt.encode(
-            {"email": (user or self.user).email},
+            {
+                "email": (user or self.user).email,
+                "exp": timezone.now() + timedelta(hours=1),
+            },
             config["JWT_SECRET_KEY"],
             algorithm=config["JWT_ALGORITHM"],
         )
@@ -192,7 +201,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """The SSO header a server-side caller forwards is one no cross-site
         page can set, so that path stays exempt even under CSRF enforcement."""
         view = TOTPViewSet.as_view({"post": "enroll_start"})
-        request = self.csrf_factory.post("/", data={}, **self._sso())
+        request = self.csrf_factory.post(
+            "/", data={"password": self.login_password}, **self._sso()
+        )
         response = view(request)
         self.assertEqual(response.status_code, 201)
 
@@ -200,7 +211,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """With the matching token the same cookie request goes through."""
         token = get_token(self.csrf_factory.get("/"))
         view = TOTPViewSet.as_view({"post": "enroll_start"})
-        request = self.csrf_factory.post("/", data={}, HTTP_X_CSRFTOKEN=token)
+        request = self.csrf_factory.post(
+            "/", data={"password": self.login_password}, HTTP_X_CSRFTOKEN=token
+        )
         request.COOKIES["SSO"] = self._sso_cookie()
         request.COOKIES["csrftoken"] = token
         response = view(request)
@@ -239,8 +252,24 @@ class TestTOTPViewSet(TestAbstractViewSet):
         status_body = self._get_status().data
         self.assertTrue(status_body["methods"])
 
-    def test_enrolment_creates_a_recovery_set(self):
-        """Enrolment leaves one recovery device holding the codes.
+    def test_status_reports_what_this_deployment_supports(self):
+        """A client reads this instead of its own config, so the two cannot
+        disagree about whether two-factor is manageable here."""
+        response = self._get_status()
+
+        self.assertEqual(response.data["managedBy"], "onadata")
+        self.assertEqual(
+            response.data["capabilities"],
+            {
+                "enroll": True,
+                "disable": True,
+                "recoveryCodes": True,
+                "verify": True,
+            },
+        )
+
+    def test_recovery_codes_are_the_set_two_factors_backup_step_reads(self):
+        """One recovery set, and it is the one the login wizard reads.
 
         The wizard reads this same device by name on its backup step, so the
         set the API writes is the set the login path verifies against.
@@ -265,7 +294,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """The pending device must not count as a second factor until the user
         has proved they can read it -- otherwise a misscanned QR locks them
         out of their own account."""
-        self._post_session("enroll_start")
+        self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
         response = self._post_session("enroll_confirm", {"code": "000000"})
 
         self.assertEqual(response.status_code, 403)
@@ -288,7 +319,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """An authenticator that confirmed while its recovery codes did not is
         one lost phone away from a locked account, so both land in the same
         transaction."""
-        self._post_session("enroll_start")
+        self._post_session("enroll_start", {"password": self.login_password})
         device = EncryptedTOTPDevice.objects.get(user=self.user, confirmed=False)
 
         with (
@@ -306,8 +337,12 @@ class TestTOTPViewSet(TestAbstractViewSet):
     def test_starting_again_replaces_the_pending_device(self):
         """Re-scanning must not leave the previous attempt behind: two
         unconfirmed devices means the code from either one works."""
-        self._post_session("enroll_start")
-        self._post_session("enroll_start")
+        self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
+        self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
 
         self.assertEqual(
             EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=False).count(), 1
@@ -697,6 +732,21 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 403)
         self.assertTrue(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
+    def test_verify_issues_a_grant_for_a_gated_action(self):
+        """A gated action's challenge names the action as its audience, so
+        verify must mint a grant that action can spend."""
+        device = self._enroll()
+
+        with next_totp_window():
+            response = self._verify(
+                {"code": current_code(device.key), "audience": GATE_REQUIRE_AUTH}
+            )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertTrue(
+            spend_grant(self.user.pk, GATE_REQUIRE_AUTH, response.data["grant"])
+        )
+
     def test_verify_refuses_an_audience_the_deployment_does_not_know(self):
         """Omitted and mistyped are the same refusal, and neither costs a code.
 
@@ -750,7 +800,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
     def test_confirming_enrolment_refuses_an_api_key(self):
         """The second half of enrolment refuses a key for the same reason --
         and it is the half that hands back the recovery codes."""
-        self._post_session("enroll_start")
+        self._post_session("enroll_start", {"password": self.login_password})
         device = EncryptedTOTPDevice.objects.get(user=self.user, confirmed=False)
 
         response = self._post_with_api_key(
@@ -782,7 +832,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
     def test_disable_removes_a_factor_of_another_kind(self):
         """Disable must clear whatever the login view would challenge on.
 
-        _has_second_factor asks default_device(), which answers on a confirmed
+        has_second_factor asks default_device(), which answers on a confirmed
         device of any class named "default". Removing only the TOTP and static
         rows would report two-factor as off while leaving such a device
         standing -- and this module cannot verify one, so the account would be
@@ -865,7 +915,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
         authenticator app accepts."""
         import base64
 
-        response = self._post_session("enroll_start")
+        response = self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
         device = EncryptedTOTPDevice.objects.get(user=self.user, confirmed=False)
 
         self.assertTrue(response.data["qrDataUrl"].startswith("data:image/png;base64,"))
@@ -874,14 +926,6 @@ class TestTOTPViewSet(TestAbstractViewSet):
         padded = b32 + "=" * (-len(b32) % 8)
         self.assertEqual(base64.b32decode(padded).hex(), device.key)
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False)
-    def test_first_enrolment_needs_no_password_when_not_asked_for(self):
-        """Switched off, enrolment is unchanged."""
-        response = self._post_session("enroll_start")
-
-        self.assertEqual(response.status_code, 201)
-
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_first_enrolment_refuses_without_the_account_password(self):
         """A session alone must not add a factor to an unprotected account.
 
@@ -901,21 +945,18 @@ class TestTOTPViewSet(TestAbstractViewSet):
             "a device was minted despite the refusal",
         )
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_first_enrolment_accepts_the_account_password(self):
         response = self._post_session("enroll_start", {"password": self.login_password})
 
         self.assertEqual(response.status_code, 201)
         self.assertIn("otpauthUri", response.data)
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_first_enrolment_refuses_a_wrong_password(self):
         response = self._post_session("enroll_start", {"password": "not-it"})
 
         self.assertEqual(response.status_code, 403)
         self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_enrolment_password_failures_count_towards_the_login_lockout(self):
         """Guesses here spend the same allowance as guesses at the login form.
 
@@ -953,7 +994,6 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(refused.data["reason"], "locked_out")
         self.assertFalse(EncryptedTOTPDevice.objects.filter(user=user).exists())
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_an_account_with_no_password_cannot_enrol(self):
         """Having no password is not a way past the password.
 
@@ -979,7 +1019,6 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(response.data["reason"], "no_password_set")
         self.assertFalse(EncryptedTOTPDevice.objects.filter(user=passwordless).exists())
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_re_enrolment_still_asks_for_a_code_not_a_password(self):
         """An account that has a factor proves presence with that factor."""
         device = self._enroll()
@@ -1402,9 +1441,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         device.refresh_from_db()
         self.assertEqual(device.throttling_failure_count, 0)
 
-    @override_settings(
-        TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True, MAX_LOGIN_ATTEMPTS=3
-    )
+    @override_settings(MAX_LOGIN_ATTEMPTS=3)
     @patch("onadata.libs.authentication.send_account_lockout_email.apply_async")
     def test_a_missing_enrolment_password_does_not_spend_the_lockout(self, _mock):
         """Probing for the required reason with no password is an incomplete
@@ -1428,17 +1465,14 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
 @override_settings(ENABLE_TWO_FACTOR=True)
 class SecureEnrolmentDefaultTestCase(TestAbstractViewSet):
-    """First enrolment demands the account password by default.
-
-    The password setting is left unpinned on purpose: this asserts the
-    shipped default is fail-closed, so an SSO credential alone cannot enrol a
-    factor and lock the owner out of their own second factor.
-    """
+    """First enrolment requires the account password, so an SSO credential
+    alone cannot enrol a factor and lock the owner out of their own second
+    factor."""
 
     def _sso(self):
         config = settings.OPENID_CONNECT_VIEWSET_CONFIG
         token = jwt.encode(
-            {"email": self.user.email},
+            {"email": self.user.email, "exp": timezone.now() + timedelta(hours=1)},
             config["JWT_SECRET_KEY"],
             algorithm=config["JWT_ALGORITHM"],
         )
@@ -1500,3 +1534,56 @@ class DisabledTOTPViewSetTestCase(TestAbstractViewSet):
 
         self.assertEqual(view(self.factory.post("/")).status_code, 404)
         self.assertFalse(EncryptedTOTPDevice.objects.exists())
+
+
+# Keep ENABLE_TWO_FACTOR on. The flag is checked before the mode, so with
+# two-factor off these routes answer 404 and this class would assert the wrong
+# refusal.
+@override_settings(ENABLE_TWO_FACTOR=True, STEP_UP={"MODE": "federated"})
+class TestFederatedRefusesLocalManagement(TestAbstractViewSet):
+    """When an identity provider owns the factor, OnaData manages none.
+
+    The status route reports every capability as false, but a client may
+    ignore it. Left ungated, these routes would enrol a device that the login
+    path never challenges.
+    """
+
+    def _post(self, handler, data=None):
+        view = TOTPViewSet.as_view({"post": handler})
+        return view(self.factory.post("/", data=data or {}, **self.extra))
+
+    def test_enrolment_is_refused(self):
+        self.assertEqual(self._post("enroll_start").status_code, 409)
+
+    def test_enrolment_confirmation_is_refused(self):
+        response = self._post("enroll_confirm", {"code": "123456"})
+        self.assertEqual(response.status_code, 409)
+
+    def test_disable_is_refused(self):
+        self.assertEqual(self._post("disable").status_code, 409)
+
+    def test_recovery_code_generation_is_refused(self):
+        """A user with no device gets 409 here anyway, so the reason is what
+        shows the federated refusal fired."""
+        response = self._post("recovery_generate")
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["error"], "not_managed_here")
+
+    def test_reading_the_recovery_set_is_refused(self):
+        """Reading is refused wherever generating is, since both act on the
+        same set of codes."""
+        self.assertEqual(self._post("recovery_view").status_code, 409)
+
+    def test_local_code_verification_is_refused(self):
+        """The local-totp dialect does not apply. A grant here would be
+        issued without asking the identity provider."""
+        response = self._post("verify", {"code": "123456"})
+        self.assertEqual(response.status_code, 409)
+
+    def test_status_still_answers(self):
+        """This route answers in both modes. It is how a caller learns that
+        the identity provider manages the factor."""
+        view = TOTPViewSet.as_view({"get": "totp_status"})
+        response = view(self.factory.get("/", **self.extra))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["managedBy"], "idp")

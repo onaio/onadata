@@ -8,8 +8,11 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
+from django_otp.plugins.otp_totp.models import TOTPDevice
+
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.tests.viewsets.test_stepup_sharing_gates import gating
 from onadata.apps.api.viewsets.organization_profile_viewset import (
     OrganizationProfileViewSet as OrganizationProfileViewSetV1,
 )
@@ -689,6 +692,25 @@ class UpdateOrganizationTestCase(TestAbstractViewSet):
         self.assertEqual(
             cache.get(f"{ORG_PROFILE_V2_CACHE}denoinc-owner"), expected_cache
         )
+
+    @gating("require-auth-toggle")
+    def test_a_step_up_refusal_is_returned_unchanged(self):
+        """A refusal carries no organization, so none is merged into it."""
+        self._org_create()
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        view = OrganizationProfileViewSet.as_view({"patch": "partial_update"})
+
+        request = self.factory.patch(
+            "/",
+            data=json.dumps({"require_auth": True}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 401, response.data)
+        self.assertEqual(response.data["audience"], "require-auth-toggle")
+        self.assertNotIn("current_user_role", response.data)
 
     def test_invalidates_v1_cache(self):
         """PATCH invalidates the organization cached for the v1 API"""
