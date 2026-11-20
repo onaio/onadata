@@ -13,7 +13,11 @@ import socket
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordChangeForm,
+    PasswordResetForm,
+)
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
@@ -740,6 +744,32 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
             self.confirm_login_allowed(self.user_cache)
 
         return self.cleaned_data
+
+
+class LockoutPasswordChangeForm(PasswordChangeForm):
+    """Password change form whose old-password check spends the login form's
+    allowance and honours its lockout."""
+
+    def __init__(self, user, *args, request=None, **kwargs):
+        super().__init__(user, *args, **kwargs)
+        self.request = request
+
+    @sensitive_variables("old_password")
+    def clean_old_password(self):
+        # Avoid circular import
+        authentication = importlib.import_module("onadata.libs.authentication")
+
+        old_password = self.cleaned_data["old_password"]
+        try:
+            if authentication.check_password_with_lockout(
+                self.request, self.user, old_password
+            ):
+                return old_password
+        except AuthenticationFailed as exc:
+            raise lockout_validation_error() from exc
+        raise forms.ValidationError(
+            self.error_messages["password_incorrect"], code="password_incorrect"
+        )
 
 
 class RecoveryCodeForm(BackupTokenForm):

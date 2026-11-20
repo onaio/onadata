@@ -15,12 +15,14 @@ from django.db import IntegrityError, transaction
 from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.views.decorators.debug import sensitive_variables
 
 import six
 from django_digest.backend.db import update_partial_digests
 from registration.models import RegistrationProfile
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_verification_email
@@ -29,7 +31,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.apps.messaging.constants import PROFILE_UPDATED, USER
 from onadata.apps.messaging.serializers import send_message
-from onadata.libs.authentication import expired
+from onadata.libs.authentication import check_password_with_lockout, expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
@@ -150,6 +152,27 @@ def _get_registration_params(attrs):
         params["last_name"] = last_name
 
     return params
+
+
+@sensitive_variables()
+def _check_current_password(request, user, params):
+    """Refuse an email change without the current password, and any password
+    sent with an update that is not the current one."""
+    password = params.get("password1")
+    if params.get("email") and not password:
+        raise serializers.ValidationError(
+            _("Your password is required when updating your email address.")
+        )
+    if not password:
+        return
+    try:
+        if check_password_with_lockout(request, user, password):
+            return
+    except AuthenticationFailed as lockout:
+        raise PermissionDenied(
+            {"error": str(lockout.detail), "reason": "locked_out"}
+        ) from lockout
+    raise serializers.ValidationError(_("Invalid password"))
 
 
 def _send_verification_email(redirect_url, user, request):
@@ -280,14 +303,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         params = validated_data
         password = params.get("password1")
         email = params.get("email")
-
-        # Check password if email is being updated
-        if email and not password:
-            raise serializers.ValidationError(
-                _("Your password is required when updating your email address.")
-            )
-        if password and not instance.user.check_password(password):
-            raise serializers.ValidationError(_("Invalid password"))
 
         # get user
         instance.user.email = email or instance.user.email
@@ -450,6 +465,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 {"name": _("Either name or first_name should be provided")}
             )
+        if self.instance is not None:
+            _check_current_password(self.context["request"], self.instance.user, params)
 
         return params
 
