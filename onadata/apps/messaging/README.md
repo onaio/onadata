@@ -137,6 +137,13 @@ The verb segment is `export/created` for `export_created` and
 mapped segments, such as `submission/created` for `submission_created`.
 Payloads retain the original verb, such as `export_created`.
 
+Plain `message` actions use `/[topic root]/xform/[form pk]/messages/publish`.
+Unmapped events are logged and skipped without publishing.
+
+The `export_downloaded` mapping is available for notification producers, but
+current downloads only write to the legacy audit log and do not emit MQTT
+notifications.
+
 ##### Projects
 
 ```text

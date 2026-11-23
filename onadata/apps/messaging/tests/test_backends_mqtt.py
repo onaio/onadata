@@ -20,6 +20,7 @@ from onadata.apps.messaging.backends.mqtt import (
 from onadata.apps.messaging.constants import (
     EXPORT_CREATED,
     EXPORT_DOWNLOADED,
+    MESSAGE,
     PROJECT,
     SUBMISSION_CREATED,
     XFORM,
@@ -77,6 +78,54 @@ class TestMQTTFormEvents(SimpleTestCase):
                 self.assertEqual(
                     payload["message"], {"id": [456], "description": "csv"}
                 )
+
+    @patch("onadata.apps.messaging.backends.mqtt.publish.single")
+    def test_send_plain_form_message(self, publish_single):
+        """Plain form messages use the plain form topic."""
+        user = MagicMock(username="alice")
+        form = MagicMock()
+        form._meta.model_name = XFORM
+        instance = MagicMock(
+            id=123,
+            target=form,
+            target_object_id="16308",
+            verb=MESSAGE,
+            description="Hello",
+            timestamp=timezone.now(),
+            actor=user,
+        )
+        MQTTBackend(options={"HOST": "localhost"}).send(instance)
+        self.assertEqual(
+            publish_single.call_args.args[0],
+            "/onadata/xform/16308/messages/publish",
+        )
+        self.assertEqual(
+            json.loads(publish_single.call_args.kwargs["payload"])["verb"], MESSAGE
+        )
+
+    @patch("onadata.apps.messaging.backends.mqtt.get_payload")
+    @patch("onadata.apps.messaging.backends.mqtt.publish.single")
+    @patch("onadata.apps.messaging.backends.mqtt.XForm.objects.get")
+    def test_unknown_form_event_is_skipped(
+        self, get_xform, publish_single, get_payload_mock
+    ):
+        """Unsupported form events are logged without attempting delivery."""
+        form = MagicMock()
+        form._meta.model_name = XFORM
+        instance = MagicMock(
+            pk=123, target=form, target_object_id="16308", verb="future_form_event"
+        )
+        backend = MQTTBackend(options={"HOST": "localhost"})
+        with self.assertLogs(
+            "onadata.apps.messaging.backends.mqtt", level="WARNING"
+        ) as logs:
+            self.assertIsNone(backend.send(instance))
+        self.assertIn("123", logs.output[0])
+        self.assertIn("future_form_event", logs.output[0])
+        self.assertIn("xform/16308", logs.output[0])
+        publish_single.assert_not_called()
+        get_payload_mock.assert_not_called()
+        get_xform.assert_not_called()
 
 
 class TestMQTTBackend(TestCase):
