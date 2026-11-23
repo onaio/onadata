@@ -2,21 +2,81 @@
 """
 Tests for MQTT notification backend
 """
+
 from __future__ import unicode_literals
 
 import json
 import ssl
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.utils import timezone
 
 from onadata.apps.messaging.backends.mqtt import (
     MQTTBackend,
     get_payload,
     get_target_metadata,
 )
-from onadata.apps.messaging.constants import PROJECT, XFORM
+from onadata.apps.messaging.constants import (
+    EXPORT_CREATED,
+    EXPORT_DOWNLOADED,
+    PROJECT,
+    SUBMISSION_CREATED,
+    XFORM,
+)
 from onadata.apps.messaging.tests.test_base import _create_message, _create_user
+
+
+class TestMQTTFormEvents(SimpleTestCase):
+    """Form events use explicit topic segments and preserve their payloads."""
+
+    @override_settings(FULL_MESSAGE_PAYLOAD=False)
+    @patch("onadata.apps.messaging.backends.mqtt.publish.single")
+    @patch("onadata.apps.messaging.backends.mqtt.XForm.objects.get")
+    def test_send_form_events(self, get_xform, publish_single):
+        """Export and submission events publish to the form's scoped topic."""
+        xform = get_xform.return_value
+        xform._meta.model_name = XFORM
+        xform.project.id = 42
+        xform.project.organization.username = "partners"
+        instance = MagicMock(
+            id=123,
+            target=xform,
+            target_object_id="16308",
+            description='{"id": [456], "description": "csv"}',
+            timestamp=timezone.now(),
+        )
+        instance.actor.username = "alice"
+        mqtt = MQTTBackend(options={"HOST": "localhost"})
+
+        for verb, segment in (
+            (EXPORT_CREATED, "export/created"),
+            (EXPORT_DOWNLOADED, "export/downloaded"),
+            (SUBMISSION_CREATED, "submission/created"),
+        ):
+            with self.subTest(verb=verb):
+                instance.verb = verb
+                publish_single.reset_mock()
+                expected_topic = (
+                    "/onadata/organization/partners/project/42/xform/16308/"
+                    f"{segment}/messages/publish"
+                )
+                self.assertEqual(mqtt.get_topic(instance), expected_topic)
+                mqtt.send(instance)
+                publish_single.assert_called_once_with(
+                    expected_topic,
+                    payload=get_payload(instance),
+                    hostname="localhost",
+                    port=None,
+                    tls=None,
+                    qos=0,
+                    retain=False,
+                )
+                payload = json.loads(publish_single.call_args.kwargs["payload"])
+                self.assertEqual(payload["verb"], verb)
+                self.assertEqual(
+                    payload["message"], {"id": [456], "description": "csv"}
+                )
 
 
 class TestMQTTBackend(TestCase):

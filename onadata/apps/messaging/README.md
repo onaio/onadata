@@ -129,8 +129,13 @@ Topics for sending messages are constructed like so:
 ##### Forms
 
 ```text
-/[topic root]/xform/[pk]/messages/publish
+/[topic root]/organization/[username]/project/[project pk]/xform/[form pk]/[verb segment]/messages/publish
 ```
+
+The verb segment is `export/created` for `export_created` and
+`export/downloaded` for `export_downloaded`. Other form events use their
+mapped segments, such as `submission/created` for `submission_created`.
+Payloads retain the original verb, such as `export_created`.
 
 ##### Projects
 
