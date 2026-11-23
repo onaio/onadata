@@ -904,8 +904,8 @@ class DataDictionaryTestCase(TestBase):
             project=get_user_default_project(org.user),
         )
         encrypt_xform(XForm.objects.get(pk=data_dict.pk), encrypted_by=self.user)
+        XForm.objects.filter(pk=data_dict.pk).update(num_of_submissions=1)
         data_dict = DataDictionary.objects.get(pk=data_dict.pk)
-        data_dict.num_of_submissions = 1
         updated_text_xls_form = text_xls_form.replace(",Fruits,", ",Fruits updated,")
         data_dict.xls = ContentFile(updated_text_xls_form.encode(), name="fruits.csv")
 
