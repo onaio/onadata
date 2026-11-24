@@ -10,7 +10,6 @@ from django.contrib.auth import get_user_model
 from django.core.files import File
 from django.core.validators import ValidationError
 from django.db import OperationalError
-from django.http import Http404
 from django.utils.translation import gettext as _
 
 import six
@@ -22,7 +21,6 @@ from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
 
 from onadata.apps.api.permissions import ViewDjangoObjectPermissions
-from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
@@ -372,19 +370,3 @@ class BriefcaseViewset(
         return Response(
             serializer.data, headers=get_openrosa_headers(request, location=False)
         )
-
-    @action(methods=["GET"], detail=True)
-    def media(self, request, *args, **kwargs):
-        """Returns a single media content."""
-        # pylint: disable=attribute-defined-outside-init
-        self.object = self.get_object()
-        metadata_pk = kwargs.get("metadata")
-
-        if not metadata_pk:
-            raise Http404()
-
-        meta_obj = get_object_or_404(
-            MetaData, data_type="media", xform=self.object, pk=metadata_pk
-        )
-
-        return get_media_file_response(meta_obj)

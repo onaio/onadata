@@ -13,7 +13,7 @@ from xml.dom import minidom
 from django.conf import settings
 from django.core.files.storage import storages
 from django.test import override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 
 from django_digest.test import Client as DigestClient
@@ -439,6 +439,11 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
                 text = text.replace(*var)
             self.assertContains(response, instanceId, status_code=200)
             self.assertMultiLineEqual(response.content.decode("utf-8"), text)
+
+    def test_media_download_is_not_routed(self):
+        """Form media is downloaded through the form list, not the Briefcase API."""
+        with self.assertRaises(NoReverseMatch):
+            reverse("briefcase-media", kwargs={"pk": 1})
 
     def test_briefcase_client_downloads_submission_attachment(self):
         """A Briefcase client can follow the attachment link of a submission
