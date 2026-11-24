@@ -8,7 +8,6 @@ from django.contrib.auth import get_user_model
 from django.http import HttpRequest, HttpResponseRedirect
 from django.test import RequestFactory, TestCase, override_settings
 
-import jwt
 from rest_framework import status
 
 from onadata.apps.api.tools import create_organization
@@ -16,6 +15,7 @@ from onadata.apps.main.backends import ModelBackend
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.oidc_viewsets import OnaOpenIDConnectViewset
 from onadata.libs.authentication import MasterReplicaOAuth2Validator
+from onadata.libs.test_utils.sso import sso_token
 
 User = get_user_model()
 
@@ -199,11 +199,7 @@ class TestOIDCSessionEndpoint(TestCase):
         self.org_user.save()
 
     def _sso_cookie(self, email):
-        return jwt.encode(
-            {"email": email},
-            SESSION_VIEWSET_CONFIG["JWT_SECRET_KEY"],
-            algorithm="HS256",
-        )
+        return sso_token(email)
 
     def _get_session(self, email=None, **extra):
         if email is not None:

@@ -13,12 +13,10 @@ fixture at all.
 
 import threading
 
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection
 from django.test import TransactionTestCase, override_settings
 
-import jwt
 from cryptography.fernet import Fernet
 from django_otp.oath import totp
 from rest_framework.test import APIRequestFactory
@@ -35,6 +33,7 @@ from onadata.apps.api.viewsets.totp_viewset import (
     _verify_recovery,
     _verify_totp,
 )
+from onadata.libs.test_utils.sso import sso_token
 from onadata.libs.utils.field_encryption import decrypt, encrypt
 
 CONCURRENT = 8
@@ -177,12 +176,7 @@ class EnrolmentConfirmationConcurrencyTestCase(TransactionTestCase):
 
     def test_one_pending_code_confirms_one_enrolment(self):
         code = f"{totp(self.device.bin_key, self.device.step, self.device.t0):06d}"
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        sso = jwt.encode(
-            {"email": self.user.email},
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
+        sso = sso_token(self.user.email)
         barrier = threading.Barrier(CONCURRENT)
         responses = []
         guard = threading.Lock()
@@ -248,12 +242,7 @@ class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
         )
 
     def test_racing_starts_leave_one_pending_device(self):
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        sso = jwt.encode(
-            {"email": self.user.email},
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
+        sso = sso_token(self.user.email)
         barrier = threading.Barrier(CONCURRENT)
         responses = []
         guard = threading.Lock()
