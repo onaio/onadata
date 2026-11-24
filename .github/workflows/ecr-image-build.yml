@@ -171,7 +171,20 @@ jobs:
           version: v0.69.3
           cache: true
 
+      - name: Get date for Trivy VEX cache
+        id: vex-date
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Trivy VEX repositories
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/.cache/trivy/vex
+          key: trivy-vex-${{ steps.vex-date.outputs.date }}
+          restore-keys: trivy-vex-
+
       - name: Configure Trivy VEX Hub with DHI advisories
+        env:
+          TRIVY_CACHE_DIR: ${{ github.workspace }}/.cache/trivy
         run: |
           mkdir -p ~/.trivy/vex
           cat > ~/.trivy/vex/repository.yaml << 'EOF'
@@ -183,10 +196,14 @@ jobs:
               url: https://github.com/docker-hardened-images/advisories
               enabled: true
           EOF
-          trivy vex repo download
+          if ! trivy vex repo download; then
+            echo "::warning::Could not update the VEX repositories; the scan uses the cached copy if there is one"
+          fi
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_SKIP_VEX_REPO_UPDATE: "true"
         with:
           version: "v0.69.3"
           image-ref: ${{ env.docker_repo }}
@@ -216,6 +233,8 @@ jobs:
 
       - name: Run Trivy vulnerability scanner (HTML report)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_SKIP_VEX_REPO_UPDATE: "true"
         with:
           version: "v0.69.3"
           image-ref: ${{ env.docker_repo }}
