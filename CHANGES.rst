@@ -3,6 +3,39 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.31.6(2026-11-24)
+--------------------
+- fix: skip lockout email for accounts without an email address
+  [@cpruijsen]
+  `PR #3283 https://github.com/onaio/onadata/pull/3283`
+- fix: use GeoJsonSerializer when geojson is requested via the format query param
+  [@SAY-5]
+  `PR #3124 https://github.com/onaio/onadata/pull/3124`
+- fix: send lockout emails at most once a day per account
+  [@FrankApiyo]
+  `PR #3324 https://github.com/onaio/onadata/pull/3324`
+- fix: mark decryption failed when submission is not valid UTF-8
+  [@kelvin-muchiri]
+  `PR #3327 https://github.com/onaio/onadata/pull/3327`
+- fix: cache form lists and manifests per request host
+  [@FrankApiyo]
+  `PR #3333 https://github.com/onaio/onadata/pull/3333`
+- feat: add MQTT topic mappings for export events
+  [@ukanga]
+  `PR #3338 https://github.com/onaio/onadata/pull/3338`
+- fix: resolve open dependency and workflow security alerts
+  [@kelvin-muchiri]
+  `PR #3343 https://github.com/onaio/onadata/pull/3343`
+- ci: apply VEX advisories in Trivy scans and cache them between runs
+  [@kelvin-muchiri]
+  `PR #3344 https://github.com/onaio/onadata/pull/3344`
+- fix: keep form counters when saving an out-of-date form copy
+  [@kelvin-muchiri]
+  `PR #3332 https://github.com/onaio/onadata/pull/3332`
+- chore: update ona-oidc to v2.11.0
+  [@FrankApiyo]
+  `PR #3342 https://github.com/onaio/onadata/pull/3342`
+
 v5.31.5(2026-11-11)
 --------------------
 - fix: recount submissions on the primary database
