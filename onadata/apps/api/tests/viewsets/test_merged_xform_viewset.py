@@ -273,7 +273,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         instance.save()
         form_b.refresh_from_db()
         form_b.last_submission_time = instance.date_created
-        form_b.save()
+        form_b.save(update_fields=["last_submission_time"])
         view = MergedXFormViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/")
 
@@ -1256,7 +1256,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         instance.save()
         form_b.refresh_from_db()
         form_b.last_submission_time = instance.date_created
-        form_b.save()
+        form_b.save(update_fields=["last_submission_time"])
         view = MergedXFormViewSet.as_view({"get": "retrieve"})
 
         # status_code is 200 when: pk exists, user is authenticated
