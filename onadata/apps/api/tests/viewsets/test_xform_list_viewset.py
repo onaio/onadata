@@ -1016,6 +1016,26 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertTrue(response.has_header("Date"))
         self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
 
+    def test_retrieve_xform_manifest_media_url_without_file_extension(self):
+        media = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value="http://192.168.1.184/",
+        )
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn("<filename>192.168.1.184</filename>", content)
+        self.assertIn(
+            f"<downloadUrl>http://testserver/bob/xformsMedia/{self.xform.pk}"
+            f"/{media.pk}.184</downloadUrl>",
+            content,
+        )
+
     def test_retrieve_xform_manifest_anonymous_user(self):
         self._load_metadata(self.xform)
         self.view = XFormListViewSet.as_view({"get": "manifest"})
