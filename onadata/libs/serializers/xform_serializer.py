@@ -776,7 +776,7 @@ class XFormManifestSerializer(serializers.Serializer):
         # filtered dataset is of the form "xform PK name", xform pk is the
         # second item
         # other file uploads other than linked datasets have a data_file
-        if len(parts) > 2 and obj.data_file == "":
+        if len(parts) > 2 and not obj.data_file:
             dataset_type = parts[0]
             pk = parts[1]
             xform = None
