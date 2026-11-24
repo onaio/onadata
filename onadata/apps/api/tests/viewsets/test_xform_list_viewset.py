@@ -1017,6 +1017,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
 
     def test_retrieve_xform_manifest_media_url_without_file_extension(self):
+        """Manifest loads for a media URL with no file extension."""
         media = MetaData.objects.create(
             content_object=self.xform,
             data_type="media",
