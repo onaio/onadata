@@ -1,3 +1,4 @@
 ---
 vex:
   - repo
+  - .vex/onadata.openvex.json
