@@ -159,6 +159,8 @@ jobs:
           cache: true
 
       - name: Configure Trivy VEX Hub with DHI advisories
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p ~/.trivy/vex
           cat > ~/.trivy/vex/repository.yaml << 'EOF'

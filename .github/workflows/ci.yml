@@ -208,6 +208,8 @@ jobs:
 
       - name: Configure Trivy VEX Hub with DHI advisories
         if: github.event_name == 'pull_request' || github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p ~/.trivy/vex
           cat > ~/.trivy/vex/repository.yaml << 'EOF'
