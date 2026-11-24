@@ -1167,6 +1167,23 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertIn("<filename>Site photo 1.png</filename>", content)
 
+    def test_retrieve_xform_manifest_linked_dataset_without_file_value(self):
+        """Linked dataset stored with no file value keeps its dataset name."""
+        media = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value=f"xform {self.xform.pk} transportation",
+        )
+        MetaData.objects.filter(pk=media.pk).update(data_file=None)
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn("<filename>transportation.csv</filename>", content)
+
     def test_retrieve_xform_media_linked_xform(self):
         data_type = "media"
         data_value = "xform {} transportation".format(self.xform.pk)
