@@ -18,7 +18,6 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 from django.views.debug import SafeExceptionReporterFilter
 
-import jwt
 from cryptography.fernet import Fernet
 from django_otp.plugins.otp_static.models import StaticDevice
 from rest_framework.authtoken.models import Token
@@ -38,6 +37,7 @@ from onadata.apps.api.viewsets.totp_viewset import (
     TOTPViewSet,
     _verify_recovery,
 )
+from onadata.libs.test_utils.sso import sso_token
 from onadata.libs.utils.field_encryption import decrypt
 
 #: Lowercase base32, the alphabet recovery codes are drawn from.
@@ -114,13 +114,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         away, so a test that faked the session would not be exercising the
         distinction it depends on.
         """
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        token = jwt.encode(
-            {"email": (user or self.user).email},
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
-        return {"HTTP_SSO": token}
+        return {"HTTP_SSO": sso_token((user or self.user).email)}
 
     def _post_with_api_key(self, handler, data=None):
         view = TOTPViewSet.as_view({"post": handler})
@@ -166,12 +160,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
     def _sso_cookie(self, user=None):
         """The SSO token as the ambient cookie a browser sends, not the header."""
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        return jwt.encode(
-            {"email": (user or self.user).email},
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
+        return sso_token((user or self.user).email)
 
     #: CSRF is skipped under the default test factory, which flags every
     #: request exempt; these cases need the real check, so they build requests
@@ -1436,13 +1425,7 @@ class SecureEnrolmentDefaultTestCase(TestAbstractViewSet):
     """
 
     def _sso(self):
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        token = jwt.encode(
-            {"email": self.user.email},
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
-        return {"HTTP_SSO": token}
+        return {"HTTP_SSO": sso_token(self.user.email)}
 
     def test_an_sso_session_alone_cannot_start_first_enrolment(self):
         request = self.factory.post("/", data={}, **self._sso())
