@@ -1017,12 +1017,12 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertTrue(response.has_header("Date"))
         self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
 
-    def test_retrieve_xform_manifest_media_url_without_file_extension(self):
-        """Manifest loads for a media URL with no file extension."""
+    def test_retrieve_xform_manifest_media_url_with_dot_in_query(self):
+        """Media download URL takes the extension from the URL path."""
         media = MetaData.objects.create(
             content_object=self.xform,
             data_type="media",
-            data_value="http://192.168.1.184/",
+            data_value="https://example.com/plants.csv?v=1.184/",
         )
         self.view = XFormListViewSet.as_view({"get": "manifest"})
         request = self.factory.get("/", **self.extra)
@@ -1039,26 +1039,13 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_retrieve_xform_manifest_media_file_name_with_spaces(self):
         """Media download URL keeps the extension of a file name with spaces."""
-        path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "transportation",
-            "screenshot.png",
-        )
-        with open(path, "rb") as media_file:
-            data_file = SimpleUploadedFile(
-                "Site photo 1.png", media_file.read(), content_type="image/png"
-            )
-        self._post_metadata(
-            {
-                "data_type": "media",
-                "data_value": "Site photo 1.png",
-                "xform": self.xform.id,
-                "data_file": data_file,
-            }
+        media = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value="Site photo 1.png",
+            data_file=SimpleUploadedFile(
+                "Site photo 1.png", b"image", content_type="image/png"
+            ),
         )
         self.view = XFormListViewSet.as_view({"get": "manifest"})
         request = self.factory.get("/", **self.extra)
@@ -1069,7 +1056,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertIn(
             f"<downloadUrl>http://testserver/bob/xformsMedia/{self.xform.pk}"
-            f"/{self.metadata.pk}.png</downloadUrl>",
+            f"/{media.pk}.png</downloadUrl>",
             content,
         )
 
