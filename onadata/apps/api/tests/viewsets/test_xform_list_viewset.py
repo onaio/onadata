@@ -1148,6 +1148,25 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertEqual(response.status_code, 401)
 
+    def test_retrieve_xform_manifest_lists_media_file_name_with_spaces(self):
+        """Uploaded media file keeps its name when the name has spaces."""
+        MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value="Site photo 1.png",
+            data_file=SimpleUploadedFile(
+                "Site photo 1.png", b"image", content_type="image/png"
+            ),
+        )
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn("<filename>Site photo 1.png</filename>", content)
+
     def test_retrieve_xform_media_linked_xform(self):
         data_type = "media"
         data_value = "xform {} transportation".format(self.xform.pk)

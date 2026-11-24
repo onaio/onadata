@@ -84,6 +84,7 @@ class TestXFormManifestSerializer(TestCase, TestBase):
         serializer = XFormManifestSerializer()
 
         obj.data_value = "xform 1 clinics"
+        obj.data_file = ""
         self.assertEqual(serializer.get_filename(obj), "clinics.csv")
 
     def test_get_hash(self):

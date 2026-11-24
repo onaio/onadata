@@ -818,7 +818,7 @@ class XFormManifestSerializer(serializers.Serializer):
         extension = get_metadata_format(filename)
         # filtered dataset is of the form "xform PK name", filename is the
         # third item
-        if len(parts) > 2:
+        if len(parts) > 2 and obj.data_file == "":
             filename = f"{parts[2]}.{extension}"
         else:
             try:
