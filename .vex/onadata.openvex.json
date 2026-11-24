@@ -1,0 +1,48 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/onaio/onadata/blob/main/.vex/onadata.openvex.json",
+  "author": "Ona",
+  "timestamp": "2026-11-24T00:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2025-47273"
+      },
+      "products": [
+        {
+          "@id": "pkg:pypi/setuptools@70.3.0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "pip vendors only pkg_resources from setuptools 70.3.0 and lists it in its bundled SBOM; the vulnerable code is not in pkg_resources. Affected code: setuptools/package_index.py."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-59890"
+      },
+      "products": [
+        {
+          "@id": "pkg:pypi/setuptools@70.3.0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "pip vendors only pkg_resources from setuptools 70.3.0 and lists it in its bundled SBOM; the vulnerable code is not in pkg_resources. Affected code: setuptools MANIFEST.in file list handling."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-xmj3-9gf7-h52w"
+      },
+      "products": [
+        {
+          "@id": "pkg:pypi/setuptools@70.3.0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "pip vendors only pkg_resources from setuptools 70.3.0 and lists it in its bundled SBOM; the vulnerable code is not in pkg_resources. Affected code: setuptools/wheel.py."
+    }
+  ]
+}

@@ -5,6 +5,8 @@ on:  # yamllint disable-line rule:truthy
     branches: ["*", "security/*"]
   push:
     branches: ["main"]
+permissions:
+  contents: read
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.actor }}-${{ github.sha }}
   cancel-in-progress: true
@@ -163,6 +165,9 @@ jobs:
   security-check:
     name: Trivy Security Checks
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Check if repository is public
         id: check_visibility
