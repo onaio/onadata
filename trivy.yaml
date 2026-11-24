@@ -1,4 +1,5 @@
 ---
-vex:
-  - repo
-  - .vex/onadata.openvex.json
+vulnerability:
+  vex:
+    - repo
+    - .vex/onadata.openvex.json
