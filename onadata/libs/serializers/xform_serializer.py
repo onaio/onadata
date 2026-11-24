@@ -738,7 +738,11 @@ class XFormManifestSerializer(serializers.Serializer):
             "metadata": obj.pk,
         }
         request = self.context.get("request")
-        fmt = os.path.splitext(self.get_filename(obj))[1][1:].lower()
+        name = obj.data_value
+        urlparts = urlparse(name)
+        if urlparts.scheme and urlparts.netloc:
+            name = os.path.basename(urlparts.path)
+        fmt = os.path.splitext(name)[1][1:].lower()
         if not re.fullmatch(r"[a-z0-9]+", fmt):
             fmt = get_metadata_format(obj.data_value)
         url = reverse("xform-media", kwargs=kwargs, request=request, format=fmt)

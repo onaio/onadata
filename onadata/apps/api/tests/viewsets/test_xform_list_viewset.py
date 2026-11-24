@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.test import TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
@@ -1030,10 +1031,45 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         content = "".join(
             [i.decode("utf-8").strip() for i in response.streaming_content]
         )
-        self.assertIn("<filename>192.168.1.184</filename>", content)
         self.assertIn(
             f"<downloadUrl>http://testserver/bob/xformsMedia/{self.xform.pk}"
-            f"/{media.pk}.184</downloadUrl>",
+            f"/{media.pk}.csv?",
+            content,
+        )
+
+    def test_retrieve_xform_manifest_media_file_name_with_spaces(self):
+        """Media download URL keeps the extension of a file name with spaces."""
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "screenshot.png",
+        )
+        with open(path, "rb") as media_file:
+            data_file = SimpleUploadedFile(
+                "Site photo 1.png", media_file.read(), content_type="image/png"
+            )
+        self._post_metadata(
+            {
+                "data_type": "media",
+                "data_value": "Site photo 1.png",
+                "xform": self.xform.id,
+                "data_file": data_file,
+            }
+        )
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn(
+            f"<downloadUrl>http://testserver/bob/xformsMedia/{self.xform.pk}"
+            f"/{self.metadata.pk}.png</downloadUrl>",
             content,
         )
 
