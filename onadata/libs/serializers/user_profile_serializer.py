@@ -29,7 +29,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.apps.messaging.constants import PROFILE_UPDATED, USER
 from onadata.apps.messaging.serializers import send_message
-from onadata.libs.authentication import expired
+from onadata.libs.authentication import account_token_refusal, expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
@@ -490,6 +490,16 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
             "api_token",
             "temp_token",
         )
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if account_token_refusal(self.context.get("request")):
+            return {
+                name: field
+                for name, field in fields.items()
+                if name not in ("api_token", "temp_token")
+            }
+        return fields
 
     def get_api_token(self, obj):
         """

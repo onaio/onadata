@@ -34,6 +34,27 @@ Response
 
 }
 
+Two kinds of request get the profile without ``api_token`` or
+``temp_token``:
+
+-  one authenticated with an OAuth access token
+-  one authenticated with a password alone (Digest or Basic) for an account
+   with two-factor authentication
+
+Neither can call ``/api/v1/user/regenerate_auth_token`` or
+``/api/v1/user/odk_token``; both answer **403**. An application gets only the
+access its OAuth token was granted, and a password can't stand in for the
+second factor. A two-factor account gets its tokens after signing in to the
+website, or by calling the API with an existing token.
+
+A client that signs users in by sending their username and password to
+``/api/v1/user`` and then using the returned ``temp_token`` or ``api_token``
+can't sign in a two-factor account: the response has no token to use. Such a
+client should sign users in through the OAuth 2.0 Authorization Code flow or
+single sign-on instead, which ask for the second factor. Until it does, it
+should treat a response without ``temp_token`` as a failed sign-in and tell
+the user why.
+
 Get projects that the authenticating user has starred
 =====================================================
 

@@ -239,6 +239,11 @@ Response
         "temp_token": "0c6a9f167c7074c781f635fe30cb60efa2473317"
     }
 
+The change replaces the user's API and temporary tokens. With an OAuth access
+token, or with a password alone for an account with two-factor
+authentication, the response carries only ``username``: the old tokens stop
+working, but the new ones are not returned.
+
 Get the total number of monthly submissions
 -------------------------------------------
 
