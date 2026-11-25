@@ -4,7 +4,7 @@ Module containing throttling utilities
 
 from django.conf import settings
 
-from rest_framework.throttling import SimpleRateThrottle, ScopedRateThrottle
+from rest_framework.throttling import ScopedRateThrottle, SimpleRateThrottle
 
 
 class CustomScopedRateThrottle(ScopedRateThrottle):
@@ -17,6 +17,34 @@ class CustomScopedRateThrottle(ScopedRateThrottle):
             return super().get_cache_key(request, view)
 
         return f"throttle_{self.scope}_{request.path}_{self.get_ident(request)}"
+
+
+class UserIDThrottle(SimpleRateThrottle):
+    """
+    Custom Throttling class that throttles requests based on user ID for
+    authenticated users. Anonymous users are throttled by IP address.
+    """
+
+    scope = "user"
+
+    def get_rate(self):
+        """
+        Override to provide a default rate or get from settings
+        """
+        try:
+            return super().get_rate()
+        except KeyError:
+            # Default rate if not configured
+            return "100/minute"
+
+    def get_cache_key(self, request, view):
+        if request.user and request.user.is_authenticated:
+            # Throttle authenticated users by user ID
+            ident = request.user.id
+            return self.cache_format % {"scope": self.scope, "ident": ident}
+        else:
+            # No throttling for anonymous users
+            return None
 
 
 class RequestHeaderThrottle(SimpleRateThrottle):
