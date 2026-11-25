@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.test import TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
@@ -1015,6 +1016,49 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
         self.assertTrue(response.has_header("Date"))
         self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+
+    def test_retrieve_xform_manifest_media_url_with_dot_in_query(self):
+        """Media download URL takes the extension from the URL path."""
+        media = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value="https://example.com/plants.csv?v=1.184/",
+        )
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn(
+            f"<downloadUrl>http://testserver/bob/xformsMedia/{self.xform.pk}"
+            f"/{media.pk}.csv?",
+            content,
+        )
+
+    def test_retrieve_xform_manifest_media_file_name_with_spaces(self):
+        """Media download URL keeps the extension of a file name with spaces."""
+        media = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value="Site photo 1.png",
+            data_file=SimpleUploadedFile(
+                "Site photo 1.png", b"image", content_type="image/png"
+            ),
+        )
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn(
+            f"<downloadUrl>http://testserver/bob/xformsMedia/{self.xform.pk}"
+            f"/{media.pk}.png</downloadUrl>",
+            content,
+        )
 
     def test_retrieve_xform_manifest_anonymous_user(self):
         self._load_metadata(self.xform)

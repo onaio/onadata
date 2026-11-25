@@ -6,6 +6,7 @@ XForm model serialization.
 import hashlib
 import logging
 import os
+import re
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -737,13 +738,14 @@ class XFormManifestSerializer(serializers.Serializer):
             "metadata": obj.pk,
         }
         request = self.context.get("request")
-        extension = get_metadata_format(obj.data_value)
-        try:
-            fmt_index = obj.data_value.rindex(".") + 1
-            fmt = obj.data_value[fmt_index:]
-        except ValueError:
-            fmt = extension
-        url = reverse("xform-media", kwargs=kwargs, request=request, format=fmt.lower())
+        name = obj.data_value
+        urlparts = urlparse(name)
+        if urlparts.scheme and urlparts.netloc:
+            name = os.path.basename(urlparts.path)
+        fmt = os.path.splitext(name)[1][1:].lower()
+        if not re.fullmatch(r"[a-z0-9]+", fmt):
+            fmt = get_metadata_format(obj.data_value)
+        url = reverse("xform-media", kwargs=kwargs, request=request, format=fmt)
 
         group_delimiter = self.context.get(GROUP_DELIMETER_TAG)
         repeat_index_tags = self.context.get(REPEAT_INDEX_TAGS)
