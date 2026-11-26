@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.6
+
 FROM scratch AS odk-validate
 ADD --checksum=sha256:7967ec26282ad29117820543fb212aff09fc28c8a813042366025092de94ecfc \
   https://github.com/onaio/validate/releases/download/v1.21.0-fb8835a31b1c/ODK-Validate-v1.21.0-fb8835a31b1c.jar /ODK_Validate.jar

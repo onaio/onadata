@@ -125,10 +125,10 @@ e.g `pip-compile --allow-unsafe --output-file=requirements/base.pip requirements
 After making these changes, rebuild your Docker image:
 
 Existing Compose environments retain dependencies in the `venv` volume.
-After stopping the containers, remove only that volume so Docker can populate
-it with the updated pip and certifi from the rebuilt image. Replace
-`PROJECT_venv` below with your Compose volume name; preserve the `dbdata`
-volume containing your database.
+Follow these steps when upgrading to the patched ODK Validate JAR so `api`
+and `celery` pick up the JAR from the rebuilt image. Replace `PROJECT_venv`
+below with your Compose volume name and keep the `dbdata` volume that holds
+your database.
 
 ```sh
 docker compose down
