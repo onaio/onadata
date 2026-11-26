@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests that organization accounts cannot establish a login session."""
 
 from unittest.mock import MagicMock, patch

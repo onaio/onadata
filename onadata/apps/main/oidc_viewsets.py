@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Project-owned OpenID Connect viewsets.
 
@@ -25,7 +24,7 @@ class OnaOpenIDConnectViewset(  # pylint: disable=too-few-public-methods
 ):
     """OpenID Connect viewset that refuses login for organization accounts."""
 
-    authentication_classes = []
+    authentication_classes = ()
 
     def login(self, request, **kwargs):
         # Evict stale auth cookies a partly-logged-out browser may still
