@@ -450,10 +450,11 @@ class InstanceXMLRenderer(XMLRenderer, StreamRendererMixin):
     root_tag_name = "submission-batch"
     item_tag_name = "submission-item"
 
-    def stream_data(self, data, serializer):
-        """Returns a streaming response."""
+    def stream_data(self, data, serializer=None):
+        """Stream serialized rows, applying a serializer if supplied."""
         if data is None:
             yield ""
+            return
 
         # pylint: disable=attribute-defined-outside-init
         self.stream = StringIO()
@@ -464,31 +465,11 @@ class InstanceXMLRenderer(XMLRenderer, StreamRendererMixin):
 
         yield self._get_current_buffer_data()
 
-        data = iter(data)
-
-        try:
-            out = next(data)
-        except StopIteration:
-            out = None
-
-        while out:
-            try:
-                next_item = next(data)
-                out = serializer(out).data
-                out, attributes = _pop_xml_attributes(out)
-                xml.startElement(self.item_tag_name, attributes)
-                self._to_xml(xml, out)
-                xml.endElement(self.item_tag_name)
-                yield self._get_current_buffer_data()
-                out = next_item
-            except StopIteration:
-                out = serializer(out).data
-                out, attributes = _pop_xml_attributes(out)
-                xml.startElement(self.item_tag_name, attributes)
-                self._to_xml(xml, out)
-                xml.endElement(self.item_tag_name)
-                yield self._get_current_buffer_data()
-                break
+        for row in data:
+            if serializer is not None:
+                row = serializer(row).data
+            self._to_xml(xml, (row,))
+            yield self._get_current_buffer_data()
 
         xml.endElement(self.root_tag_name)
         xml.endDocument()

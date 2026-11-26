@@ -379,6 +379,23 @@ Page links omit ``start`` and ``limit`` so subsequent requests can traverse the
 complete filtered result set. They preserve filters, sorting, selected fields,
 and ``signed_urls``.
 
+Pagination without a count
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Set ``include_count=false`` to paginate a form's JSON or XML submissions
+without a total count. The defaults are page 1 and 1,000 submissions per page.
+
+::
+
+    curl -i 'https://api.ona.io/api/v1/data/328.json?include_count=false&page_size=4'
+
+Follow ``rel="next"`` in the ``Link`` header until it is absent. Pages after the
+first include ``prev`` and ``first`` links. This mode omits the ``last`` link.
+
+Use ``page`` and ``page_size``. Adding ``start`` or ``limit`` returns HTTP 400.
+An empty first page returns an empty result. Empty later pages, invalid page
+numbers, and ``page=last`` return HTTP 404.
+
 JSON Example
 ^^^^^^^^^^^^^
 ::

@@ -6,11 +6,14 @@
 import json
 import math
 import types
+from hashlib import sha256
 from typing import Union
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import F, Q
+from django.db.models.fields.json import KeyTextTransform, KeyTransform
 from django.db.utils import DataError, OperationalError
 from django.http import Http404, StreamingHttpResponse
 from django.utils import timezone
@@ -41,6 +44,7 @@ from onadata.apps.viewer.models.parsed_instance import (
     _get_sort_fields,
     exclude_deleting_submissions_clause,
     get_etag_hash_from_query,
+    get_name_from_survey_element,
     get_sql_with_params,
     get_where_clause,
     query_count,
@@ -56,7 +60,10 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.pagination import CountOverridablePageNumberPagination
+from onadata.libs.pagination import (
+    CountFreePageNumberPagination,
+    CountOverridablePageNumberPagination,
+)
 from onadata.libs.permissions import (
     CAN_DELETE_SUBMISSION,
     filter_queryset_xform_meta_perms,
@@ -163,6 +170,7 @@ class DataViewSet(
     data_count = None
     public_data_endpoint = "public"
     pagination_class = CountOverridablePageNumberPagination
+    _count_free_xml = False
 
     queryset = XForm.objects.filter(
         deleted_at__isnull=True, project__organization__is_active=True
@@ -205,7 +213,7 @@ class DataViewSet(
             serializer_class = OSMSerializer
         elif fmt == "geojson":
             serializer_class = GeoJsonSerializer
-        elif fmt == "xml":
+        elif fmt == "xml" or self._count_free_xml:
             serializer_class = DataInstanceXMLSerializer
         elif (
             form_pk is not None
@@ -931,6 +939,16 @@ class DataViewSet(
         is_encrypted,
         decryption_status,
     ):
+        if not is_public_request:
+            try:
+                include_count = strtobool(
+                    self.request.query_params.get("include_count", "true")
+                )
+            except ValueError as exc:
+                raise ParseError(_("Use 'true' or 'false' for include_count.")) from exc
+            if not include_count:
+                return self._get_count_free_data(query, fields, sort)
+
         self.set_object_list(
             query,
             fields,
@@ -989,6 +1007,104 @@ class DataViewSet(
 
         return response
 
+    @staticmethod
+    def _order_count_free_submissions(queryset, sort):
+        sort_fields = _get_sort_fields(sort)
+        if not any(field.removeprefix("-") == "id" for field in sort_fields):
+            sort_fields.append("id")
+
+        model_fields = {field.name for field in Instance._meta.concrete_fields}
+        ordering = []
+        for field in sort_fields:
+            name = field.removeprefix("-")
+            expression = (
+                F(name) if name in model_fields else KeyTextTransform(name, "json")
+            )
+            ordering.append(
+                expression.desc() if field.startswith("-") else expression.asc()
+            )
+        return queryset.order_by(*ordering)
+
+    def _select_count_free_fields(self, queryset, fields):
+        if not fields:
+            return queryset, {}
+
+        fields = json.loads(fields)
+        if (
+            self._count_free_xml
+            or not isinstance(fields, list)
+            or not fields
+            or not all(isinstance(field, str) for field in fields)
+        ):
+            raise ParseError(
+                _(
+                    "fields must be a non-empty JSON array of field names "
+                    "for JSON responses."
+                )
+            )
+        aliases = {
+            f"selected_field_{index}": field for index, field in enumerate(fields)
+        }
+        projection = {
+            alias: KeyTransform(field, "json") for alias, field in aliases.items()
+        }
+        return queryset.values(**projection), aliases
+
+    # pylint: disable=attribute-defined-outside-init
+    def _get_count_free_data(self, query, fields, sort):
+        """Fetch one bounded page and derive its validators without extra scans."""
+        if any(key in self.request.query_params for key in ("start", "limit")):
+            raise ParseError(_("Use page and page_size with include_count=false."))
+
+        self._count_free_xml = self.request.accepted_renderer.format == "xml"
+        xform = self.get_object()
+        try:
+            known_integers = [
+                get_name_from_survey_element(element)
+                for element in xform.get_survey_elements_of_type("integer")
+            ]
+            where, params = get_where_clause(query, known_integers)
+            exclude_sql, exclude_params = exclude_deleting_submissions_clause(xform.pk)
+            if exclude_sql:
+                where.append(exclude_sql)
+                params.extend(exclude_params)
+            queryset = self.object_list.extra(where=where, params=params)
+            if self._count_free_xml:
+                queryset = queryset.only(
+                    "json", "xml", "version", "date_created", "date_modified"
+                )
+
+            queryset = self._order_count_free_submissions(queryset, sort)
+            queryset, aliases = self._select_count_free_fields(queryset, fields)
+            paginator = CountFreePageNumberPagination()
+            self.object_list = paginator.paginate_queryset(queryset, self.request, self)
+            if aliases:
+                self.object_list = [
+                    {field: row[alias] for alias, field in aliases.items()}
+                    for row in self.object_list
+                ]
+            elif sort and not self._count_free_xml:
+                self.object_list = [instance.json for instance in self.object_list]
+        except (ValueError, DataError) as exc:
+            raise ParseError(_("Invalid query, sort, or fields parameter.")) from exc
+
+        self.headers.update(paginator.generate_link_header())
+        data = list(self.get_serializer(self.object_list, many=True).data)
+        self.object_list = data
+        if self.signed_attachment_urls is None:
+            encoder = DjangoJSONEncoder(sort_keys=True, separators=(",", ":"))
+            digest = sha256(encoder.encode(self.headers.get("Link", "")).encode())
+            for row in data:
+                digest.update(b"\n")
+                digest.update(encoder.encode(row).encode())
+            self.etag_hash = f'W/"{digest.hexdigest()}"'
+
+        if getattr(settings, "STREAM_DATA", False):
+            return self._get_streaming_response()
+        if self.signed_attachment_urls is not None:
+            data = list(self.signed_attachment_urls.transform(data))
+        return Response(data, headers=self.headers)
+
     def _get_streaming_response(self):
         """
         Get a StreamingHttpResponse response object
@@ -998,10 +1114,11 @@ class DataViewSet(
             """Returns the ``item`` Instance instance as a JSON string."""
             return json.dumps(item.json if isinstance(item, Instance) else item)
 
-        if self.kwargs.get("format") == "xml":
+        if self._count_free_xml or self.kwargs.get("format") == "xml":
+            serializer = None if self._count_free_xml else self.get_serializer
             response = StreamingHttpResponse(
                 renderers.InstanceXMLRenderer().stream_data(
-                    self.object_list, self.get_serializer
+                    self.object_list, serializer
                 ),
                 content_type="application/xml",
             )

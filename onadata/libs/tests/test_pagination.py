@@ -3,15 +3,49 @@ Tests onadata.libs.pagination module
 """
 
 from django.http.request import HttpRequest
+from django.test import SimpleTestCase
 
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.pagination import (
+    CountFreePageNumberPagination,
     RawSQLQueryPageNumberPagination,
     StandardPageNumberPagination,
 )
+
+
+class TestCountFreePagination(SimpleTestCase):
+    """Validate page-size defaults and bounds without a database."""
+
+    def test_page_size_defaults_fallback_and_maximum(self):
+        records = list(range(10002))
+        for params, size in (
+            ({}, 1000),
+            ({"page_size": "invalid"}, 1000),
+            ({"page_size": 0}, 1000),
+            ({"page_size": -1}, 1000),
+            ({"page_size": 10001}, 10000),
+        ):
+            with self.subTest(params=params):
+                request = Request(APIRequestFactory().get("/", params))
+                paginator = CountFreePageNumberPagination()
+                page = paginator.paginate_queryset(records, request)
+                self.assertEqual(page, records[:size])
+                self.assertIn(f"page_size={size}", paginator.get_next_link())
+                self.assertIsNone(paginator.get_last_page_link())
+
+    def test_empty_first_and_later_pages(self):
+        request = Request(APIRequestFactory().get("/"))
+        paginator = CountFreePageNumberPagination()
+        self.assertEqual(paginator.paginate_queryset([], request), [])
+        self.assertEqual(paginator.generate_link_header(), {})
+        request = Request(APIRequestFactory().get("/", {"page": 2}))
+        with self.assertRaises(NotFound):
+            CountFreePageNumberPagination().paginate_queryset([], request)
 
 
 class TestPaginationModule(TestBase):
