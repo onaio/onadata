@@ -43,7 +43,7 @@ class OnaOpenIDConnectViewset(  # pylint: disable=too-few-public-methods
         # Attrs must mirror the success path's set_cookie or the delete won't match.
         response.delete_cookie(
             SSO_COOKIE_NAME,
-            domain=self.cookie_domain,
+            domain=self.sso_cookie_domain(kwargs.get("auth_server")),
             path=self.cookie_path,
             samesite=self.cookie_samesite,
         )
