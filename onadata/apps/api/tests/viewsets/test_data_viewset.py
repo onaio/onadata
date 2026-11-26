@@ -19,10 +19,11 @@ from urllib.parse import parse_qs, urlsplit
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import connection
 from django.db.utils import OperationalError
 from django.test import RequestFactory
 from django.test.testcases import SerializeMixin
-from django.test.utils import override_settings
+from django.test.utils import CaptureQueriesContext, override_settings
 from django.utils import timezone
 
 import defusedxml.ElementTree as ET
@@ -237,6 +238,28 @@ class TestDataViewSet(SerializeMixin, TestBase):
             response.data.get("detail"),
             "invalid regular expression: invalid character range\n",
         )
+
+    def test_data_form_list_query_count_is_constant(self):
+        """Listing forms doesn't run queries per form"""
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        view(request)
+        with CaptureQueriesContext(connection) as one_form:
+            response = view(request)
+        self.assertEqual(len(response.data), 1)
+
+        md = """
+        | survey |
+        |        | type | name | label |
+        |        | text | city | City? |
+        """
+        self._publish_markdown(
+            md, self.user, project=self.xform.project, id_string="second"
+        )
+        with CaptureQueriesContext(connection) as two_forms:
+            response = view(request)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(two_forms), len(one_form))
 
     def test_data_list_with_xform_in_delete_async_queue(self):
         self._make_submissions()
