@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.31.7(2026-11-26)
+--------------------
+- fix: keep form manifest working when a media link has no file extension
+  [@kelvin-muchiri]
+  `PR #3351 https://github.com/onaio/onadata/pull/3351`
+- fix: list uploaded media files with spaces in their names under their own name
+  [@kelvin-muchiri]
+  `PR #3354 https://github.com/onaio/onadata/pull/3354`
+- fix: remove the unreachable Briefcase media download
+  [@kelvin-muchiri]
+  `PR #3353 https://github.com/onaio/onadata/pull/3353`
+- chore: update ona-oidc to 2.12.0
+  [@FrankApiyo]
+  `PR #3355 https://github.com/onaio/onadata/pull/3355`
+
 v5.31.6(2026-11-24)
 --------------------
 - fix: skip lockout email for accounts without an email address
