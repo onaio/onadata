@@ -17,6 +17,8 @@ from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.main.models import MetaData
 from onadata.libs.models.share_xform import ShareXForm
 from onadata.libs.permissions import EditorMinorRole, EditorRole
+from onadata.libs.test_utils.recovery_conflict import recovery_conflict
+from onadata.libs.utils.middleware import release_retry_pin
 from onadata.libs.utils.signed_urls import SignedAttachmentURLs
 
 
@@ -337,6 +339,37 @@ class TestDataSignedURLs(TestAbstractViewSet):
         second = self.get(HTTP_IF_MODIFIED_SINCE="Wed, 31 Dec 2098 23:59:59 GMT")
         self.assertEqual(second.status_code, 200)
         self.assertEqual(json.loads(b"".join(second.streaming_content)), first)
+        self.assertEqual(self.signer.call_count, 1)
+
+    @override_settings(STREAM_DATA=True)
+    def test_stream_retries_an_attachment_lookup_conflict_before_signing(self):
+        self.addCleanup(release_retry_pin)
+        get_attachments = SignedAttachmentURLs._get_attachments
+        lookups = []
+
+        def conflict_once(signed_urls, rows):
+            lookups.append(rows)
+            if len(lookups) == 1:
+                raise recovery_conflict()
+            return get_attachments(signed_urls, rows)
+
+        with (
+            patch.object(
+                SignedAttachmentURLs,
+                "_get_attachments",
+                autospec=True,
+                side_effect=conflict_once,
+            ),
+            patch("onadata.libs.utils.middleware.sentry_sdk.capture_exception"),
+            self.assertLogs("onadata.libs.utils.middleware", "WARNING"),
+        ):
+            response = self.get()
+            self.assertEqual(len(lookups), 2)
+            self.signer.assert_not_called()
+            rows = json.loads(b"".join(response.streaming_content))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["_id"] for row in rows], [self.instance.pk])
         self.assertEqual(self.signer.call_count, 1)
 
     @override_settings(STREAM_DATA=True)

@@ -60,7 +60,7 @@ class TestSignedURLExpiry(SimpleTestCase):
                 yield {"_id": pk, "_attachments": []}
 
         result = signer.transform(rows())
-        self.assertEqual(consumed, [])
+        self.assertEqual(len(consumed), BATCH_SIZE)
         self.assertEqual(next(result), {"_id": 0, "_attachments": []})
         self.assertEqual(len(consumed), BATCH_SIZE)
 

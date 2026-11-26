@@ -17,6 +17,7 @@ from django.utils.http import http_date, quote_etag
 
 from onadata.apps.logger.models import Attachment, Instance
 from onadata.libs.utils.cache_tools import safe_cache_get, safe_cache_set
+from onadata.libs.utils.common_tools import prefetch_first
 from onadata.libs.utils.logger_tools import get_storages_media_download_url
 
 SAFETY_MARGIN = 30
@@ -174,7 +175,15 @@ class SignedAttachmentURLs:
         return url
 
     def transform(self, items):
-        """Copy and sign at most one batch of submissions at a time."""
+        """Copy and sign at most one batch of submissions at a time.
+
+        Reads the first batch and its attachments before returning, so a
+        database error there reaches the caller. Signs only as the caller
+        iterates the result.
+        """
+        return self._sign_batches(prefetch_first(self._read_batches(items)))
+
+    def _read_batches(self, items):
         iterator = (
             items.iterator(chunk_size=BATCH_SIZE)
             if isinstance(items, QuerySet)
@@ -182,7 +191,10 @@ class SignedAttachmentURLs:
         )
         while batch := list(islice(iterator, BATCH_SIZE)):
             rows = [item.json if isinstance(item, Instance) else item for item in batch]
-            attachments = self._get_attachments(rows)
+            yield rows, self._get_attachments(rows)
+
+    def _sign_batches(self, batches):
+        for rows, attachments in batches:
             for row in rows:
                 yield self._transform_row(row, attachments)
 
