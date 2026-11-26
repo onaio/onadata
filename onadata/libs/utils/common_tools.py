@@ -166,6 +166,25 @@ def get_response_content(response, decode=True):
     return contents
 
 
+def prefetch_first(items):
+    """
+    Returns an iterator over ``items`` whose first item is already fetched, so
+    an error from starting the iteration reaches the caller.
+    """
+    iterator = iter(items)
+    try:
+        first = next(iterator)
+    except StopIteration:
+        return iter(())
+    return _first_then_rest(first, iterator)
+
+
+def _first_then_rest(first, rest):
+    yield first
+    del first  # Don't hold a large first item for the rest of the stream.
+    yield from rest
+
+
 def json_stream(data, json_string):
     """
     Generator function to stream JSON data
