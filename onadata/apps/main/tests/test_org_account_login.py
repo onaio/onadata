@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Tests that organization accounts cannot establish a login session."""
 
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest, HttpResponseRedirect
 from django.test import RequestFactory, TestCase, override_settings
@@ -276,6 +276,30 @@ class TestOIDCLoginStaleCookieCleanup(TestCase):
         cookie = response.cookies.get("SSO")
         self.assertIsNotNone(cookie)
         self.assertEqual(cookie["max-age"], 0)
+        self.assertEqual(
+            cookie["domain"],
+            settings.OPENID_CONNECT_VIEWSET_CONFIG["SSO_COOKIE_DOMAIN"],
+        )
+
+    @override_settings(
+        OPENID_CONNECT_AUTH_SERVERS={
+            "microsoft": {
+                **OIDC_AUTH_SERVERS["microsoft"],
+                "SSO_COOKIE_DOMAIN": ".tenant.example.org",
+            }
+        }
+    )
+    def test_login_redirect_deletes_sso_cookie_on_provider_domain(self):
+        self.assertNotEqual(
+            settings.OPENID_CONNECT_VIEWSET_CONFIG["SSO_COOKIE_DOMAIN"],
+            ".tenant.example.org",
+        )
+        response = self.client.get("/oidc/microsoft/login")
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        cookie = response.cookies.get("SSO")
+        self.assertIsNotNone(cookie)
+        self.assertEqual(cookie["max-age"], 0)
+        self.assertEqual(cookie["domain"], ".tenant.example.org")
 
     @override_settings(OPENID_CONNECT_AUTH_SERVERS=OIDC_AUTH_SERVERS)
     def test_login_redirect_carries_messages_cookie_deletion(self):
