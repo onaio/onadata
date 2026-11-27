@@ -14,9 +14,13 @@ from django.utils.translation import gettext as _
 
 from onadata.apps.restservice.forms import RestServiceForm
 from onadata.apps.restservice.models import RestService
+from onadata.libs.stepup.owners import form_owners
+from onadata.libs.stepup.pages import refuse_page_action
+from onadata.libs.stepup.policy import GATE_CHANGE_WEBHOOK
 from onadata.libs.utils.viewer_tools import get_form
 
 
+# pylint: disable=too-many-locals
 @login_required
 def add_service(request, username, id_string):
     """Add a service."""
@@ -30,6 +34,11 @@ def add_service(request, username, id_string):
         form = RestServiceForm(request.POST)
         restservice = None
         if form.is_valid():
+            refusal = refuse_page_action(
+                request, GATE_CHANGE_WEBHOOK, owners=form_owners(xform)
+            )
+            if refusal is not None:
+                return refusal
             service_name = form.cleaned_data["service_name"]
             service_url = form.cleaned_data["service_url"]
             try:

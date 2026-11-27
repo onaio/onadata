@@ -42,9 +42,7 @@ RECOVERY_CODE = "onceonly"
 TEST_KEY = Fernet.generate_key().decode()
 
 
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY]
-)
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY])
 class RecoveryCodeConcurrencyTestCase(TransactionTestCase):
     """A recovery code is single-use, including against itself."""
 
@@ -104,9 +102,7 @@ class RecoveryCodeConcurrencyTestCase(TransactionTestCase):
         )
 
 
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY]
-)
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY])
 class TotpCodeConcurrencyTestCase(TransactionTestCase):
     """One authenticator code buys one verification, not one per worker."""
 
@@ -154,9 +150,7 @@ class TotpCodeConcurrencyTestCase(TransactionTestCase):
         )
 
 
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY]
-)
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY])
 class EnrolmentConfirmationConcurrencyTestCase(TransactionTestCase):
     """A pending authenticator is confirmed by exactly one request.
 
@@ -224,7 +218,7 @@ class EnrolmentConfirmationConcurrencyTestCase(TransactionTestCase):
 
 @override_settings(
     ENABLE_TWO_FACTOR=True,
-    TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False,
+    STEP_UP={"MODE": "local"},
     TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY],
 )
 class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
@@ -237,8 +231,9 @@ class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
 
     def setUp(self):
         super().setUp()
+        self.password = "pw-9F3kz"
         self.user = User.objects.create_user(
-            "startrace", "startrace@example.com", "pw-9F3kz"
+            "startrace", "startrace@example.com", self.password
         )
 
     def test_racing_starts_leave_one_pending_device(self):
@@ -249,7 +244,9 @@ class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
 
         def worker():
             try:
-                request = APIRequestFactory().post("/", data={}, HTTP_SSO=sso)
+                request = APIRequestFactory().post(
+                    "/", data={"password": self.password}, HTTP_SSO=sso
+                )
                 barrier.wait(timeout=10)
                 response = TOTPViewSet.as_view({"post": "enroll_start"})(request)
                 with guard:
@@ -274,9 +271,7 @@ class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
         )
 
 
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY]
-)
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY])
 class WizardVerifyConcurrencyTestCase(TransactionTestCase):
     """The login wizard verifies through the device's own ``verify_token``,
     without the row lock the viewset helpers take -- so ``verify_token`` must
@@ -326,9 +321,7 @@ class WizardVerifyConcurrencyTestCase(TransactionTestCase):
         )
 
         self.assertEqual(len(results), CONCURRENT, "a worker did not finish")
-        self.assertEqual(
-            sum(results), 1, f"the code was accepted {sum(results)} times"
-        )
+        self.assertEqual(sum(results), 1, f"the code was accepted {sum(results)} times")
 
     def test_a_totp_code_verify_token_spends_once(self):
         device = EncryptedTOTPDevice.objects.create(

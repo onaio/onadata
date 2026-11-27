@@ -6,6 +6,7 @@ Project Serializer module.
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.db import transaction
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
 
@@ -516,6 +517,7 @@ class ProjectSerializer(
                     {"name": _(f"Project {name} already exists.")}
                 )
         else:
+            self._check_name_free_in_new_owner(name, organization)
             organization = organization or self.instance.organization
         request = self.context["request"]
         try:
@@ -534,6 +536,19 @@ class ProjectSerializer(
                 }
             )
         return attrs
+
+    def _check_name_free_in_new_owner(self, name, organization):
+        """A transfer into an account with a project of the same name would
+        fail on the unique constraint after the transfer had begun."""
+        if not organization or organization == self.instance.organization:
+            return
+        name = name or self.instance.name
+        if Project.objects.filter(
+            name__iexact=name, organization=organization
+        ).exists():
+            raise serializers.ValidationError(
+                {"name": _(f"Project {name} already exists.")}
+            )
 
     def validate_public(self, value):
         """
@@ -572,26 +587,31 @@ class ProjectSerializer(
             instance.metadata.update(metadata)
             validated_data["metadata"] = instance.metadata
 
-        if self.partial and owner:
-            # give the new owner permissions
-            set_owners_permission(owner, instance)
+        with transaction.atomic():
+            if self.partial and owner:
+                # give the new owner permissions
+                set_owners_permission(owner, instance)
 
-            if is_organization(owner.profile):
-                call_command(
-                    "transferproject",
-                    current_owner=instance.organization,
-                    new_owner=owner,
-                    project_id=instance.pk,
+                if is_organization(owner.profile):
+                    call_command(
+                        "transferproject",
+                        current_owner=instance.organization,
+                        new_owner=owner,
+                        project_id=instance.pk,
+                    )
+
+                # Again after commit: a read during the transfer can re-cache
+                # the old permissions.
+                safe_cache_delete(f"{PROJ_PERM_CACHE}{instance.pk}")
+                transaction.on_commit(
+                    lambda: safe_cache_delete(f"{PROJ_PERM_CACHE}{instance.pk}")
                 )
 
-            # clear cache
-            safe_cache_delete(f"{PROJ_PERM_CACHE}{instance.pk}")
+            project = super().update(instance, validated_data)
 
-        project = super().update(instance, validated_data)
-
-        project.xform_set.exclude(shared=project.shared).update(
-            shared=project.shared, shared_data=project.shared
-        )
+            project.xform_set.exclude(shared=project.shared).update(
+                shared=project.shared, shared_data=project.shared
+            )
 
         return instance
 

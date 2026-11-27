@@ -18,10 +18,21 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.restservices_serializer import RestServiceSerializer
 from onadata.libs.serializers.textit_serializer import TextItSerializer
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.owners import form_owners
+from onadata.libs.stepup.policy import GATE_CHANGE_WEBHOOK
 from onadata.libs.utils.common_tags import TEXTIT
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
+
+#: Fields that set which form's data a service sends, in what format, and to
+#: what URL.
+DESTINATION_FIELDS = ("xform", "name", "service_url")
+
+#: A TextIt service sends to these instead. They live in MetaData, not on the
+#: row, so any write to one is gated without comparing it to a stored value.
+TEXTIT_DESTINATION_FIELDS = ("auth_token", "flow_uuid", "contacts")
 
 
 def get_serializer_class(name):
@@ -38,8 +49,30 @@ def get_serializer_class(name):
     return RestServiceSerializer
 
 
+def _service_owners(service, validated_data):
+    """The owners of the form the service sends from, before and after the
+    write."""
+    if service is not None:
+        yield from form_owners(service.xform)
+    xform = validated_data.get("xform")
+    if xform is not None:
+        yield from form_owners(xform)
+
+
+def _changes_destination(instance, validated_data) -> bool:
+    if any(
+        field in validated_data and validated_data[field] != getattr(instance, field)
+        for field in DESTINATION_FIELDS
+    ):
+        return True
+    if instance.name == TEXTIT:
+        return any(field in validated_data for field in TEXTIT_DESTINATION_FIELDS)
+    return False
+
+
 # pylint: disable=too-many-ancestors
 class RestServicesViewSet(
+    RequiresStepUp,
     AuthenticateHeaderMixin,
     CacheControlMixin,
     LastModifiedMixin,
@@ -68,6 +101,34 @@ class RestServicesViewSet(
             return serializer_class
 
         return super().get_serializer_class()
+
+    def create(self, request, *args, **kwargs):
+        """Add a service, which needs a grant where webhooks are gated."""
+        return self.gated_create(
+            request,
+            lambda data: self.check_step_up(
+                request, GATE_CHANGE_WEBHOOK, owners=_service_owners(None, data)
+            ),
+        )
+
+    def update(self, request, *args, **kwargs):
+        """Change a service, which needs a grant if it changes where the
+        service sends."""
+        return self.gated_update(
+            request,
+            lambda service, data: self._update_refusal(request, service, data),
+            partial=kwargs.pop("partial", False),
+        )
+
+    def _update_refusal(self, request, service, validated_data):
+        """Refuse sending ``service`` somewhere else without a grant."""
+        if not _changes_destination(service, validated_data):
+            return None
+        return self.check_step_up(
+            request,
+            GATE_CHANGE_WEBHOOK,
+            owners=_service_owners(service, validated_data),
+        )
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

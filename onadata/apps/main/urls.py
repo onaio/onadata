@@ -128,6 +128,16 @@ urlpatterns += [
         main_views.LockoutTokenView.as_view(),
         name="oauth2_provider_token",
     ),
+    re_path(
+        r"^o/applications/register/$",
+        main_views.StepUpApplicationRegistration.as_view(),
+        name="oauth2_provider_register",
+    ),
+    re_path(
+        r"^o/applications/(?P<pk>[-\w]+)/update/$",
+        main_views.StepUpApplicationUpdate.as_view(),
+        name="oauth2_provider_update",
+    ),
     re_path(r"^o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
     # main website views
     re_path(r"^$", main_views.home),

@@ -31,6 +31,9 @@ from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.owners import form_owners, project_owners
+from onadata.libs.stepup.policy import GATE_PUBLISH_DATA
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
@@ -76,6 +79,32 @@ def get_dataview_instances(dataview):
     ).order_by("pk")
 
 
+def _dataview_owners(dataview, validated_data):
+    """The owners of the project the dataview is in and of the form it
+    reads, once the write is applied."""
+    yield from project_owners(
+        validated_data.get("project", getattr(dataview, "project", None))
+    )
+    yield from form_owners(
+        validated_data.get("xform", getattr(dataview, "xform", None))
+    )
+
+
+def _publishes_data(dataview, validated_data):
+    """Whether the write publishes rows of a form whose data is not public.
+
+    Anyone can read a dataview in a public project, so creating, moving or
+    changing one there publishes its rows."""
+    project = validated_data.get("project", getattr(dataview, "project", None))
+    xform = validated_data.get("xform", getattr(dataview, "xform", None))
+    if project is None or xform is None or not project.shared or xform.shared_data:
+        return False
+    return dataview is None or any(
+        field in validated_data and validated_data[field] != getattr(dataview, field)
+        for field in ("project", "columns", "query")
+    )
+
+
 def _runtime_query_columns(query):
     """Return field names referenced by a JSON runtime query."""
     if not query:
@@ -112,7 +141,12 @@ def _runtime_query_columns(query):
 
 # pylint: disable=too-many-ancestors
 class DataViewViewSet(
-    AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin, BaseViewset, ModelViewSet
+    AuthenticateHeaderMixin,
+    CacheControlMixin,
+    ETagsMixin,
+    RequiresStepUp,
+    BaseViewset,
+    ModelViewSet,
 ):
     """
     A simple ViewSet for viewing and editing DataViews.
@@ -149,6 +183,27 @@ class DataViewViewSet(
         if isinstance(dataview, DataView):
             context["dataview"] = dataview
         return context
+
+    def _publish_refusal(self, request, dataview, validated_data):
+        if _publishes_data(dataview, validated_data):
+            return self.check_step_up(
+                request,
+                GATE_PUBLISH_DATA,
+                owners=_dataview_owners(dataview, validated_data),
+            )
+        return None
+
+    def create(self, request, *args, **kwargs):
+        return self.gated_create(
+            request, lambda data: self._publish_refusal(request, None, data)
+        )
+
+    def update(self, request, *args, **kwargs):
+        return self.gated_update(
+            request,
+            lambda dataview, data: self._publish_refusal(request, dataview, data),
+            partial=kwargs.pop("partial", False),
+        )
 
     @staticmethod
     def _has_source_data_access(request, dataview):

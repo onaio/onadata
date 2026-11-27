@@ -128,6 +128,8 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
         Overrides super().update(), which caches the response
         """
         response = super().update(request, *args, **kwargs)
+        if not status.is_success(response.status_code):
+            return response
         # super() has checked that the user may update the organization
         organization = OrganizationProfile.objects.get(
             user__username=self.kwargs[self.lookup_field]
@@ -156,6 +158,11 @@ class OrganizationProfileViewSet(OrganizationProfileViewSetV1):
         if request.method != "GET":
             serializer = self.get_serializer(data=request.data, context=context)
             serializer.is_valid(raise_exception=True)
+            refusal = self.member_role_refusal(
+                request, organization, serializer.validated_data
+            )
+            if refusal is not None:
+                return refusal
             serializer.save()
 
             if serializer.validated_data["remove"]:

@@ -20,6 +20,7 @@ from django.db import DataError
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.views.decorators.debug import sensitive_variables
 
 import jwt
 from django_digest import HttpDigestAuthenticator
@@ -601,6 +602,22 @@ def add_login_attempt(ip_address, username):
     safe_cache_set(attempts_key, 1)
 
     return safe_cache_get(attempts_key)
+
+
+@sensitive_variables("password")
+def check_password_with_lockout(request, user, password) -> bool:
+    """Whether ``password`` is ``user``'s, a wrong one spending the login
+    form's allowance so a password check is no way around its lockout.
+
+    Raises AuthenticationFailed while the account is locked out from the
+    request's IP, or once this guess locks it.
+    """
+    ip_address = get_client_ip(request)
+    assert_not_locked_out(ip_address, user.username)
+    if user.check_password(password):
+        return True
+    add_login_attempt(ip_address, user.username)
+    return False
 
 
 def is_lockout_excluded_path(request) -> bool:
