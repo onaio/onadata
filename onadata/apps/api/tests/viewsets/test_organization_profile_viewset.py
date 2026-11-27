@@ -359,7 +359,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
     @override_settings(REQUIRE_ODK_AUTHENTICATION=True)
     def test_orgs_create_form_data_without_require_auth_keeps_default(self):
         request = self.factory.post(
-            "/", data={"org": "forminc", "name": "Form Inc", "email": "form@mail.org"}, **self.extra
+            "/",
+            data={"org": "forminc", "name": "Form Inc", "email": "form@mail.org"},
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201, response.data)
