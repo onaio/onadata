@@ -10,8 +10,9 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
@@ -29,6 +30,16 @@ from onadata.apps.main.models import MetaData
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import DataEntryRole, OwnerRole, ReadOnlyRole
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
+from onadata.libs.utils.cache_tools import (
+    XFORM_LIST_CACHE,
+    XFORM_MANIFEST_CACHE,
+    XFORM_MANIFEST_CACHE_TTL,
+    XFROM_LIST_CACHE_TTL,
+    safe_cache_get_for_base_url,
+    safe_cache_set_for_base_url,
+)
+
+TEST_HOSTS = ["testserver", "first.example.com", "second.example.com"]
 
 
 class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
@@ -492,8 +503,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             {
                 "name": "organization_project",
                 "owner": (
-                    "http://testserver/api/v1/users/"
-                    f"{self.organization.user.username}"
+                    f"http://testserver/api/v1/users/{self.organization.user.username}"
                 ),
             }
         )
@@ -895,13 +905,23 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertTrue(response.has_header("Date"))
         self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
         # Cache is set
-        self.assertEqual(cache.get(f"xfm-manifest-{self.xform.pk}"), manifest_xml)
+        self.assertEqual(
+            safe_cache_get_for_base_url(
+                f"{XFORM_MANIFEST_CACHE}{self.xform.pk}", "http://testserver/"
+            ),
+            manifest_xml,
+        )
 
     def test_retrieve_xform_manifest_cache(self):
         """Manifest cache is used if not empty"""
         self._load_metadata(self.xform)
         self.view = XFormListViewSet.as_view({"get": "manifest", "head": "manifest"})
-        cache.set(f"xfm-manifest-{self.xform.pk}", "<manifest>Test</manifest>")
+        safe_cache_set_for_base_url(
+            f"{XFORM_MANIFEST_CACHE}{self.xform.pk}",
+            "http://testserver/",
+            "<manifest>Test</manifest>",
+            XFORM_MANIFEST_CACHE_TTL,
+        )
         request = self.factory.head("/")
         response = self.view(request, pk=self.xform.pk)
         auth = DigestAuth("bob", "bobbob")
@@ -917,6 +937,63 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
         self.assertTrue(response.has_header("Date"))
         self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+
+    def _get_manifest(self, host):
+        request = self.factory.get("/", HTTP_HOST=host, **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        if response.streaming:
+            content = b"".join(response.streaming_content)
+        else:
+            content = response.render().content
+        return response, content.decode("utf-8")
+
+    def _clear_manifest_cache(self):
+        cache_key = f"{XFORM_MANIFEST_CACHE}{self.xform.pk}"
+        cache.delete_many([cache_key, f"{cache_key}_lock"])
+        return cache_key
+
+    @override_settings(ALLOWED_HOSTS=TEST_HOSTS)
+    def test_retrieve_xform_manifest_cache_is_per_host(self):
+        """A manifest cached for one host is not served to another"""
+        self._load_metadata(self.xform)
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        cache_key = self._clear_manifest_cache()
+
+        for host in ("first.example.com", "second.example.com"):
+            response, manifest = self._get_manifest(host)
+            self.assertTrue(response.streaming)
+            self.assertIn(
+                f"<downloadUrl>http://{host}/bob/xformsMedia/{self.xform.pk}/",
+                manifest,
+            )
+            self.assertEqual(
+                safe_cache_get_for_base_url(cache_key, f"http://{host}/"), manifest
+            )
+
+        response, manifest = self._get_manifest("first.example.com")
+        self.assertFalse(response.streaming)
+        self.assertIn(
+            f"<downloadUrl>http://first.example.com/bob/xformsMedia/{self.xform.pk}/",
+            manifest,
+        )
+
+    def test_retrieve_xform_manifest_is_cached_once_per_stream(self):
+        """A streamed manifest is written to the cache once, when complete"""
+        self._load_metadata(self.xform)
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        cache_key = self._clear_manifest_cache()
+
+        with patch.object(cache, "set", wraps=cache.set) as mock_cache_set:
+            response, manifest = self._get_manifest("testserver")
+
+        self.assertTrue(response.streaming)
+        self.assertEqual(
+            [c.args[0] for c in mock_cache_set.call_args_list].count(cache_key), 1
+        )
+        self.assertEqual(
+            safe_cache_get_for_base_url(cache_key, "http://testserver/"), manifest
+        )
 
     def test_retrieve_xform_manifest_w_token_auth(self):
         self._load_metadata(self.xform)
@@ -939,6 +1016,49 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
         self.assertTrue(response.has_header("Date"))
         self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+
+    def test_retrieve_xform_manifest_media_url_with_dot_in_query(self):
+        """Media download URL takes the extension from the URL path."""
+        media = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value="https://example.com/plants.csv?v=1.184/",
+        )
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn(
+            f"<downloadUrl>http://testserver/bob/xformsMedia/{self.xform.pk}"
+            f"/{media.pk}.csv?",
+            content,
+        )
+
+    def test_retrieve_xform_manifest_media_file_name_with_spaces(self):
+        """Media download URL keeps the extension of a file name with spaces."""
+        media = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value="Site photo 1.png",
+            data_file=SimpleUploadedFile(
+                "Site photo 1.png", b"image", content_type="image/png"
+            ),
+        )
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn(
+            f"<downloadUrl>http://testserver/bob/xformsMedia/{self.xform.pk}"
+            f"/{media.pk}.png</downloadUrl>",
+            content,
+        )
 
     def test_retrieve_xform_manifest_anonymous_user(self):
         self._load_metadata(self.xform)
@@ -1027,6 +1147,48 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             request, pk=self.xform.pk, metadata=self.metadata.pk, format="png"
         )
         self.assertEqual(response.status_code, 401)
+
+    def test_retrieve_xform_manifest_lists_media_file_name_with_spaces(self):
+        """Uploaded media file keeps its name when the name has spaces."""
+        MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value="Site photo 1.png",
+            data_file=SimpleUploadedFile(
+                "Site photo 1.png", b"image", content_type="image/png"
+            ),
+        )
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn("<filename>Site photo 1.png</filename>", content)
+
+    def test_retrieve_xform_manifest_linked_dataset_without_file_value(self):
+        """Linked dataset stored with no file value is listed as a dataset."""
+        media = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value=f"xform {self.xform.pk} transportation",
+        )
+        MetaData.objects.filter(pk=media.pk).update(data_file=None)
+        self._make_submissions()
+        self.xform.refresh_from_db()
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertIn("<filename>transportation.csv</filename>", content)
+        expected_hash = md5(
+            self.xform.last_submission_time.isoformat().encode("utf-8")
+        ).hexdigest()
+        self.assertIn(f"<hash>md5:{expected_hash}</hash>", content)
 
     def test_retrieve_xform_media_linked_xform(self):
         data_type = "media"
@@ -1597,7 +1759,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            cache.get(f"xfm-list-{self.xform.pk}-XForm-anon"),
+            safe_cache_get_for_base_url(
+                f"{XFORM_LIST_CACHE}{self.xform.pk}-XForm-anon", "http://testserver/"
+            ),
             [
                 {
                     "formID": "transportation_2011_07_25",
@@ -1617,7 +1781,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            cache.get(f"xfm-list-{self.xform.pk}-XForm-owner"),
+            safe_cache_get_for_base_url(
+                f"{XFORM_LIST_CACHE}{self.xform.pk}-XForm-owner", "http://testserver/"
+            ),
             [
                 {
                     "formID": "transportation_2011_07_25",
@@ -1637,7 +1803,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, project_pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            cache.get(f"xfm-list-{self.project.pk}-Project-anon"),
+            safe_cache_get_for_base_url(
+                f"{XFORM_LIST_CACHE}{self.project.pk}-Project-anon",
+                "http://testserver/",
+            ),
             [
                 {
                     "formID": "transportation_2011_07_25",
@@ -1657,7 +1826,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, project_pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            cache.get(f"xfm-list-{self.project.pk}-Project-owner"),
+            safe_cache_get_for_base_url(
+                f"{XFORM_LIST_CACHE}{self.project.pk}-Project-owner",
+                "http://testserver/",
+            ),
             [
                 {
                     "formID": "transportation_2011_07_25",
@@ -1673,8 +1845,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_xform_list_cache_hit(self):
         """XForm list results returned from cache if available"""
-        cache.set(
-            f"xfm-list-{self.xform.pk}-XForm-anon",
+        safe_cache_set_for_base_url(
+            f"{XFORM_LIST_CACHE}{self.xform.pk}-XForm-anon",
+            "http://testserver/",
             [
                 {
                     "formID": "transportation_2011_07_25",
@@ -1686,6 +1859,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
                     "manifestUrl": None,
                 }
             ],
+            XFROM_LIST_CACHE_TTL,
         )
 
         with patch.object(cache, "set") as mock_cache_set:
@@ -1706,3 +1880,25 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
             self.assertTrue(response.has_header("Date"))
             self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+
+    @override_settings(ALLOWED_HOSTS=TEST_HOSTS)
+    def test_xform_list_cache_is_per_host(self):
+        """A form list cached for one host is not served to another"""
+        cache.delete(f"{XFORM_LIST_CACHE}{self.project.pk}-Project-anon")
+        for host in ("first.example.com", "second.example.com"):
+            request = self.factory.get("/", HTTP_HOST=host)
+            response = self.view(request, project_pk=self.project.pk)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.data[0]["downloadUrl"],
+                f"http://{host}/bob/forms/{self.xform.pk}/form.xml",
+            )
+
+        with patch.object(cache, "set") as mock_cache_set:
+            request = self.factory.get("/", HTTP_HOST="first.example.com")
+            response = self.view(request, project_pk=self.project.pk)
+            mock_cache_set.assert_not_called()
+        self.assertEqual(
+            response.data[0]["downloadUrl"],
+            f"http://first.example.com/bob/forms/{self.xform.pk}/form.xml",
+        )

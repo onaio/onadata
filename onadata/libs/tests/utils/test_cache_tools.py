@@ -16,6 +16,7 @@ from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.cache_tools import (
+    CACHE_MAX_BASE_URLS,
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
@@ -35,9 +36,11 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_decr,
     safe_cache_delete,
     safe_cache_get,
+    safe_cache_get_for_base_url,
     safe_cache_get_many,
     safe_cache_incr,
     safe_cache_set,
+    safe_cache_set_for_base_url,
     safe_key,
 )
 
@@ -448,3 +451,55 @@ class TestSafeCacheGetMany(TestCase):
         get_many_mock.side_effect = ConnectionError
 
         self.assertEqual(safe_cache_get_many(["many-a"]), {})
+
+
+class SafeCacheForBaseUrlTestCase(TestCase):
+    """Test methods `safe_cache_get_for_base_url` and `safe_cache_set_for_base_url`"""
+
+    key = "by-base-url"
+
+    def setUp(self):
+        cache.delete(self.key)
+
+    def tearDown(self):
+        cache.delete(self.key)
+
+    def test_keeps_other_base_urls(self):
+        safe_cache_set_for_base_url(self.key, "http://a/", 1, 60)
+        safe_cache_set_for_base_url(self.key, "http://b/", 2, 60)
+
+        self.assertEqual(safe_cache_get_for_base_url(self.key, "http://a/"), 1)
+        self.assertEqual(safe_cache_get_for_base_url(self.key, "http://b/"), 2)
+        self.assertIsNone(safe_cache_get_for_base_url(self.key, "http://c/"))
+
+    @patch("onadata.libs.utils.cache_tools.time")
+    def test_entry_expires_on_its_own_timeout(self, time_mock):
+        time_mock.time.return_value = 1000
+        safe_cache_set_for_base_url(self.key, "http://a/", 1, 60)
+        time_mock.time.return_value = 1050
+        safe_cache_set_for_base_url(self.key, "http://b/", 2, 60)
+
+        time_mock.time.return_value = 1059
+        self.assertEqual(safe_cache_get_for_base_url(self.key, "http://a/"), 1)
+
+        time_mock.time.return_value = 1061
+        self.assertIsNone(safe_cache_get_for_base_url(self.key, "http://a/"))
+        self.assertEqual(safe_cache_get_for_base_url(self.key, "http://b/"), 2)
+
+    def test_new_base_url_past_the_limit_replaces_the_others(self):
+        for i in range(CACHE_MAX_BASE_URLS):
+            safe_cache_set_for_base_url(self.key, f"http://{i}/", i, 60)
+
+        safe_cache_set_for_base_url(self.key, "http://0/", "updated", 60)
+        self.assertEqual(safe_cache_get_for_base_url(self.key, "http://0/"), "updated")
+        self.assertEqual(safe_cache_get_for_base_url(self.key, "http://1/"), 1)
+
+        safe_cache_set_for_base_url(self.key, "http://new/", "new", 60)
+        self.assertEqual(safe_cache_get_for_base_url(self.key, "http://new/"), "new")
+        self.assertIsNone(safe_cache_get_for_base_url(self.key, "http://0/"))
+
+    @patch("onadata.libs.utils.cache_tools.cache.get")
+    def test_unreachable_cache_reads_as_missing(self, get_mock):
+        get_mock.side_effect = ConnectionError
+
+        self.assertIsNone(safe_cache_get_for_base_url(self.key, "http://a/"))

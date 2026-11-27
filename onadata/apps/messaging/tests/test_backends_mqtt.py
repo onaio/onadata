@@ -2,21 +2,130 @@
 """
 Tests for MQTT notification backend
 """
+
 from __future__ import unicode_literals
 
 import json
 import ssl
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.utils import timezone
 
 from onadata.apps.messaging.backends.mqtt import (
     MQTTBackend,
     get_payload,
     get_target_metadata,
 )
-from onadata.apps.messaging.constants import PROJECT, XFORM
+from onadata.apps.messaging.constants import (
+    EXPORT_CREATED,
+    EXPORT_DOWNLOADED,
+    MESSAGE,
+    PROJECT,
+    SUBMISSION_CREATED,
+    XFORM,
+)
 from onadata.apps.messaging.tests.test_base import _create_message, _create_user
+
+
+class TestMQTTFormEvents(SimpleTestCase):
+    """Form events use explicit topic segments and preserve their payloads."""
+
+    @override_settings(FULL_MESSAGE_PAYLOAD=False)
+    @patch("onadata.apps.messaging.backends.mqtt.publish.single")
+    @patch("onadata.apps.messaging.backends.mqtt.XForm.objects.get")
+    def test_send_form_events(self, get_xform, publish_single):
+        """Export and submission events publish to the form's scoped topic."""
+        xform = get_xform.return_value
+        xform._meta.model_name = XFORM
+        xform.project.id = 42
+        xform.project.organization.username = "partners"
+        instance = MagicMock(
+            id=123,
+            target=xform,
+            target_object_id="16308",
+            description='{"id": [456], "description": "csv"}',
+            timestamp=timezone.now(),
+        )
+        instance.actor.username = "alice"
+        mqtt = MQTTBackend(options={"HOST": "localhost"})
+
+        for verb, segment in (
+            (EXPORT_CREATED, "export/created"),
+            (EXPORT_DOWNLOADED, "export/downloaded"),
+            (SUBMISSION_CREATED, "submission/created"),
+        ):
+            with self.subTest(verb=verb):
+                instance.verb = verb
+                publish_single.reset_mock()
+                expected_topic = (
+                    "/onadata/organization/partners/project/42/xform/16308/"
+                    f"{segment}/messages/publish"
+                )
+                self.assertEqual(mqtt.get_topic(instance), expected_topic)
+                mqtt.send(instance)
+                publish_single.assert_called_once_with(
+                    expected_topic,
+                    payload=get_payload(instance),
+                    hostname="localhost",
+                    port=None,
+                    tls=None,
+                    qos=0,
+                    retain=False,
+                )
+                payload = json.loads(publish_single.call_args.kwargs["payload"])
+                self.assertEqual(payload["verb"], verb)
+                self.assertEqual(
+                    payload["message"], {"id": [456], "description": "csv"}
+                )
+
+    @patch("onadata.apps.messaging.backends.mqtt.publish.single")
+    def test_send_plain_form_message(self, publish_single):
+        """Plain form messages use the plain form topic."""
+        user = MagicMock(username="alice")
+        form = MagicMock()
+        form._meta.model_name = XFORM
+        instance = MagicMock(
+            id=123,
+            target=form,
+            target_object_id="16308",
+            verb=MESSAGE,
+            description="Hello",
+            timestamp=timezone.now(),
+            actor=user,
+        )
+        MQTTBackend(options={"HOST": "localhost"}).send(instance)
+        self.assertEqual(
+            publish_single.call_args.args[0],
+            "/onadata/xform/16308/messages/publish",
+        )
+        self.assertEqual(
+            json.loads(publish_single.call_args.kwargs["payload"])["verb"], MESSAGE
+        )
+
+    @patch("onadata.apps.messaging.backends.mqtt.get_payload")
+    @patch("onadata.apps.messaging.backends.mqtt.publish.single")
+    @patch("onadata.apps.messaging.backends.mqtt.XForm.objects.get")
+    def test_unknown_form_event_is_skipped(
+        self, get_xform, publish_single, get_payload_mock
+    ):
+        """Unsupported form events are logged without attempting delivery."""
+        form = MagicMock()
+        form._meta.model_name = XFORM
+        instance = MagicMock(
+            pk=123, target=form, target_object_id="16308", verb="future_form_event"
+        )
+        backend = MQTTBackend(options={"HOST": "localhost"})
+        with self.assertLogs(
+            "onadata.apps.messaging.backends.mqtt", level="WARNING"
+        ) as logs:
+            self.assertIsNone(backend.send(instance))
+        self.assertIn("123", logs.output[0])
+        self.assertIn("future_form_event", logs.output[0])
+        self.assertIn("xform/16308", logs.output[0])
+        publish_single.assert_not_called()
+        get_payload_mock.assert_not_called()
+        get_xform.assert_not_called()
 
 
 class TestMQTTBackend(TestCase):

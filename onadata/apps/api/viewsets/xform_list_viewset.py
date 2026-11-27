@@ -40,8 +40,8 @@ from onadata.libs.serializers.xform_serializer import (
 from onadata.libs.utils.cache_tools import (
     XFORM_MANIFEST_CACHE,
     XFROM_LIST_CACHE_TTL,
-    safe_cache_get,
-    safe_cache_set,
+    safe_cache_get_for_base_url,
+    safe_cache_set_for_base_url,
 )
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG, REPEAT_INDEX_TAGS
 from onadata.libs.utils.export_builder import ExportBuilder
@@ -222,19 +222,22 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             return Response("", headers=headers, status=204)
 
         cache_key = self._get_xform_list_cache_key()
+        base_url = request.build_absolute_uri("/")
 
         if cache_key is not None:
-            cached_result = safe_cache_get(cache_key)
+            cached_list = safe_cache_get_for_base_url(cache_key, base_url)
 
-            if cached_result is not None:
-                return Response(cached_result, headers=headers)
+            if cached_list is not None:
+                return Response(cached_list, headers=headers)
 
         # pylint: disable=attribute-defined-outside-init
         self.object_list = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(self.object_list, many=True)
 
         if cache_key is not None:
-            safe_cache_set(cache_key, serializer.data, XFROM_LIST_CACHE_TTL)
+            safe_cache_set_for_base_url(
+                cache_key, base_url, serializer.data, XFROM_LIST_CACHE_TTL
+            )
 
         return Response(serializer.data, headers=headers)
 
@@ -254,10 +257,9 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         # pylint: disable=attribute-defined-outside-init
         xform = self.get_object()
         cache_key = f"{XFORM_MANIFEST_CACHE}{xform.pk}"
-        cached_manifest = safe_cache_get(cache_key)
-        # Ensure a previous stream has completed updating the cache by
-        # confirm the last tag </manifest> exists
-        if cached_manifest is not None and cached_manifest.endswith("</manifest>"):
+        base_url = request.build_absolute_uri("/")
+        cached_manifest = safe_cache_get_for_base_url(cache_key, base_url)
+        if cached_manifest is not None:
             return Response(
                 cached_manifest,
                 content_type="text/xml; charset=utf-8",
@@ -265,7 +267,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             )
 
         metadata_qs = MetaData.objects.filter(data_type="media", object_id=xform.pk)
-        renderer = XFormManifestRenderer(cache_key)
+        renderer = XFormManifestRenderer(cache_key, base_url)
 
         return StreamingHttpResponse(
             renderer.stream_data(metadata_qs, self.get_serializer),

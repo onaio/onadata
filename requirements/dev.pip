@@ -208,8 +208,10 @@ djangorestframework-jsonp==1.0.2
     # via onadata
 djangorestframework-xml==2.0.0
     # via onadata
-dnspython==2.9.0
-    # via pymongo
+dnspython==2.9.2
+    # via
+    #   -r requirements/base.in
+    #   pymongo
 dodgy==0.2.1
     # via prospector
 dpath==2.2.0
@@ -324,11 +326,12 @@ nose==1.3.7
     # via django-nose
 numpy==2.5.4
     # via onadata
-oauthlib==4.0.0
+oauthlib==4.0.1
     # via
+    #   -r requirements/base.in
     #   django-oauth-toolkit
     #   requests-oauthlib
-ona-oidc @ git+https://github.com/onaio/ona-oidc.git@a58cfb7916e6f06a0c1db7137881a42e8db76357
+ona-oidc @ git+https://github.com/onaio/ona-oidc.git@29544f09d8752b7060dd48203255ed6fe74e745a
     # via -r requirements/base.in
 openpyxl==3.1.5
     # via

@@ -816,7 +816,7 @@ class EncryptXFormTestCase(TestBase):
     def test_should_have_zero_submissions(self):
         """XForm should have zero submissions."""
         self.xform.num_of_submissions = 90
-        self.xform.save()
+        self.xform.save(update_fields=["num_of_submissions"])
 
         with self.assertRaises(EncryptionError) as exc_info:
             encrypt_xform(xform=self.xform, encrypted_by=self.user)
@@ -1732,7 +1732,7 @@ class DisableXFormEncryptionTestCase(TestBase):
         self._encrypt_xform(self.xform, self.kms_key)
 
         self.xform.num_of_submissions = 90
-        self.xform.save()
+        self.xform.save(update_fields=["num_of_submissions"])
 
         with self.assertRaises(EncryptionError) as exc_info:
             disable_xform_encryption(self.xform, disabled_by=self.user)

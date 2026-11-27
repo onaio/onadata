@@ -12,15 +12,11 @@ fixture at all.
 """
 
 import threading
-from datetime import timedelta
 
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection
 from django.test import TransactionTestCase, override_settings
-from django.utils import timezone
 
-import jwt
 from cryptography.fernet import Fernet
 from django_otp.oath import totp
 from rest_framework.test import APIRequestFactory
@@ -37,6 +33,7 @@ from onadata.apps.api.viewsets.totp_viewset import (
     _verify_recovery,
     _verify_totp,
 )
+from onadata.libs.test_utils.sso import sso_token
 from onadata.libs.utils.field_encryption import decrypt, encrypt
 
 CONCURRENT = 8
@@ -45,9 +42,7 @@ RECOVERY_CODE = "onceonly"
 TEST_KEY = Fernet.generate_key().decode()
 
 
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY]
-)
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY])
 class RecoveryCodeConcurrencyTestCase(TransactionTestCase):
     """A recovery code is single-use, including against itself."""
 
@@ -107,9 +102,7 @@ class RecoveryCodeConcurrencyTestCase(TransactionTestCase):
         )
 
 
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY]
-)
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY])
 class TotpCodeConcurrencyTestCase(TransactionTestCase):
     """One authenticator code buys one verification, not one per worker."""
 
@@ -157,9 +150,7 @@ class TotpCodeConcurrencyTestCase(TransactionTestCase):
         )
 
 
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY]
-)
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY])
 class EnrolmentConfirmationConcurrencyTestCase(TransactionTestCase):
     """A pending authenticator is confirmed by exactly one request.
 
@@ -179,12 +170,7 @@ class EnrolmentConfirmationConcurrencyTestCase(TransactionTestCase):
 
     def test_one_pending_code_confirms_one_enrolment(self):
         code = f"{totp(self.device.bin_key, self.device.step, self.device.t0):06d}"
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        sso = jwt.encode(
-            {"email": self.user.email, "exp": timezone.now() + timedelta(hours=1)},
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
+        sso = sso_token(self.user.email)
         barrier = threading.Barrier(CONCURRENT)
         responses = []
         guard = threading.Lock()
@@ -251,12 +237,7 @@ class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
         )
 
     def test_racing_starts_leave_one_pending_device(self):
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        sso = jwt.encode(
-            {"email": self.user.email, "exp": timezone.now() + timedelta(hours=1)},
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
+        sso = sso_token(self.user.email)
         barrier = threading.Barrier(CONCURRENT)
         responses = []
         guard = threading.Lock()
@@ -290,9 +271,7 @@ class EnrolmentStartConcurrencyTestCase(TransactionTestCase):
         )
 
 
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY]
-)
+@override_settings(ENABLE_TWO_FACTOR=True, TWO_FACTOR_FIELD_ENCRYPTION_KEYS=[TEST_KEY])
 class WizardVerifyConcurrencyTestCase(TransactionTestCase):
     """The login wizard verifies through the device's own ``verify_token``,
     without the row lock the viewset helpers take -- so ``verify_token`` must
@@ -342,9 +321,7 @@ class WizardVerifyConcurrencyTestCase(TransactionTestCase):
         )
 
         self.assertEqual(len(results), CONCURRENT, "a worker did not finish")
-        self.assertEqual(
-            sum(results), 1, f"the code was accepted {sum(results)} times"
-        )
+        self.assertEqual(sum(results), 1, f"the code was accepted {sum(results)} times")
 
     def test_a_totp_code_verify_token_spends_once(self):
         device = EncryptedTOTPDevice.objects.create(

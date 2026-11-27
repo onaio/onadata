@@ -2,9 +2,11 @@
 """
 Messaging notification backend for MQTT
 """
+
 from __future__ import unicode_literals
 
 import json
+import logging
 import ssl
 
 from django.conf import settings
@@ -20,6 +22,8 @@ from onadata.apps.messaging.constants import (
     VERB_TOPIC_DICT,
     XFORM,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_target_metadata(target_obj):
@@ -130,21 +134,23 @@ class MQTTBackend(BaseBackend):
             "topic_base": self.topic_base,
             "verb": instance.verb,
         }
+        if kwargs.get("verb") == MESSAGE:
+            return "/{topic_base}/{target_name}/{target_id}/" "messages/publish".format(
+                **kwargs
+            )
+
         if kwargs.get("target_name") == XFORM:
+            kwargs["verb"] = VERB_TOPIC_DICT.get(instance.verb)
+            if kwargs["verb"] is None:
+                return ""
             xform = XForm.objects.get(id=instance.target_object_id)
             kwargs["organization_username"] = xform.project.organization.username
-            kwargs["verb"] = VERB_TOPIC_DICT[instance.verb]
             kwargs["project_id"] = xform.project.id
             return (
                 "/{topic_base}/organization/{organization_username}/"
                 "project/{project_id}/{target_name}/{target_id}/{verb}/"
                 "messages/publish"
             ).format(**kwargs)
-
-        if kwargs.get("verb") == MESSAGE:
-            return "/{topic_base}/{target_name}/{target_id}/" "messages/publish".format(
-                **kwargs
-            )
 
         return ""
 
@@ -153,6 +159,15 @@ class MQTTBackend(BaseBackend):
         Sends the message to appropriate MQTT topic(s)
         """
         topic = self.get_topic(instance)
+        if not topic:
+            logger.warning(
+                "Skipping MQTT action %s with unsupported verb %s for %s/%s",
+                instance.pk,
+                instance.verb,
+                instance.target._meta.model_name,
+                instance.target_object_id,
+            )
+            return None
         payload = get_payload(instance)
         # send it
 

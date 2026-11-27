@@ -32,8 +32,7 @@ from onadata.libs.utils.cache_tools import (
     XFORM_MANIFEST_CACHE_TTL,
     safe_cache_add,
     safe_cache_delete,
-    safe_cache_get,
-    safe_cache_set,
+    safe_cache_set_for_base_url,
 )
 from onadata.libs.utils.osm import get_combined_osm
 
@@ -387,30 +386,28 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
     element_node = "mediaFile"
     xmlns = "http://openrosa.org/xforms/xformsManifest"
 
-    def __init__(self, cache_key=None) -> None:
+    def __init__(self, cache_key=None, base_url=None) -> None:
         self.cache_key = cache_key
+        self.base_url = base_url
         self.can_update_cache = False
         self.cache_lock_key = None
+        self.manifest_parts = []
 
     def _get_current_buffer_data(self):
         data = super()._get_current_buffer_data()
 
         if data and self.can_update_cache:
             data = data.strip()
-            cached_manifest = safe_cache_get(self.cache_key)
+            self.manifest_parts.append(data)
 
-            if cached_manifest is not None:
-                cached_manifest += data
-                safe_cache_set(
-                    self.cache_key, cached_manifest, XFORM_MANIFEST_CACHE_TTL
+            if data.endswith("</manifest>"):
+                safe_cache_set_for_base_url(
+                    self.cache_key,
+                    self.base_url,
+                    "".join(self.manifest_parts),
+                    XFORM_MANIFEST_CACHE_TTL,
                 )
-
-                if data.endswith("</manifest>"):
-                    # We are done, release the lock
-                    safe_cache_delete(self.cache_lock_key)
-
-            else:
-                safe_cache_set(self.cache_key, data, XFORM_MANIFEST_CACHE_TTL)
+                safe_cache_delete(self.cache_lock_key)
 
         return data
 

@@ -1075,6 +1075,11 @@ class XForm(XFormMixin, BaseModel):
 
     CLONED_SUFFIX = "_cloned"
     MAX_ID_LENGTH = 100
+    COUNTER_FIELDS = (
+        "num_of_submissions",
+        "num_of_decrypted_submissions",
+        "last_submission_time",
+    )
 
     xls = models.FileField(upload_to=upload_to, null=True)
     # pylint: disable=no-member
@@ -1276,8 +1281,28 @@ class XForm(XFormMixin, BaseModel):
         """Returns the form JSON in survey.to_json_dict() format."""
         return self.survey.to_json_dict()
 
+    def _exclude_counters_from_full_save(self, kwargs):
+        """Saves every loaded field except the counters on a full update.
+
+        A loaded copy's counters may be out of date, so only the code that
+        maintains them writes them.
+        """
+        if (
+            kwargs.get("update_fields") is None
+            and self.pk is not None
+            and not self._state.adding
+            and not kwargs.get("force_insert")
+        ):
+            skipped = set(self.COUNTER_FIELDS) | self.get_deferred_fields()
+            kwargs["update_fields"] = [
+                field.name
+                for field in self._meta.concrete_fields
+                if not field.primary_key and field.attname not in skipped
+            ]
+
     def update(self, *args, **kwargs):
         """Persists the form to the DB."""
+        self._exclude_counters_from_full_save(kwargs)
         super().save(*args, **kwargs)
 
     # pylint: disable=too-many-branches,arguments-differ
@@ -1356,6 +1381,8 @@ class XForm(XFormMixin, BaseModel):
             )
 
         self.description = conditional_escape(self.description)
+
+        self._exclude_counters_from_full_save(kwargs)
 
         super().save(*args, **kwargs)
 
@@ -1547,7 +1574,7 @@ class XForm(XFormMixin, BaseModel):
                 pass
             else:
                 self.last_submission_time = last_submission.date_created
-                self.save()
+                self.save(update_fields=["last_submission_time"])
         return self.last_submission_time
 
     def time_of_last_submission_update(self):
