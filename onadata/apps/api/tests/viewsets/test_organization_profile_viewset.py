@@ -359,6 +359,16 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
                 profile = OrganizationProfile.objects.get(user__username=org)
                 self.assertEqual(profile.require_auth, requested)
 
+    @override_settings(REQUIRE_ODK_AUTHENTICATION=True)
+    def test_orgs_create_form_data_without_require_auth_keeps_default(self):
+        request = self.factory.post(
+            "/", data={"org": "forminc", "name": "Form Inc"}, **self.extra
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201, response.data)
+        profile = OrganizationProfile.objects.get(user__username="forminc")
+        self.assertTrue(profile.require_auth)
+
     def test_orgs_create_without_name(self):
         data = {
             "org": "denoinc",
