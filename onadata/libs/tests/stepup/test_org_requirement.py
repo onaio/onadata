@@ -41,7 +41,7 @@ ACCOUNT_ONLY_ACTIONS = {
 
 class TestOrgScopedActions(TestCase):
     def test_account_only_actions_are_not_org_scoped(self):
-        self.assertTrue(ACCOUNT_ONLY_ACTIONS <= KNOWN_ACTIONS)
+        self.assertLessEqual(ACCOUNT_ONLY_ACTIONS, KNOWN_ACTIONS)
         self.assertFalse(ACCOUNT_ONLY_ACTIONS & ORG_SCOPED_ACTIONS)
         self.assertEqual(ORG_SCOPED_ACTIONS, KNOWN_ACTIONS - ACCOUNT_ONLY_ACTIONS)
 
