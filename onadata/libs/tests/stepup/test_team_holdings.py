@@ -32,6 +32,9 @@ class TestTeamAdminHoldings(TestBase):
     def setUp(self):
         super().setUp()
         self.organization = self._create_organization("denoinc", "Dennis", self.user)
+        # Creating a team grants its organisation's created_by permissions on it.
+        self.organization.created_by = self.user
+        self.organization.save(update_fields=["created_by"])
         self.team = Team.objects.create(
             name="denoinc#dreamteam",
             organization=self.organization.user,
