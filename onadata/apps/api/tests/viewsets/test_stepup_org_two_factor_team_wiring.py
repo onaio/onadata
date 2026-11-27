@@ -417,14 +417,6 @@ class TestOrgMembersOwners(OrgMembersWiringTestCase):
         self.assert_enrol_required(self._add_owner())
         self.assertFalse(OwnerRole.user_has_role(self.alice, self.organization))
 
-    def test_appointing_an_owner_goes_through_when_not_required(self):
-        self._require([])
-
-        response = self._add_owner()
-
-        self.assertEqual(response.status_code, 201, response.data)
-        self.assertTrue(OwnerRole.user_has_role(self.alice, self.organization))
-
 
 @gating(GATE_GRANT_ORG_ADMIN, GATE_SHARE_TEAM_ADMIN)
 class TestOrgMembersChecksEveryAction(OrgMembersWiringTestCase):

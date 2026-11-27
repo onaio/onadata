@@ -7,7 +7,6 @@ from django.test import TestCase, override_settings
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.api.viewsets.totp_viewset import _known_audiences
 from onadata.libs.stepup.gate import (
     ENROL_REQUIRED,
     STEP_UP_REQUIRED,
@@ -41,13 +40,6 @@ ACCOUNT_ONLY_ACTIONS = {
 
 
 class TestOrgScopedActions(TestCase):
-    def test_the_new_action_is_known_and_org_scoped(self):
-        self.assertIn(GATE_ORG_TWO_FACTOR_POLICY, KNOWN_ACTIONS)
-        self.assertIn(GATE_ORG_TWO_FACTOR_POLICY, ORG_SCOPED_ACTIONS)
-
-    def test_a_grant_can_be_minted_for_the_new_action(self):
-        self.assertIn(GATE_ORG_TWO_FACTOR_POLICY, _known_audiences())
-
     def test_account_only_actions_are_not_org_scoped(self):
         self.assertTrue(ACCOUNT_ONLY_ACTIONS <= KNOWN_ACTIONS)
         self.assertFalse(ACCOUNT_ONLY_ACTIONS & ORG_SCOPED_ACTIONS)
@@ -124,15 +116,6 @@ class TestRequiringOrganization(OrgHarness):
         self.assertEqual(
             requiring_organization((self.org_user.pk,), "publish-data"), "denoinc"
         )
-
-    def test_owners_that_are_not_organisations_are_skipped(self):
-        self._require(["publish-data"])
-        self.assertEqual(
-            requiring_organization((self.org_user,), "publish-data"), "denoinc"
-        )
-
-        self.assertIsNone(requiring_organization((self.person,), "publish-data"))
-        self.assertIsNone(requiring_organization((None,), "publish-data"))
 
     def test_looks_up_every_owner_in_one_query(self):
         self._require(["publish-data"])

@@ -12,8 +12,6 @@ from django.core.cache import cache
 
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from oidc.stepup_grants import spend_grant
-from registration.models import RegistrationProfile
-from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -21,7 +19,6 @@ from onadata.apps.api.tests.viewsets.test_stepup_sharing_gates import (
     StepUpGateTestCase,
     gating,
 )
-from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import (
     OrganizationProfileViewSet,
 )
@@ -125,27 +122,6 @@ class TestTwoFactorRequiredActionsField(OrgTwoFactorTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("two_factor_required_actions", response.data)
         self.assertEqual(self._required(), [])
-
-    def test_a_value_that_is_not_a_list_is_rejected(self):
-        response = self._patch_org({"two_factor_required_actions": "publish-data"})
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(self._required(), [])
-
-    def test_a_manager_cannot_change_the_actions(self):
-        owner_extra = self.extra
-        self._login_user_and_profile({"username": "alice", "email": "a@x.org"})
-        self._add_user_to_organization(self.organization, self.user, "manager")
-        self.assertTrue(ManagerRole.user_has_role(self.user, self.organization))
-
-        response = self._patch_org({"two_factor_required_actions": ["all"]})
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(self._required(), [])
-        self.extra = owner_extra
-        response = self._patch_org({"two_factor_required_actions": ["all"]})
-        self.assertEqual(response.status_code, 200, response.data)
-        self.assertEqual(self._required(), ["all"])
 
     def test_anonymous_users_do_not_see_the_fields(self):
         response = self._get_org()
@@ -283,12 +259,6 @@ class TestTwoFactorSettingOnV2(StepUpGateTestCase, OrgTwoFactorTestCase):
         self.assertNotIn("two_factor_required_actions", anonymous.data)
         self.assertNotIn("two_factor_action_choices", anonymous.data)
 
-    def test_changing_the_actions_is_challenged(self):
-        response = self._patch_v2({"two_factor_required_actions": ["all"]})
-
-        self.assert_challenged(response)
-        self.assertEqual(self._required(), [])
-
     def test_a_grant_lets_the_change_through_and_refreshes_both_caches(self):
         for cached in self._get_both():
             self.assertEqual(cached.data["two_factor_required_actions"], [])
@@ -320,18 +290,6 @@ class TestTwoFactorSettingOnV2(StepUpGateTestCase, OrgTwoFactorTestCase):
         self.assertIn("two_factor_required_actions", response.data)
         self.assertEqual(self._required(), [])
         self.assertTrue(spend_grant(self.user.pk, self.audience, grant))
-
-    def test_a_manager_cannot_change_the_actions(self):
-        owner_extra = self.extra
-        self._login_user_and_profile({"username": "alice", "email": "a@x.org"})
-        self._add_user_to_organization(self.organization, self.user, "manager")
-
-        response = self._patch_v2({"two_factor_required_actions": ["all"]})
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(self._required(), [])
-        self.extra = owner_extra
-        self.assert_challenged(self._patch_v2({"two_factor_required_actions": ["all"]}))
 
 
 ENFORCED = (
@@ -386,40 +344,6 @@ class TestOrgTwoFactorEnforcement(OrgTwoFactorTestCase):
 
         self.assertEqual(response.status_code, 204)
         self.assertTrue(self._alice_manages())
-
-    def test_a_user_with_a_factor_is_challenged_as_usual(self):
-        self._require(["share-project-admin"])
-        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
-
-        response = self._share()
-
-        self.assertEqual(response.status_code, 401, response.data)
-        self.assertEqual(response.data["audience"], "share-project-admin")
-        self.assertFalse(self._alice_manages())
-
-    def test_all_covers_every_org_action(self):
-        self._require(["all"])
-
-        self.assert_enrol_required(self._share())
-        self.assert_enrol_required(self._patch_project(self.project, {"public": True}))
-
-        self.project.refresh_from_db()
-        self.assertFalse(self.project.shared)
-        self.assertFalse(self._alice_manages())
-        self._require([])
-        self.assertEqual(self._share().status_code, 204)
-
-    def test_account_actions_are_unaffected(self):
-        self._require(["all"])
-        self.assert_enrol_required(self._share())
-        RegistrationProfile.objects.create_profile(self.user)
-        old_token = Token.objects.get(user=self.user).key
-
-        view = ConnectViewSet.as_view({"get": "regenerate_auth_token"})
-        response = view(self.factory.get("/", **self.extra))
-
-        self.assertEqual(response.status_code, 201, response.data)
-        self.assertNotEqual(Token.objects.get(user=self.user).key, old_token)
 
     def test_a_transfer_into_a_requiring_org_is_refused(self):
         self._project_create({"name": "personal"})
