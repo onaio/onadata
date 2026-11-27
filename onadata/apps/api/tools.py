@@ -186,7 +186,6 @@ def create_organization_object(org_name, creator, attrs=None):
         home_page=attrs.get("home_page", ""),
         twitter=attrs.get("twitter", ""),
         email=email,
-        require_auth=attrs.get("require_auth", False),
     )
     return profile
 
