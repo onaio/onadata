@@ -779,6 +779,10 @@ class Instance(models.Model, InstanceBaseClass):
             models.Index(fields=["xform_id", "id"]),
             models.Index(fields=["decryption_status"]),
             models.Index(fields=["xform_id", "date_created"]),
+            models.Index(
+                fields=["xform_id", "date_created", "id"],
+                name="logger_inst_xform_cursor_idx",
+            ),
             models.Index(fields=["xform_id", "date_modified"]),
             models.Index(fields=["xform_id", "last_edited"]),
             models.Index(fields=["user", "date_created"]),

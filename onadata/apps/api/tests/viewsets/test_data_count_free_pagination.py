@@ -1,8 +1,9 @@
 """Count-free submission pages and validators."""
 
 import json
+from datetime import timedelta
 from unittest.mock import patch
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from django.core.cache import cache
 from django.db import DataError, connection
@@ -88,6 +89,106 @@ class TestCountFreeDataPagination(SerializeMixin, TestBase):
         response = self.get({"page_size": 3, "page": 2})
         self.assertEqual([row["_id"] for row in response.data], self.ids[3:])
         self.assertNotIn("next", self.links(response))
+
+    def test_cursor_orderings_seek_past_the_last_row(self):
+        now = timezone.now()
+        Instance.objects.filter(pk__in=self.ids).update(date_created=now)
+        Instance.objects.filter(pk=self.ids[2]).update(
+            date_created=now - timedelta(seconds=1)
+        )
+        by_timestamp = [self.ids[2], *self.ids[:2], self.ids[3]]
+        for sort, ids, seek in (
+            (None, self.ids, '"logger_instance"."id" >'),
+            ('{"_id":-1}', self.ids[::-1], '"logger_instance"."id" <'),
+            ('{"_submission_time":1}', by_timestamp, '"logger_instance"."id") >'),
+            (
+                '{"_submission_time":-1}',
+                by_timestamp[::-1],
+                '"logger_instance"."id") <',
+            ),
+        ):
+            with self.subTest(sort=sort):
+                params = {"pagination": "cursor", "fields": '["_id"]'}
+                if sort is not None:
+                    params["sort"] = sort
+                response = self.get(params)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data, [{"_id": pk} for pk in ids[:2]])
+                self.assertEqual(set(self.links(response)), {"next"})
+                with CaptureQueriesContext(connection) as queries:
+                    response = self.get(url=self.links(response)["next"])
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data, [{"_id": pk} for pk in ids[2:]])
+                self.assertNotIn("Link", response)
+                sql = [
+                    item["sql"]
+                    for item in queries
+                    if 'FROM "logger_instance"' in item["sql"]
+                ]
+                self.assertEqual(len(sql), 1, sql)
+                self.assertIn(seek, sql[0])
+                self.assertNotIn("OFFSET", sql[0])
+                self.assertNotIn("COUNT(", sql[0])
+                self.assertNotIn("string_agg", sql[0])
+
+    def test_cursor_deduplicates_matching_tags(self):
+        self.instances[0].tags.add("red", "blue")
+        self.instances[1].tags.add("blue")
+        response = self.get(
+            {"pagination": "cursor", "tags": "red,blue", "page_size": 1}
+        )
+        self.assertEqual([row["_id"] for row in response.data], self.ids[:1])
+        response = self.get(url=self.links(response)["next"])
+        self.assertEqual([row["_id"] for row in response.data], self.ids[1:2])
+        self.assertNotIn("Link", response)
+
+    def test_cursor_validation(self):
+        for options in (
+            {"page": 1},
+            {"start": 0},
+            {"limit": 2},
+            {"include_count": "true"},
+            {"sort": '{"endtime":1}'},
+        ):
+            with self.subTest(options=options):
+                response = self.get({"pagination": "cursor", **options})
+                self.assertEqual(response.status_code, 400)
+        response = self.get({"pagination": "cursor", "cursor": "tampered"})
+        self.assertEqual(response.status_code, 404)
+        first = self.get({"pagination": "cursor", "sort": "_submission_time"})
+        token = parse_qs(urlsplit(self.links(first)["next"]).query)["cursor"][0]
+        response = self.get({"pagination": "cursor", "cursor": token})
+        self.assertEqual(response.status_code, 404)
+        response = self.get({"pagination": "cursor", "query": '{"facility":0}'})
+        self.assertEqual(response.data, [])
+        self.assertNotIn("Link", response)
+
+    @override_settings(STREAM_DATA=True)
+    def test_cursor_streams_json_and_xml(self):
+        for path, content_type in ((self.url, "json"), (f"{self.url}.xml", "xml")):
+            with self.subTest(content_type=content_type):
+                client = Client()
+                response = client.get(
+                    path,
+                    {
+                        "pagination": "cursor",
+                        "page_size": 2,
+                        "sort": "_submission_time",
+                    },
+                    **self.extra,
+                )
+                for ids in (self.ids[:2], self.ids[2:]):
+                    self.assertEqual(response.status_code, 200)
+                    if content_type == "xml":
+                        self.assert_xml_page(response, ids, streaming=True)
+                    else:
+                        rows = json.loads(b"".join(response.streaming_content))
+                        self.assertEqual([row["_id"] for row in rows], ids)
+                    if self.links(response):
+                        response = client.get(
+                            self.links(response)["next"], **self.extra
+                        )
+                self.assertNotIn("Link", response)
 
     def test_sorted_pages_break_ties_by_submission_id(self):
         for sort, ids, direction in (
@@ -300,7 +401,11 @@ class TestCountFreeDataPagination(SerializeMixin, TestBase):
         ShareXForm(self.xform, alice.username, EditorMinorRole.name).save()
         Instance.objects.filter(pk=self.ids[-1]).update(user=alice)
         headers = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token.key}"}
-        for params in ({}, {"sort": '{"endtime":-1}', "fields": '["_id"]'}):
+        for params in (
+            {},
+            {"sort": '{"endtime":-1}', "fields": '["_id"]'},
+            {"pagination": "cursor", "sort": "_submission_time"},
+        ):
             with self.subTest(params=params):
                 response = self.get({"page_size": 1, **params}, headers=headers)
                 self.assertEqual(response.status_code, 200)

@@ -10,9 +10,10 @@ from hashlib import sha256
 from typing import Union
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import F, Q
+from django.db.models import Exists, F, OuterRef, Q
 from django.db.models.fields.json import KeyTextTransform, KeyTransform
 from django.db.utils import DataError, OperationalError
 from django.http import Http404, StreamingHttpResponse
@@ -29,6 +30,7 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.utils.urls import remove_query_param, replace_query_param
 from rest_framework.viewsets import ModelViewSet
+from taggit.models import TaggedItem
 
 from onadata.apps.api.permissions import ConnectViewsetPermissions, XFormPermissions
 from onadata.apps.api.tasks import delete_xform_submissions_async
@@ -63,6 +65,7 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import (
     CountFreePageNumberPagination,
     CountOverridablePageNumberPagination,
+    SubmissionCursorPagination,
 )
 from onadata.libs.permissions import (
     CAN_DELETE_SUBMISSION,
@@ -175,6 +178,10 @@ class DataViewSet(
     queryset = XForm.objects.filter(
         deleted_at__isnull=True, project__organization__is_active=True
     )
+
+    @cached_property
+    def _uses_submission_cursor(self):
+        return self.request.query_params.get("pagination") == "cursor"
 
     @cached_property
     def signed_attachment_urls(self):
@@ -624,6 +631,13 @@ class DataViewSet(
         lookup = self.kwargs.get(lookup_field)
         is_public_request = lookup == self.public_data_endpoint
 
+        if self._uses_submission_cursor and (
+            lookup in (None, self.public_data_endpoint)
+            or export_type not in (None, "json", "xml")
+            or request.accepted_renderer.format not in ("json", "xml")
+        ):
+            raise ParseError(_("Use cursor pagination on a form's JSON or XML list."))
+
         if lookup_field not in list(kwargs):
             # pylint: disable=attribute-defined-outside-init
             self.object_list = self.filter_queryset(self.get_queryset())
@@ -641,6 +655,10 @@ class DataViewSet(
             xform_id, is_merged_dataset = queryset[0] if queryset else (lookup, False)
             pks = [xform_id]
             if is_merged_dataset:
+                if self._uses_submission_cursor:
+                    raise ParseError(
+                        _("Cursor pagination requires an individual form.")
+                    )
                 merged_form = MergedXForm.objects.get(pk=xform_id)
                 queryset = merged_form.xforms.filter(
                     deleted_at__isnull=True,
@@ -708,7 +726,15 @@ class DataViewSet(
 
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(",")
-                self.object_list = self.object_list.filter(tags__name__in=tags)
+                if self._uses_submission_cursor:
+                    matches = TaggedItem.objects.filter(
+                        content_type=ContentType.objects.get_for_model(Instance),
+                        object_id=OuterRef("pk"),
+                        tag__name__in=tags,
+                    )
+                    self.object_list = self.object_list.filter(Exists(matches))
+                else:
+                    self.object_list = self.object_list.filter(tags__name__in=tags)
             if not_tagged and isinstance(not_tagged, six.string_types):
                 not_tagged = not_tagged.split(",")
                 self.object_list = self.object_list.exclude(tags__name__in=not_tagged)
@@ -940,12 +966,15 @@ class DataViewSet(
         decryption_status,
     ):
         if not is_public_request:
+            default_count = "false" if self._uses_submission_cursor else "true"
             try:
                 include_count = strtobool(
-                    self.request.query_params.get("include_count", "true")
+                    self.request.query_params.get("include_count", default_count)
                 )
             except ValueError as exc:
                 raise ParseError(_("Use 'true' or 'false' for include_count.")) from exc
+            if self._uses_submission_cursor and include_count:
+                raise ParseError(_("Cursor pagination requires include_count=false."))
             if not include_count:
                 return self._get_count_free_data(query, fields, sort)
 
@@ -1048,16 +1077,35 @@ class DataViewSet(
         projection = {
             alias: KeyTransform(field, "json") for alias, field in aliases.items()
         }
-        return queryset.values(**projection), aliases
+        cursor_fields = ("id", "date_created") if self._uses_submission_cursor else ()
+        return queryset.values(*cursor_fields, **projection), aliases
+
+    def _count_free_paginator(self, form_id, sort):
+        if self._uses_submission_cursor:
+            if any(
+                key in self.request.query_params for key in ("page", "start", "limit")
+            ):
+                raise ParseError(_("Use cursor and page_size with cursor pagination."))
+            try:
+                ordering = _get_sort_fields(sort) or ["id"]
+            except (AttributeError, TypeError, ValueError) as exc:
+                raise ParseError(_("Invalid sort for cursor pagination.")) from exc
+            if (
+                ordering[0] not in ("id", "-id", "date_created", "-date_created")
+                or len(ordering) != 1
+            ):
+                raise ParseError(_("Sort by _id or _submission_time with a cursor."))
+            return SubmissionCursorPagination(form_id, ordering[0])
+        if any(key in self.request.query_params for key in ("start", "limit")):
+            raise ParseError(_("Use page and page_size with include_count=false."))
+        return CountFreePageNumberPagination()
 
     # pylint: disable=attribute-defined-outside-init
     def _get_count_free_data(self, query, fields, sort):
         """Fetch one bounded page and derive its validators without extra scans."""
-        if any(key in self.request.query_params for key in ("start", "limit")):
-            raise ParseError(_("Use page and page_size with include_count=false."))
-
         self._count_free_xml = self.request.accepted_renderer.format == "xml"
         xform = self.get_object()
+        paginator = self._count_free_paginator(xform.pk, sort)
         try:
             known_integers = [
                 get_name_from_survey_element(element)
@@ -1074,9 +1122,12 @@ class DataViewSet(
                     "json", "xml", "version", "date_created", "date_modified"
                 )
 
-            queryset = self._order_count_free_submissions(queryset, sort)
+            if self._uses_submission_cursor:
+                if not self._count_free_xml:
+                    queryset = queryset.only("json", "date_created")
+            else:
+                queryset = self._order_count_free_submissions(queryset, sort)
             queryset, aliases = self._select_count_free_fields(queryset, fields)
-            paginator = CountFreePageNumberPagination()
             self.object_list = paginator.paginate_queryset(queryset, self.request, self)
             if aliases:
                 self.object_list = [

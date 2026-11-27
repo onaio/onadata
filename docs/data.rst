@@ -396,6 +396,18 @@ Use ``page`` and ``page_size``. Adding ``start`` or ``limit`` returns HTTP 400.
 An empty first page returns an empty result. Empty later pages, invalid page
 numbers, and ``page=last`` return HTTP 404.
 
+Cursor pagination
+^^^^^^^^^^^^^^^^^
+
+For sequential reads of an individual form's JSON or XML submissions, start
+with ``pagination=cursor&page_size=5000``. Follow ``rel="next"`` in the ``Link``
+header until it is absent. Start again if you change filters or sorting.
+
+The default order is ascending ``_id``. You can sort by ``_id`` or
+``_submission_time`` in either direction. Cursor pagination skips the count
+and returns HTTP 400 if you also supply ``page``, ``start``, ``limit``, or
+``include_count=true``.
+
 JSON Example
 ^^^^^^^^^^^^^
 ::

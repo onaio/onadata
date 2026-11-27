@@ -3,11 +3,14 @@
 Pagination classes.
 """
 
-from typing import Tuple
-
 from django.conf import settings
 from django.core.paginator import Paginator
+from django.core.signing import BadSignature, Signer
+from django.db.models import F
+from django.db.models.fields.tuple_lookups import Tuple, TupleGreaterThan, TupleLessThan
+from django.utils.dateparse import parse_datetime
 from django.utils.functional import cached_property
+from django.utils.translation import gettext as _
 
 from rest_framework.pagination import (
     InvalidPage,
@@ -112,6 +115,68 @@ class CountFreePageNumberPagination(StandardPageNumberPagination):
         return None
 
 
+class SubmissionCursorPagination(StandardPageNumberPagination):
+    """Traverse submission IDs or timestamp and ID pairs with an indexed seek."""
+
+    def __init__(self, form_id, ordering):
+        self.form_id = form_id
+        self.ordering = ordering
+        self.descending = ordering.startswith("-")
+        self.by_timestamp = ordering.lstrip("-") == "date_created"
+        self.signer = Signer(salt="onadata.submission-pagination")
+        self.next_url = None
+
+    def _seek(self, queryset, token):
+        try:
+            form_id, ordering, pk, date = self.signer.unsign_object(token)
+            if (form_id, ordering) != (self.form_id, self.ordering):
+                raise ValueError
+            if not isinstance(pk, int) or pk < 1:
+                raise ValueError
+            timestamp = parse_datetime(date) if self.by_timestamp else None
+            if self.by_timestamp and (
+                timestamp is None or timestamp.utcoffset() is None
+            ):
+                raise ValueError
+        except (BadSignature, TypeError, ValueError, OverflowError) as exc:
+            raise NotFound(_("Invalid submission cursor.")) from exc
+
+        if timestamp is not None:
+            lookup = TupleLessThan if self.descending else TupleGreaterThan
+            return queryset.filter(
+                lookup(Tuple(F("date_created"), F("id")), (timestamp, pk))
+            )
+        comparison = "id__lt" if self.descending else "id__gt"
+        return queryset.filter(**{comparison: pk})
+
+    def paginate_queryset(self, queryset, request, view=None):
+        token = request.query_params.get("cursor")
+        if token is not None:
+            queryset = self._seek(queryset, token)
+        page_size = self.get_page_size(request)
+        order_id = "-id" if self.descending else "id"
+        ordering = (self.ordering, order_id) if self.by_timestamp else (order_id,)
+        records = list(queryset.order_by(*ordering)[: page_size + 1])
+        page = records[:page_size]
+        if len(records) > page_size:
+            last = page[-1]
+            boundary = last if isinstance(last, dict) else vars(last)
+            date = boundary["date_created"].isoformat() if self.by_timestamp else None
+            token = self.signer.sign_object(
+                [self.form_id, self.ordering, boundary["id"], date]
+            )
+            url = replace_query_param(request.build_absolute_uri(), "cursor", token)
+            self.next_url = replace_query_param(
+                url, self.page_size_query_param, page_size
+            )
+        return page
+
+    def generate_link_header(self):
+        if self.next_url is None:
+            return {}
+        return {"Link": f'<{self.next_url}>; rel="next"'}
+
+
 class CountOverridablePaginator(Paginator):
     """Count override Paginator
 
@@ -150,8 +215,8 @@ class CountOverridablePageNumberPagination(StandardPageNumberPagination):
 
     django_paginator_class = CountOverridablePaginator
 
+    # pylint: disable=attribute-defined-outside-init
     def paginate_queryset(self, queryset, request, view, count=None):
-        # pylint: disable=attribute-defined-outside-init
         page_size = self.get_page_size(request)
         if not page_size:
             return None
@@ -197,7 +262,7 @@ class RawSQLQueryPageNumberPagination(CountOverridablePageNumberPagination):
 
     django_paginator_class = RawSQLQueryPaginator
 
-    def get_offset_limit(self, request, count: int) -> Tuple[int, int]:
+    def get_offset_limit(self, request, count: int) -> tuple[int, int]:
         """Returns the offset and limit to be used in a raw SQL query"""
         page_size = self.get_page_size(request)
         # pass an empty object_list since we are not handling any pagination
