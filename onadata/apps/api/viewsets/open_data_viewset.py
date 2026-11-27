@@ -34,6 +34,7 @@ from onadata.libs.serializers.open_data_serializer import (
     get_manageable_xforms,
 )
 from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.owners import form_owners
 from onadata.libs.stepup.policy import GATE_PUBLISH_DATA
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
@@ -222,7 +223,7 @@ class OpenDataViewSet(
             content_type=ContentType.objects.get_for_model(xform), object_id=xform.pk
         ).exists():
             return None
-        return self.check_step_up(request, GATE_PUBLISH_DATA)
+        return self.check_step_up(request, GATE_PUBLISH_DATA, owners=form_owners(xform))
 
     def _update_refusal(self, request, open_data, validated_data):
         """Reactivating an entry, or pointing an active one at another form,
@@ -232,8 +233,8 @@ class OpenDataViewSet(
         object_id = validated_data.get("object_id", open_data.object_id)
         if open_data.active and object_id == open_data.object_id:
             return None
-        get_object_or_404(get_manageable_xforms(request.user), id=object_id)
-        return self.check_step_up(request, GATE_PUBLISH_DATA)
+        xform = get_object_or_404(get_manageable_xforms(request.user), id=object_id)
+        return self.check_step_up(request, GATE_PUBLISH_DATA, owners=form_owners(xform))
 
     def create(self, request, *args, **kwargs):
         """Create an entry, or return the form's existing one."""

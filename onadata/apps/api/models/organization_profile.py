@@ -199,6 +199,9 @@ class OrganizationProfile(UserProfile):
     # Other fields here
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     email = models.EmailField(_("email address"), blank=True)
+    #: Protected actions a member must have a second factor to perform on
+    #: what the organisation owns, or ``["all"]``.
+    two_factor_required_actions = models.JSONField(default=list, blank=True)
 
     def __str__(self):
         return f"{self.name}[{self.user.username}]"

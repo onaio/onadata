@@ -79,6 +79,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormVersionListSerializer,
 )
 from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.owners import form_owners
 from onadata.libs.stepup.policy import (
     GATE_DISABLE_FORM_ENCRYPTION,
     GATE_FORM_REQUIRE_AUTH,
@@ -471,6 +472,15 @@ def _moves_to_another_account(xform, validated_data):
     )
 
 
+def _update_owners(xform, validated_data):
+    """The form's owners and, for a move, the accounts it moves to."""
+    yield from form_owners(xform)
+    yield validated_data.get("user")
+    project = validated_data.get("project")
+    if project is not None:
+        yield project.organization_id
+
+
 def _drops_require_auth(xform, validated_data):
     return xform.require_auth and not validated_data.get(
         "require_auth", xform.require_auth
@@ -837,7 +847,9 @@ class XFormViewSet(
                 continue
             target = User.objects.get(username=share["username"])
             if not holds_roles(target, granted):
-                return self.check_step_up(request, GATE_SHARE_FORM_ADMIN)
+                return self.check_step_up(
+                    request, GATE_SHARE_FORM_ADMIN, owners=form_owners(self.object)
+                )
         return None
 
     @action(methods=["POST"], detail=True)
@@ -1091,6 +1103,7 @@ class XFormViewSet(
                     _disables_encryption(xform, validated_data),
                 ),
             ),
+            owners=_update_owners(xform, validated_data),
         )
 
     def update(self, request, *args, **kwargs):

@@ -19,6 +19,7 @@ from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.restservices_serializer import RestServiceSerializer
 from onadata.libs.serializers.textit_serializer import TextItSerializer
 from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.owners import form_owners
 from onadata.libs.stepup.policy import GATE_CHANGE_WEBHOOK
 from onadata.libs.utils.common_tags import TEXTIT
 
@@ -46,6 +47,16 @@ def get_serializer_class(name):
         return TextItSerializer
 
     return RestServiceSerializer
+
+
+def _service_owners(service, validated_data):
+    """The owners of the form the service sends from, before and after the
+    write."""
+    if service is not None:
+        yield from form_owners(service.xform)
+    xform = validated_data.get("xform")
+    if xform is not None:
+        yield from form_owners(xform)
 
 
 def _changes_destination(instance, validated_data) -> bool:
@@ -94,7 +105,10 @@ class RestServicesViewSet(
     def create(self, request, *args, **kwargs):
         """Add a service, which needs a grant where webhooks are gated."""
         return self.gated_create(
-            request, lambda _data: self.check_step_up(request, GATE_CHANGE_WEBHOOK)
+            request,
+            lambda data: self.check_step_up(
+                request, GATE_CHANGE_WEBHOOK, owners=_service_owners(None, data)
+            ),
         )
 
     def update(self, request, *args, **kwargs):
@@ -110,7 +124,11 @@ class RestServicesViewSet(
         """Refuse sending ``service`` somewhere else without a grant."""
         if not _changes_destination(service, validated_data):
             return None
-        return self.check_step_up(request, GATE_CHANGE_WEBHOOK)
+        return self.check_step_up(
+            request,
+            GATE_CHANGE_WEBHOOK,
+            owners=_service_owners(service, validated_data),
+        )
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

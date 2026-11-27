@@ -36,6 +36,7 @@ from onadata.libs.serializers.share_team_project_serializer import (
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.libs.stepup import RequiresStepUp
 from onadata.libs.stepup.gate import changed_gated_actions
+from onadata.libs.stepup.owners import team_owners
 from onadata.libs.stepup.policy import (
     GATE_GRANT_ORG_ADMIN,
     GATE_SHARE_TEAM_ADMIN,
@@ -109,7 +110,14 @@ class TeamViewSet(
                 (GATE_SHARE_TEAM_ADMIN, lambda: team_reaches_admin_role(team)),
             )
         )
-        return self.check_step_up(request, gated[0]) if gated else None
+        if not gated:
+            return None
+        return self.check_step_up(
+            request,
+            gated[0],
+            owners=team_owners(team),
+            covers=((action, True) for action in gated[1:]),
+        )
 
     def _share_admin_refusal(self, request, validated_data):
         """Refuse giving a team an owner or manager role without a grant.
@@ -127,7 +135,11 @@ class TeamViewSet(
         # A share re-applies each form's meta permissions to all its users,
         # whatever role it names.
         if grants_new_admin or reapplying_appoints_admins(xforms):
-            return self.check_step_up(request, GATE_SHARE_TEAM_ADMIN)
+            return self.check_step_up(
+                request,
+                GATE_SHARE_TEAM_ADMIN,
+                owners=(team.organization_id, project.organization_id),
+            )
         return None
 
     def _move_refusal(self, request, team, validated_data):
@@ -139,7 +151,11 @@ class TeamViewSet(
             team.organization,
         ):
             return None
-        return self.check_step_up(request, GATE_SHARE_TEAM_ADMIN)
+        return self.check_step_up(
+            request,
+            GATE_SHARE_TEAM_ADMIN,
+            owners=chain((organization,), team_owners(team)),
+        )
 
     def update(self, request, *args, **kwargs):
         return self.gated_update(

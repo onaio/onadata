@@ -94,6 +94,7 @@ from onadata.libs.authentication import (
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import CAN_VIEW_PROJECT
 from onadata.libs.stepup.gate import refusal_reason
+from onadata.libs.stepup.owners import form_owners
 from onadata.libs.stepup.pages import (
     gated_profile_values,
     refuse_gated_changes,
@@ -725,7 +726,7 @@ def _refuse_making_public(request, xform):
     flag = _PUBLIC_FLAGS.get(request.POST["toggle_shared"])
     if flag is None or getattr(xform, flag):
         return None
-    return refuse_page_action(request, GATE_PUBLISH_DATA)
+    return refuse_page_action(request, GATE_PUBLISH_DATA, owners=form_owners(xform))
 
 
 # pylint: disable=too-many-locals,too-many-branches,too-many-statements
@@ -1545,7 +1546,9 @@ def set_perm(request, username, id_string):  # noqa C901
     elif perm_type == "link":
         current = MetaData.public_link(xform)
         if not current and for_user in ("all", "toggle"):
-            refusal = refuse_page_action(request, GATE_PUBLISH_DATA)
+            refusal = refuse_page_action(
+                request, GATE_PUBLISH_DATA, owners=form_owners(xform)
+            )
             if refusal is not None:
                 return refusal
         if for_user == "all":

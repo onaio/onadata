@@ -24,6 +24,7 @@ from onadata.libs.renderers.renderers import (
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.data import strtobool
 from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.owners import content_owners
 from onadata.libs.stepup.policy import (
     ADMIN_ROLE_NAMES,
     GATE_CHANGE_WEBHOOK,
@@ -125,6 +126,7 @@ class MetaDataViewSet(
                     data_type == TEXTIT and _changes_textit(content_object, data_value),
                 ),
             ),
+            owners=content_owners(content_object),
         )
 
     def create(self, request, *args, **kwargs):

@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.logger.models import Instance, MergedXForm, XForm
+from onadata.apps.logger.models import Instance, MergedXForm, Project, XForm
 from onadata.libs import filters
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import require_xform_data_access
@@ -27,6 +27,7 @@ from onadata.libs.serializers.merged_xform_serializer import (
     MergedXFormSerializer,
 )
 from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.owners import project_owners
 from onadata.libs.stepup.policy import GATE_PUBLISH_DATA, GATE_TRANSFER_PROJECT
 from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.cache_tools import (
@@ -41,6 +42,17 @@ def _transfers_data(project, xforms):
     """A merged dataset belongs to its project's account, whose admins read
     every source form's data through it."""
     return any(xform.user != project.organization for xform in xforms)
+
+
+def _create_owners(project, xforms):
+    """The merged dataset's project's owner, and each source form's owner and
+    project owner."""
+    yield from project_owners(project)
+    for xform in xforms:
+        yield xform.user_id
+    yield from Project.objects.filter(
+        pk__in={xform.project_id for xform in xforms}
+    ).values_list("organization_id", flat=True)
 
 
 def _publishes_data(project, xforms):
@@ -91,6 +103,7 @@ class MergedXFormViewSet(
                 (GATE_TRANSFER_PROJECT, _transfers_data(project, xforms)),
                 (GATE_PUBLISH_DATA, _publishes_data(project, xforms)),
             ),
+            owners=_create_owners(project, xforms),
         )
 
     def get_queryset(self):

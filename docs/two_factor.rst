@@ -242,6 +242,8 @@ Audience                    Action
 ``form-require-auth``       turning off ``require_auth`` on ``/api/v1/forms/{pk}``
 ``disable-form-encryption`` turning off a form's encryption with
                             ``enable_kms_encryption``
+``org-two-factor-policy``   changing ``two_factor_required_actions`` on
+                            ``/api/v1/orgs/{org}`` or ``/api/v2/orgs/{org}``
 ==========================  ====================================================
 
 A form's meta permissions can turn an editor, data-entry or read-only share
@@ -317,6 +319,30 @@ In local mode, a user with no second factor is let through by default
 them with **403** and ``"error": "enrol_required"`` instead. A federated
 deployment cannot see its users' factors, so it always challenges.
 
+An organisation can require a second factor for gated actions on what it
+owns, whatever ``NO_FACTOR_POLICY`` says. Its owners set
+``two_factor_required_actions`` on ``/api/v1/orgs/{org}`` or
+``/api/v2/orgs/{org}`` to a list of audiences, or to ``["all"]`` for every
+audience that can touch something an organisation owns, including ones added
+later. Account audiences (``privacy-consent``, ``regenerate-api-key``,
+``regenerate-odk-token``, ``change-email``, ``change-password``,
+``change-username`` and ``authorize-oauth-app``) cannot be listed. The
+read-only ``two_factor_action_choices`` lists the audiences this deployment
+gates that an organisation can require. Both fields are returned only to the
+organisation's owners and managers, and only owners can change them.
+
+In local mode, a user with no second factor is then refused with **403** and
+``"error": "enrol_required"`` when the action touches a project, form, team or
+setting owned by such an organisation. A transfer counts both the account it
+leaves and the one it moves to. Joining, moving or adding members to a team
+counts the owners of every project and form the team holds a role on, since
+the team's roles pass on with it. A request that makes more than one gated
+change is refused if the organisation requires any of them. Any non-empty
+requirement also covers ``org-two-factor-policy``, so the members it binds
+cannot lift it without a factor. The setting only applies to actions the
+deployment gates, and a user with a factor is challenged as usual. Federated
+mode is unchanged.
+
 .. raw:: html
 
 	<pre class="prettyprint">GET /api/v1/user/capabilities</pre>
@@ -363,6 +389,9 @@ intended:
    ``skip_gate`` nor ``deny_prompt_enrol``; it refuses users with no factor
 -  ``stepup.W009`` -- ``authorize-oauth-app`` is gated, but the OAuth pages
    cannot run a challenge, so approvals the gate challenges are refused
+-  ``stepup.W010`` -- organisation actions are gated but
+   ``org-two-factor-policy`` is not, so an organisation's two-factor
+   requirement can be cleared without a second factor
 
 Signing in
 ----------

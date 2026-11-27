@@ -174,6 +174,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         del self.company_data["metadata"]
         del self.company_data["email"]
         del self.company_data["encryption_keys"]
+        del self.company_data["two_factor_required_actions"]
+        del self.company_data["two_factor_action_choices"]
         self.assertEqual(response.data, [self.company_data])
 
         # inactive organization
@@ -200,6 +202,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         del self.company_data["metadata"]
         del self.company_data["email"]
         del self.company_data["encryption_keys"]
+        del self.company_data["two_factor_required_actions"]
+        del self.company_data["two_factor_action_choices"]
         self.assertEqual(response.data, [self.company_data])
 
     def test_orgs_list_shared_with_user(self):
@@ -284,6 +288,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         del self.company_data["email"]
         del self.company_data["metadata"]
         del self.company_data["encryption_keys"]
+        del self.company_data["two_factor_required_actions"]
+        del self.company_data["two_factor_action_choices"]
         self.assertEqual(response.data, self.company_data)
         self.assertIn("users", list(response.data))
         for user in response.data["users"]:
@@ -300,6 +306,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         del self.company_data["email"]
         del self.company_data["metadata"]
         del self.company_data["encryption_keys"]
+        del self.company_data["two_factor_required_actions"]
+        del self.company_data["two_factor_action_choices"]
         self.assertEqual(response.data, self.company_data)
         self.assertIn("users", list(response.data))
         for user in response.data["users"]:
@@ -514,6 +522,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         del expected_data["metadata"]
         del expected_data["email"]
         del self.company_data["encryption_keys"]
+        del self.company_data["two_factor_required_actions"]
+        del self.company_data["two_factor_action_choices"]
 
         request = self.factory.get("/", **self.extra)
         response = view(request)

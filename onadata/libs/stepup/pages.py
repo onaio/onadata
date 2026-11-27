@@ -42,9 +42,10 @@ def _forbidden(reason):
     )
 
 
-def refuse_page_action(request, action: str):
-    """``None`` to proceed, or a 403 refusing ``action``."""
-    return _forbidden(refusal_reason(request, action))
+def refuse_page_action(request, action: str, owners=()):
+    """``None`` to proceed, or a 403 refusing ``action`` on what ``owners``
+    own."""
+    return _forbidden(refusal_reason(request, action, owners))
 
 
 def gated_profile_values(require_auth, email, metadata) -> dict:
@@ -60,9 +61,12 @@ def gated_profile_values(require_auth, email, metadata) -> dict:
     }
 
 
-def refuse_gated_changes(request, before: dict, after: dict):
-    """``None``, or a 403 for a gated value changed without a grant."""
+def refuse_gated_changes(request, before: dict, after: dict, owners=()):
+    """``None``, or a 403 for a gated value of what ``owners`` own changed
+    without a grant."""
     reason, _audiences = change_refusal(
-        request, ((action, after[action] != value) for action, value in before.items())
+        request,
+        ((action, after[action] != value) for action, value in before.items()),
+        owners,
     )
     return _forbidden(reason)

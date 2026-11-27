@@ -19,6 +19,7 @@ class LibsConfig(AppConfig):
             check_federated_step_up_binds_by_email,
             check_federated_step_up_gates_email,
             check_oauth_approval_can_step_up,
+            check_org_two_factor_policy_is_gated,
             check_removed_enrolment_password_setting,
             check_step_up_actions_are_known,
             check_step_up_has_two_factor_enabled,
@@ -38,3 +39,4 @@ class LibsConfig(AppConfig):
         register(check_federated_step_up_gates_email)
         register(check_federated_step_up_binds_by_email)
         register(check_oauth_approval_can_step_up)
+        register(check_org_two_factor_policy_is_gated)

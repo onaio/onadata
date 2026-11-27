@@ -57,6 +57,7 @@ from onadata.libs.serializers.xform_serializer import (
 )
 from onadata.libs.stepup import RequiresStepUp
 from onadata.libs.stepup.gate import StepUpRefused, require_gated_change
+from onadata.libs.stepup.owners import form_owners, project_owners
 from onadata.libs.stepup.policy import (
     GATE_INVITE_PROJECT_ADMIN,
     GATE_PUBLISH_DATA,
@@ -102,6 +103,17 @@ def _publishes_data(project, validated_data):
 def _transfers(project, validated_data):
     new_owner = validated_data.get("organization", project.organization)
     return new_owner != project.organization
+
+
+def _update_owners(project, validated_data):
+    """The project's owner and, for a transfer, the account it moves to."""
+    yield from project_owners(project)
+    yield validated_data.get("organization")
+
+
+def _form_move_owners(xform, project):
+    yield from form_owners(xform)
+    yield from project_owners(project)
 
 
 # pylint: disable=too-many-ancestors
@@ -173,6 +185,7 @@ class ProjectViewSet(
                 (GATE_TRANSFER_PROJECT, _transfers(project, validated_data)),
                 (GATE_PUBLISH_DATA, _publishes_data(project, validated_data)),
             ),
+            owners=_update_owners(project, validated_data),
         )
 
     @staticmethod
@@ -193,6 +206,11 @@ class ProjectViewSet(
                 return False
             return move_appoints_admins(xform, project)
 
+        def appoints_admins_covered_by_a_transfer():
+            if not (transfers and is_gated(GATE_TRANSFER_PROJECT)):
+                return False
+            return move_appoints_admins(xform, project)
+
         require_gated_change(
             request,
             (
@@ -203,6 +221,8 @@ class ProjectViewSet(
                     project.shared and not (xform.shared or xform.shared_data),
                 ),
             ),
+            owners=_form_move_owners(xform, project),
+            covers=((GATE_SHARE_FORM_ADMIN, appoints_admins_covered_by_a_transfer),),
         )
 
     def update(self, request, *args, **kwargs):
@@ -315,7 +335,9 @@ class ProjectViewSet(
         )
         if all(holds_roles(user, granted) for user in targets):
             return None
-        return self.check_step_up(request, GATE_SHARE_PROJECT_ADMIN)
+        return self.check_step_up(
+            request, GATE_SHARE_PROJECT_ADMIN, owners=project_owners(self.object)
+        )
 
     @action(methods=["PUT"], detail=True)
     def share(self, request, *args, **kwargs):
@@ -409,7 +431,11 @@ class ProjectViewSet(
             and invitation.email == validated_data["email"]
         ):
             return None
-        return self.check_step_up(request, GATE_INVITE_PROJECT_ADMIN)
+        return self.check_step_up(
+            request,
+            GATE_INVITE_PROJECT_ADMIN,
+            owners=project_owners(validated_data["project"]),
+        )
 
     @action(
         detail=True,

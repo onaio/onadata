@@ -387,6 +387,7 @@ class UserProfileViewSet(
                 (GATE_PRIVACY_CONSENT, _changes_consent(validated_data, profile)),
                 (GATE_CHANGE_USERNAME, _changes_username(validated_data, profile)),
             ),
+            owners=(profile.user_id,),
         )
 
     def _merge_metadata(self, request, username):

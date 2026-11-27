@@ -6,6 +6,7 @@ from onadata.libs.stepup.checks import (
     check_federated_step_up_binds_by_email,
     check_federated_step_up_gates_email,
     check_oauth_approval_can_step_up,
+    check_org_two_factor_policy_is_gated,
     check_removed_enrolment_password_setting,
     check_step_up_actions_are_known,
     check_step_up_has_two_factor_enabled,
@@ -19,6 +20,7 @@ ALL_CHECKS = (
     check_federated_step_up_binds_by_email,
     check_federated_step_up_gates_email,
     check_oauth_approval_can_step_up,
+    check_org_two_factor_policy_is_gated,
     check_removed_enrolment_password_setting,
     check_step_up_actions_are_known,
     check_step_up_has_two_factor_enabled,
@@ -331,3 +333,47 @@ class TestOAuthApprovalCanStepUp(SimpleTestCase):
     @override_settings(STEP_UP={"ACTIONS": ["change-email"], "MODE": "local"})
     def test_other_gates_are_silent(self):
         self.assertEqual(check_oauth_approval_can_step_up(), [])
+
+
+class TestOrgTwoFactorPolicyIsGated(SimpleTestCase):
+    """An organisation's two-factor requirement guards itself only when
+    changing it is gated."""
+
+    @override_settings(STEP_UP={"ACTIONS": ["publish-data"], "MODE": "local"})
+    def test_gating_org_actions_without_the_policy_is_reported(self):
+        self.assertEqual(
+            [w.id for w in check_org_two_factor_policy_is_gated()], ["stepup.W010"]
+        )
+
+    @override_settings(
+        STEP_UP={
+            "ACTIONS": ["publish-data"],
+            "MODE": "local",
+            "NO_FACTOR_POLICY": "deny_prompt_enrol",
+        }
+    )
+    def test_deny_prompt_enrol_is_silent(self):
+        self.assertEqual(check_org_two_factor_policy_is_gated(), [])
+
+    @override_settings(STEP_UP={"ACTIONS": ["publish-data"], "MODE": "federated"})
+    def test_federated_mode_is_silent(self):
+        self.assertEqual(check_org_two_factor_policy_is_gated(), [])
+
+    @override_settings(STEP_UP={"ACTIONS": ["publish-data"], "MODE": "local"})
+    def test_the_warning_names_the_missing_action(self):
+        (warning,) = check_org_two_factor_policy_is_gated()
+
+        self.assertIn("org-two-factor-policy", warning.hint)
+
+    @override_settings(
+        STEP_UP={
+            "ACTIONS": ["publish-data", "org-two-factor-policy"],
+            "MODE": "local",
+        }
+    )
+    def test_gating_the_policy_too_is_silent(self):
+        self.assertEqual(check_org_two_factor_policy_is_gated(), [])
+
+    @override_settings(STEP_UP={"ACTIONS": ["change-email"], "MODE": "local"})
+    def test_gating_only_account_actions_is_silent(self):
+        self.assertEqual(check_org_two_factor_policy_is_gated(), [])

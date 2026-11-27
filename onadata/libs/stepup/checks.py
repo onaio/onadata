@@ -17,9 +17,11 @@ from oidc.stepup import (
 from onadata.libs.stepup.policy import (
     GATE_AUTHORIZE_OAUTH_APP,
     GATE_CHANGE_EMAIL,
+    GATE_ORG_TWO_FACTOR_POLICY,
     KNOWN_ACTIONS,
     KNOWN_MODES,
     KNOWN_NO_FACTOR_POLICIES,
+    ORG_SCOPED_ACTIONS,
     POLICY_DENY_PROMPT_ENROL,
     POLICY_SKIP_GATE,
     gated_actions,
@@ -255,5 +257,30 @@ def check_oauth_approval_can_step_up(app_configs=None, **kwargs):
             hint=f"Remove {GATE_AUTHORIZE_OAUTH_APP!r} from STEP_UP['ACTIONS'] "
             "unless those refusals are intended.",
             id="stepup.W009",
+        )
+    ]
+
+
+def check_org_two_factor_policy_is_gated(app_configs=None, **kwargs):
+    # pylint: disable=unused-argument
+    """An organisation's two-factor requirement is unprotected unless
+    changing it is gated: an owner with no factor could clear it.
+
+    Organisation requirements only apply in local mode under ``skip_gate``."""
+    gated = gated_actions()
+    if (
+        not is_local_mode()
+        or no_factor_policy() != POLICY_SKIP_GATE
+        or GATE_ORG_TWO_FACTOR_POLICY in gated
+        or not gated & ORG_SCOPED_ACTIONS
+    ):
+        return []
+    return [
+        CheckWarning(
+            "Organisation actions are gated, but changing an organisation's "
+            "two-factor requirement is not, so a member it binds can clear it "
+            "without a second factor.",
+            hint=f"Add {GATE_ORG_TWO_FACTOR_POLICY!r} to STEP_UP['ACTIONS'].",
+            id="stepup.W010",
         )
     ]

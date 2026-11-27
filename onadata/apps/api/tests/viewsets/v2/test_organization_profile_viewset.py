@@ -475,6 +475,8 @@ class GetOrganizationTestCase(TestAbstractViewSet):
                 "require_auth": False,
                 "address": "",
                 "phonenumber": "",
+                "two_factor_required_actions": [],
+                "two_factor_action_choices": [],
                 "num_of_submissions": 0,
                 "date_modified": timezone.localtime(
                     self.organization.date_modified
@@ -602,6 +604,8 @@ class CreateOrganizationTestCase(TestAbstractViewSet):
                 "require_auth": False,
                 "address": "",
                 "phonenumber": "",
+                "two_factor_required_actions": [],
+                "two_factor_action_choices": [],
                 "num_of_submissions": 0,
                 "date_modified": timezone.localtime(
                     organization.date_modified
@@ -677,6 +681,8 @@ class UpdateOrganizationTestCase(TestAbstractViewSet):
                 "require_auth": False,
                 "address": "",
                 "phonenumber": "",
+                "two_factor_required_actions": [],
+                "two_factor_action_choices": [],
                 "num_of_submissions": 0,
                 "date_modified": timezone.localtime(
                     self.organization.date_modified

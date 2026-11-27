@@ -28,6 +28,11 @@ from onadata.libs.serializers.user_profile_serializer import (
     get_audit_values,
     send_profile_updated_message,
 )
+from onadata.libs.stepup.policy import (
+    ALL_ORG_ACTIONS,
+    ORG_SCOPED_ACTIONS,
+    org_two_factor_action_choices,
+)
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -44,6 +49,7 @@ ORGANIZATION_AUDIT_FIELDS = (
     "require_auth",
     "address",
     "phonenumber",
+    "two_factor_required_actions",
 )
 
 
@@ -93,11 +99,21 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     metadata = JsonField(required=False)
     name = serializers.CharField(max_length=30)
     encryption_keys = serializers.SerializerMethodField()
+    two_factor_required_actions = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
+    two_factor_action_choices = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationProfile
         exclude = ("created_by", "is_organization", "organization")
-        owner_only_fields = ("metadata", "email", "encryption_keys")
+        owner_only_fields = (
+            "metadata",
+            "email",
+            "encryption_keys",
+            "two_factor_required_actions",
+            "two_factor_action_choices",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -164,6 +180,33 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         ).order_by("-date_created")
 
         return KMSKeyInlineSerializer(kms_key_qs, many=True).data
+
+    def get_two_factor_action_choices(self, obj):  # pylint: disable=unused-argument
+        """The actions this deployment gates that an organisation can require
+        two-factor for."""
+        return org_two_factor_action_choices()
+
+    def validate_two_factor_required_actions(self, value):
+        """Return the actions deduplicated and sorted. Each must be one an
+        organisation can require two-factor for, or the list must be exactly
+        ``["all"]``."""
+        actions = sorted(set(value))
+        if ALL_ORG_ACTIONS in actions and len(actions) > 1:
+            raise serializers.ValidationError(
+                _('"%(all)s" cannot be combined with other actions.')
+                % {"all": ALL_ORG_ACTIONS}
+            )
+        unknown = [
+            action
+            for action in actions
+            if action != ALL_ORG_ACTIONS and action not in ORG_SCOPED_ACTIONS
+        ]
+        if unknown:
+            raise serializers.ValidationError(
+                _("An organisation cannot require two-factor for: %(actions)s.")
+                % {"actions": ", ".join(unknown)}
+            )
+        return actions
 
     def validate_org(self, value):
         """

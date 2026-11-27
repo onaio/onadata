@@ -32,6 +32,7 @@ from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.owners import form_owners, project_owners
 from onadata.libs.stepup.policy import GATE_PUBLISH_DATA
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import (
@@ -76,6 +77,17 @@ def get_dataview_instances(dataview):
     return apply_filters(
         dataview.xform.instances.filter(deleted_at__isnull=True), dataview.query
     ).order_by("pk")
+
+
+def _dataview_owners(dataview, validated_data):
+    """The owners of the project the dataview is in and of the form it
+    reads, once the write is applied."""
+    yield from project_owners(
+        validated_data.get("project", getattr(dataview, "project", None))
+    )
+    yield from form_owners(
+        validated_data.get("xform", getattr(dataview, "xform", None))
+    )
 
 
 def _publishes_data(dataview, validated_data):
@@ -174,7 +186,11 @@ class DataViewViewSet(
 
     def _publish_refusal(self, request, dataview, validated_data):
         if _publishes_data(dataview, validated_data):
-            return self.check_step_up(request, GATE_PUBLISH_DATA)
+            return self.check_step_up(
+                request,
+                GATE_PUBLISH_DATA,
+                owners=_dataview_owners(dataview, validated_data),
+            )
         return None
 
     def create(self, request, *args, **kwargs):

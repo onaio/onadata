@@ -8,6 +8,7 @@ from django.utils.translation import gettext as _
 
 from oidc.stepup_grants import spend_grant
 
+from onadata.libs.stepup.organizations import requiring_organization
 from onadata.libs.stepup.policy import (
     POLICY_SKIP_GATE,
     is_gated,
@@ -105,9 +106,15 @@ def changed_gated_actions(changes) -> list:
     ]
 
 
-def refusal_reason(request, action: str):
+def refusal_reason(request, action: str, owners=(), covers=()):
     """``None`` to proceed, or why ``action`` is refused. Spends the grant the
-    request presents."""
+    request presents.
+
+    ``owners`` are the accounts, or their primary keys, owning what the action
+    touches. An organisation among them can require a second factor for it.
+    ``covers`` are ``(action, changed)`` pairs for further changes the same
+    grant covers. An organisation requiring any of them refuses too.
+    """
     if not is_gated(action):
         return None
     if not request.user.is_authenticated:
@@ -126,18 +133,28 @@ def refusal_reason(request, action: str):
     # user, and skip_gate would open the gate everywhere. Challenge instead,
     # and let the IdP decide what a user with no factor may do.
     if is_local_mode() and not has_second_factor(request.user):
-        # Only an exact skip_gate opens the gate, so a misspelt policy refuses.
-        if no_factor_policy() != POLICY_SKIP_GATE:
-            _audit(
-                request,
-                Actions.STEP_UP_ENROL_REQUIRED,
-                _("Step-up refused: no second factor enrolled."),
-                action,
-                logging.WARNING,
-            )
-            return ENROL_REQUIRED
-        return None
+        return _no_factor_refusal(request, action, owners, covers)
     return _spend_presented_grant(request, action, spent)
+
+
+def _no_factor_refusal(request, action: str, owners, covers):
+    """``None``, or ``ENROL_REQUIRED`` when the policy or an organisation in
+    ``owners`` refuses a user with no second factor."""
+    # Only an exact skip_gate opens the gate, so a misspelt policy refuses.
+    if no_factor_policy() != POLICY_SKIP_GATE:
+        message = _("Step-up refused: no second factor enrolled.")
+    else:
+        organization = requiring_organization(
+            owners, (action, *changed_gated_actions(covers))
+        )
+        if organization is None:
+            return None
+        message = _(
+            "Step-up refused: organisation %(organization)s requires a second "
+            "factor."
+        ) % {"organization": organization}
+    _audit(request, Actions.STEP_UP_ENROL_REQUIRED, message, action, logging.WARNING)
+    return ENROL_REQUIRED
 
 
 def _spend_presented_grant(request, action: str, spent: set):
@@ -166,9 +183,10 @@ def _spend_presented_grant(request, action: str, spent: set):
     return STEP_UP_REQUIRED
 
 
-def change_refusal(request, changes) -> tuple:
+def change_refusal(request, changes, owners=(), covers=()) -> tuple:
     """``(reason, audiences)`` for the gated change among ``changes``,
-    ``(action, changed)`` pairs. ``reason`` is ``None`` to proceed.
+    ``(action, changed)`` pairs, to what ``owners`` own. ``reason`` is
+    ``None`` to proceed.
 
     Spends the grant the request presents. A request with more than one gated
     change is refused first, with ``ONE_GATED_CHANGE_PER_REQUEST``.
@@ -178,12 +196,12 @@ def change_refusal(request, changes) -> tuple:
         return ONE_GATED_CHANGE_PER_REQUEST, gated
     if not gated:
         return None, gated
-    return refusal_reason(request, gated[0]), gated
+    return refusal_reason(request, gated[0], owners, covers), gated
 
 
-def require_gated_change(request, changes):
+def require_gated_change(request, changes, owners=(), covers=()):
     """Raise ``StepUpRefused`` unless the gated change among ``changes``,
-    ``(action, changed)`` pairs, may proceed."""
-    reason, audiences = change_refusal(request, changes)
+    ``(action, changed)`` pairs, to what ``owners`` own may proceed."""
+    reason, audiences = change_refusal(request, changes, owners, covers)
     if reason is not None:
         raise StepUpRefused(reason, audiences)

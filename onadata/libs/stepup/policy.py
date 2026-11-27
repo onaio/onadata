@@ -64,6 +64,10 @@ GATE_FORM_REQUIRE_AUTH = "form-require-auth"
 #: Audience for turning off a form's encryption.
 GATE_DISABLE_FORM_ENCRYPTION = "disable-form-encryption"
 
+#: Audience for changing which actions an organisation requires two-factor
+#: for.
+GATE_ORG_TWO_FACTOR_POLICY = "org-two-factor-policy"
+
 #: Every action a deployment can gate, each also an audience
 #: ``/api/v1/totp/verify`` mints grants for.
 KNOWN_ACTIONS = frozenset(
@@ -87,8 +91,34 @@ KNOWN_ACTIONS = frozenset(
         GATE_AUTHORIZE_OAUTH_APP,
         GATE_FORM_REQUIRE_AUTH,
         GATE_DISABLE_FORM_ENCRYPTION,
+        GATE_ORG_TWO_FACTOR_POLICY,
     }
 )
+
+#: The actions that can act on something an organisation owns, which an
+#: organisation can require two-factor for.
+ORG_SCOPED_ACTIONS = frozenset(
+    {
+        GATE_REQUIRE_AUTH,
+        GATE_GRANT_ORG_ADMIN,
+        GATE_ROTATE_ORG_KEY,
+        GATE_CHANGE_WEBHOOK,
+        GATE_SHARE_FORM_ADMIN,
+        GATE_SHARE_PROJECT_ADMIN,
+        GATE_INVITE_PROJECT_ADMIN,
+        GATE_SHARE_TEAM_ADMIN,
+        GATE_PUBLISH_DATA,
+        GATE_TRANSFER_PROJECT,
+        GATE_FORM_REQUIRE_AUTH,
+        GATE_DISABLE_FORM_ENCRYPTION,
+        GATE_ORG_TWO_FACTOR_POLICY,
+    }
+)
+
+#: An organisation's ``two_factor_required_actions`` holding only this
+#: requires two-factor for every action in ``ORG_SCOPED_ACTIONS``, including
+#: actions added to it later.
+ALL_ORG_ACTIONS = "all"
 
 #: Roles that can share, delete and re-share what they hold.
 ADMIN_ROLE_NAMES = frozenset({"owner", "manager"})
@@ -192,3 +222,24 @@ def no_factor_policy() -> str:
     ``stepup.W001`` check warns about it.
     """
     return _config().get("NO_FACTOR_POLICY", POLICY_SKIP_GATE)
+
+
+def requires_two_factor(required_actions, action: str) -> bool:
+    """Whether an organisation's ``two_factor_required_actions`` covers
+    ``action``. A value that is not a list covers nothing.
+
+    Any requirement covers changing itself, so the members it binds cannot
+    lift it without a factor."""
+    if action not in ORG_SCOPED_ACTIONS or not isinstance(
+        required_actions, (list, tuple)
+    ):
+        return False
+    if action == GATE_ORG_TWO_FACTOR_POLICY and required_actions:
+        return True
+    return ALL_ORG_ACTIONS in required_actions or action in required_actions
+
+
+def org_two_factor_action_choices() -> list:
+    """The actions an organisation can usefully require two-factor for here:
+    those it can require that this deployment gates."""
+    return sorted(ORG_SCOPED_ACTIONS & gated_actions())

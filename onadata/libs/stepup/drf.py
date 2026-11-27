@@ -20,14 +20,18 @@ class RequiresStepUp:
     a client enforced by calling the API directly.
     """
 
-    def check_step_up(self, request, action: str):
-        """``None`` to proceed, or a Response to return instead."""
-        return self.step_up_refusal(request, refusal_reason(request, action), (action,))
+    def check_step_up(self, request, action: str, owners=(), covers=()):
+        """``None`` to proceed, or a Response to return instead.
 
-    def gated_change_refusal(self, request, changes):
+        ``owners`` and ``covers`` are as for ``refusal_reason``."""
+        return self.step_up_refusal(
+            request, refusal_reason(request, action, owners, covers), (action,)
+        )
+
+    def gated_change_refusal(self, request, changes, owners=()):
         """Refuse the gated change among ``changes``, ``(action, changed)``
-        pairs, or None to proceed."""
-        return self.step_up_refusal(request, *change_refusal(request, changes))
+        pairs, to what ``owners`` own, or None to proceed."""
+        return self.step_up_refusal(request, *change_refusal(request, changes, owners))
 
     def step_up_refusal(self, request, reason, audiences):
         """The Response refusing ``audiences`` for ``reason``, or None when
