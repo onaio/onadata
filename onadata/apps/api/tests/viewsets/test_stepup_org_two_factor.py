@@ -382,7 +382,7 @@ class TestOrgTwoFactorEnforcement(OrgTwoFactorTestCase):
         view = XFormViewSet.as_view({"patch": "partial_update"})
 
         def make_public():
-            request = self.factory.patch("/", data={"shared": True}, **self.extra)
+            request = self.factory.patch("/", data={"public": True}, **self.extra)
             return view(request, pk=self.xform.pk)
 
         self.assert_enrol_required(make_public())
