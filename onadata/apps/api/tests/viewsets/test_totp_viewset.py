@@ -7,7 +7,6 @@ import hmac
 import struct
 import time
 from contextlib import contextmanager
-from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
@@ -17,10 +16,8 @@ from django.core.cache import cache
 from django.middleware.csrf import get_token
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
-from django.utils import timezone
 from django.views.debug import SafeExceptionReporterFilter
 
-import jwt
 from cryptography.fernet import Fernet
 from django_otp.plugins.otp_static.models import StaticDevice
 from oidc.stepup_grants import spend_grant
@@ -42,6 +39,7 @@ from onadata.apps.api.viewsets.totp_viewset import (
     _verify_recovery,
 )
 from onadata.libs.stepup.policy import GATE_REQUIRE_AUTH
+from onadata.libs.test_utils.sso import sso_token
 from onadata.libs.utils.field_encryption import decrypt
 
 #: Lowercase base32, the alphabet recovery codes are drawn from.
@@ -117,16 +115,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         away, so a test that faked the session would not be exercising the
         distinction it depends on.
         """
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        token = jwt.encode(
-            {
-                "email": (user or self.user).email,
-                "exp": timezone.now() + timedelta(hours=1),
-            },
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
-        return {"HTTP_SSO": token}
+        return {"HTTP_SSO": sso_token((user or self.user).email)}
 
     def _post_with_api_key(self, handler, data=None):
         view = TOTPViewSet.as_view({"post": handler})
@@ -172,15 +161,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
     def _sso_cookie(self, user=None):
         """The SSO token as the ambient cookie a browser sends, not the header."""
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        return jwt.encode(
-            {
-                "email": (user or self.user).email,
-                "exp": timezone.now() + timedelta(hours=1),
-            },
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
+        return sso_token((user or self.user).email)
 
     #: CSRF is skipped under the default test factory, which flags every
     #: request exempt; these cases need the real check, so they build requests
@@ -294,9 +275,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """The pending device must not count as a second factor until the user
         has proved they can read it -- otherwise a misscanned QR locks them
         out of their own account."""
-        self._post_session(
-            "enroll_start", {"password": self.login_password}
-        )
+        self._post_session("enroll_start", {"password": self.login_password})
         response = self._post_session("enroll_confirm", {"code": "000000"})
 
         self.assertEqual(response.status_code, 403)
@@ -337,15 +316,12 @@ class TestTOTPViewSet(TestAbstractViewSet):
     def test_starting_again_replaces_the_pending_device(self):
         """Re-scanning must not leave the previous attempt behind: two
         unconfirmed devices means the code from either one works."""
-        self._post_session(
-            "enroll_start", {"password": self.login_password}
-        )
-        self._post_session(
-            "enroll_start", {"password": self.login_password}
-        )
+        self._post_session("enroll_start", {"password": self.login_password})
+        self._post_session("enroll_start", {"password": self.login_password})
 
         self.assertEqual(
-            EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=False).count(), 1
+            EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=False).count(),
+            1,
         )
 
     def test_replacing_an_authenticator_needs_step_up(self):
@@ -387,9 +363,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(
             list(
-                EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=True).values_list(
-                    "pk", flat=True
-                )
+                EncryptedTOTPDevice.objects.filter(
+                    user=self.user, confirmed=True
+                ).values_list("pk", flat=True)
             ),
             [new.pk],
         )
@@ -436,7 +412,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(EncryptedTOTPDevice.objects.filter(user=self.user).exists())
-        self.assertFalse(EncryptedRecoveryDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(
+            EncryptedRecoveryDevice.objects.filter(user=self.user).exists()
+        )
 
     def test_recovery_codes_need_an_authenticator_first(self):
         response = self._post_with_api_key("recovery_generate", {"code": "000000"})
@@ -900,7 +878,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
         # Mallory needs an authenticator of their own, or disable short-circuits
         # on "nothing to remove" and never consults the grant at all -- the test
         # would pass without the guard it is here to pin.
-        EncryptedTOTPDevice.objects.create(user=other, name=TOTP_DEVICE_NAME, confirmed=True)
+        EncryptedTOTPDevice.objects.create(
+            user=other, name=TOTP_DEVICE_NAME, confirmed=True
+        )
         view = TOTPViewSet.as_view({"post": "disable"})
         request = self.factory.post(
             "/", data={"grant": grant}, HTTP_AUTHORIZATION=f"Token {token}"
@@ -915,9 +895,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         authenticator app accepts."""
         import base64
 
-        response = self._post_session(
-            "enroll_start", {"password": self.login_password}
-        )
+        response = self._post_session("enroll_start", {"password": self.login_password})
         device = EncryptedTOTPDevice.objects.get(user=self.user, confirmed=False)
 
         self.assertTrue(response.data["qrDataUrl"].startswith("data:image/png;base64,"))
@@ -1371,13 +1349,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
             self.assertEqual(response.data["reason"], "code_required")
 
         self.assertTrue(
-            EncryptedTOTPDevice.objects.filter(
-                user=self.user, confirmed=True
-            ).exists()
+            EncryptedTOTPDevice.objects.filter(user=self.user, confirmed=True).exists()
         )
-        self.assertEqual(
-            [m for m in mail.outbox if self.user.email in m.to], []
-        )
+        self.assertEqual([m for m in mail.outbox if self.user.email in m.to], [])
 
     @override_settings(TWO_FACTOR_FAILURE_ALERT_THRESHOLD=0)
     def test_failure_alerting_can_be_disabled(self):
@@ -1470,13 +1444,7 @@ class SecureEnrolmentDefaultTestCase(TestAbstractViewSet):
     factor."""
 
     def _sso(self):
-        config = settings.OPENID_CONNECT_VIEWSET_CONFIG
-        token = jwt.encode(
-            {"email": self.user.email, "exp": timezone.now() + timedelta(hours=1)},
-            config["JWT_SECRET_KEY"],
-            algorithm=config["JWT_ALGORITHM"],
-        )
-        return {"HTTP_SSO": token}
+        return {"HTTP_SSO": sso_token(self.user.email)}
 
     def test_an_sso_session_alone_cannot_start_first_enrolment(self):
         request = self.factory.post("/", data={}, **self._sso())

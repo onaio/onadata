@@ -6,6 +6,7 @@ XForm model serialization.
 import hashlib
 import logging
 import os
+import re
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -737,13 +738,14 @@ class XFormManifestSerializer(serializers.Serializer):
             "metadata": obj.pk,
         }
         request = self.context.get("request")
-        extension = get_metadata_format(obj.data_value)
-        try:
-            fmt_index = obj.data_value.rindex(".") + 1
-            fmt = obj.data_value[fmt_index:]
-        except ValueError:
-            fmt = extension
-        url = reverse("xform-media", kwargs=kwargs, request=request, format=fmt.lower())
+        name = obj.data_value
+        urlparts = urlparse(name)
+        if urlparts.scheme and urlparts.netloc:
+            name = os.path.basename(urlparts.path)
+        fmt = os.path.splitext(name)[1][1:].lower()
+        if not re.fullmatch(r"[a-z0-9]+", fmt):
+            fmt = get_metadata_format(obj.data_value)
+        url = reverse("xform-media", kwargs=kwargs, request=request, format=fmt)
 
         group_delimiter = self.context.get(GROUP_DELIMETER_TAG)
         repeat_index_tags = self.context.get(REPEAT_INDEX_TAGS)
@@ -774,7 +776,7 @@ class XFormManifestSerializer(serializers.Serializer):
         # filtered dataset is of the form "xform PK name", xform pk is the
         # second item
         # other file uploads other than linked datasets have a data_file
-        if len(parts) > 2 and obj.data_file == "":
+        if len(parts) > 2 and not obj.data_file:
             dataset_type = parts[0]
             pk = parts[1]
             xform = None
@@ -816,7 +818,7 @@ class XFormManifestSerializer(serializers.Serializer):
         extension = get_metadata_format(filename)
         # filtered dataset is of the form "xform PK name", filename is the
         # third item
-        if len(parts) > 2:
+        if len(parts) > 2 and not obj.data_file:
             filename = f"{parts[2]}.{extension}"
         else:
             try:

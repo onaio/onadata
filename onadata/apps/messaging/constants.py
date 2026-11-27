@@ -57,6 +57,8 @@ VERB_TOPIC_DICT = {
     SUBMISSION_REVIEWED: "submission/reviewed",
     FORM_UPDATED: "form/updated",
     KMS_KEY_ROTATED: "kmskey/rotated",
+    EXPORT_CREATED: "export/created",
+    EXPORT_DOWNLOADED: "export/downloaded",
     ENTITY_LIST_IMPORTED: "entitylist/imported",
     ENTITY_LIST_DELETED: "entitylist/deleted",
     PROFILE_UPDATED: "profile/updated",

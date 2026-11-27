@@ -4,12 +4,15 @@ Test api_export_tools module.
 """
 
 import datetime
+import json
 from collections import OrderedDict, defaultdict
 from unittest.mock import Mock, patch
 
+from django.core.files.storage import default_storage
 from django.http import Http404
 from django.test.utils import override_settings
 
+from actstream.models import Action
 from celery.backends.rpc import BacklogLimitExceeded
 from google.oauth2.credentials import Credentials
 from kombu.exceptions import OperationalError
@@ -299,6 +302,42 @@ class TestApiExportTools(TestBase):
 
         result = get_async_response("job_uuid", request, self.xform)
         self.assertEqual(result, {"job_status": "PENDING", "progress": "1"})
+
+    @patch("onadata.apps.messaging.backends.mqtt.publish.single")
+    def test_create_export_publishes_mqtt_notification(self, publish_single):
+        """A real CSV export reaches MQTT through the stored action signal."""
+        self._publish_transportation_form_and_submit_instance()
+        with self.settings(
+            CELERY_TASK_ALWAYS_EAGER=True,
+            MESSAGING_ASYNC_NOTIFICATION=False,
+            FULL_MESSAGE_PAYLOAD=False,
+            NOTIFICATION_BACKENDS={
+                "mqtt": {
+                    "BACKEND": "onadata.apps.messaging.backends.mqtt.MQTTBackend",
+                    "OPTIONS": {"HOST": "localhost"},
+                }
+            },
+        ):
+            task_id = create_export_async(
+                self.xform, Export.CSV_EXPORT, options={}, user=self.user
+            )
+        export = Export.objects.get(task_id=task_id)
+        self.assertEqual(export.status, Export.SUCCESSFUL)
+        self.assertTrue(default_storage.exists(export.filepath))
+        event = Action.objects.get(
+            verb="export_created", target_object_id=str(self.xform.pk)
+        )
+        publish_single.assert_called_once()
+        self.assertEqual(
+            publish_single.call_args.args[0],
+            f"/onadata/organization/{self.xform.project.organization.username}"
+            f"/project/{self.xform.project_id}/xform/{self.xform.pk}"
+            "/export/created/messages/publish",
+        )
+        payload = json.loads(publish_single.call_args.kwargs["payload"])
+        self.assertEqual(payload["id"], event.pk)
+        self.assertEqual(payload["verb"], "export_created")
+        self.assertEqual(payload["message"], {"id": [export.pk], "description": "csv"})
 
     # pylint: disable=invalid-name
     @patch("onadata.libs.utils.api_export_tools.send_message")
