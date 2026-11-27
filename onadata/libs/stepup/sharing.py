@@ -4,9 +4,11 @@ form move or a meta permissions write hands out, and to whom."""
 
 from django.contrib.contenttypes.models import ContentType
 
-from guardian.shortcuts import get_objects_for_group, get_perms
+from guardian.shortcuts import get_perms
 
 from onadata.apps.logger.models import Project, XForm
+from onadata.apps.logger.models.project import ProjectGroupObjectPermission
+from onadata.apps.logger.models.xform import XFormGroupObjectPermission
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import (
     ROLES,
@@ -29,10 +31,14 @@ from onadata.libs.utils.xform_utils import (
 def _stored_meta_perms(xforms):
     """Each of ``xforms``' stored meta permissions values, keyed by form pk,
     read in one query."""
+    return _stored_meta_perms_of([xform.pk for xform in xforms])
+
+
+def _stored_meta_perms_of(xform_pks):
     stored = {}
     for object_id, value in MetaData.objects.filter(
         content_type=ContentType.objects.get_for_model(XForm),
-        object_id__in=[xform.pk for xform in xforms],
+        object_id__in=xform_pks,
         data_type=XFORM_META_PERMS,
     ).values_list("object_id", "data_value"):
         stored.setdefault(object_id, []).append(value)
@@ -102,41 +108,55 @@ def reapplying_appoints_admins(xforms):
     )
 
 
-def team_reaches_admin_role(team):
-    """Whether joining ``team`` leads to owning or managing a project or form
-    that is not deleted.
+def _team_codenames(permission_model, teams):
+    """Each team's permission codenames on each object that is not deleted,
+    keyed by ``(team pk, object pk)``, read in one query."""
+    held = {}
+    for team_pk, object_pk, codename in permission_model.objects.filter(
+        group__in=teams, content_object__deleted_at__isnull=True
+    ).values_list("group_id", "content_object_id", "permission__codename"):
+        held.setdefault((team_pk, object_pk), set()).add(codename)
+    return held
 
-    The team may hold that role outright, or hold one that a form's meta
-    permissions turn into owner or manager. A manager's permissions are a
-    subset of an owner's, so matching them finds both."""
-    holds_outright = any(
-        get_objects_for_group(
-            team,
-            ManagerRole.class_to_permissions[model],
-            klass=model,
-            accept_global_perms=False,
-        )
-        .filter(deleted_at__isnull=True)
-        .exists()
-        for model in (Project, XForm)
-    )
-    if holds_outright:
-        return True
-    xforms = list(
-        XForm.objects.filter(
-            xformgroupobjectpermission__group=team, deleted_at__isnull=True
-        )
-        .only("pk")
-        .distinct()
-    )
-    stored = _stored_meta_perms(xforms)
+
+def _reaches_admin(codenames, model, stored=()):
+    """Whether holding ``codenames`` on a ``model`` object, whose stored meta
+    permissions are ``stored``, makes the holder an owner or manager."""
     return any(
         name in ADMIN_ROLE_NAMES
-        for xform in xforms
-        for name in roles_under_meta_perms(
-            stored.get(xform.pk, ()), get_role(get_perms(team, xform), xform)
-        )
+        for name in roles_under_meta_perms(stored, get_role(codenames, model))
     )
+
+
+def team_admin_holdings(teams):
+    """The pks of the projects and the forms, not deleted, that ``teams`` own
+    or manage, and so that joining one of them makes someone an admin of.
+
+    A team may hold that role outright, or hold one that a form's meta
+    permissions turn into owner or manager."""
+    teams = list(teams)
+    projects = {
+        project_pk
+        for (_team, project_pk), codenames in _team_codenames(
+            ProjectGroupObjectPermission, teams
+        ).items()
+        if _reaches_admin(codenames, Project)
+    }
+    held_forms = _team_codenames(XFormGroupObjectPermission, teams)
+    stored = _stored_meta_perms_of({xform_pk for _team, xform_pk in held_forms})
+    xforms = {
+        xform_pk
+        for (_team, xform_pk), codenames in held_forms.items()
+        if _reaches_admin(codenames, XForm, stored.get(xform_pk, ()))
+    }
+    return projects, xforms
+
+
+def team_reaches_admin_role(team):
+    """Whether joining ``team`` leads to owning or managing a project or form
+    that is not deleted."""
+    projects, xforms = team_admin_holdings((team,))
+    return bool(projects or xforms)
 
 
 def move_appoints_admins(xform, project):

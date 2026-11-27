@@ -46,7 +46,14 @@ from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.views import edit, set_perm
 from onadata.libs.models.share_team_project import ShareTeamProject
-from onadata.libs.permissions import EditorRole, ManagerRole, OwnerRole
+from onadata.libs.permissions import (
+    DataEntryRole,
+    EditorRole,
+    ManagerRole,
+    OwnerRole,
+    ReadOnlyRole,
+    get_role,
+)
 from onadata.libs.stepup.policy import (
     GATE_GRANT_ORG_ADMIN,
     GATE_INVITE_PROJECT_ADMIN,
@@ -56,7 +63,10 @@ from onadata.libs.stepup.policy import (
     GATE_SHARE_TEAM_ADMIN,
     GATE_TRANSFER_PROJECT,
 )
-from onadata.libs.stepup.sharing import move_appoints_admins
+from onadata.libs.stepup.sharing import (
+    move_appoints_admins,
+    team_reaches_admin_role,
+)
 
 
 class TeamWiringTestCase(OrgWiringTestCase):
@@ -296,6 +306,99 @@ class TestTeamHoldingsOwners(TeamWiringTestCase):
         self.assertEqual(response.status_code, 200, response.data)
         self.team.refresh_from_db()
         self.assert_org_owns(self.team.organization, third)
+
+
+@gating(GATE_SHARE_TEAM_ADMIN)
+class TestTeamLesserHoldingsOwners(TeamWiringTestCase):
+    """``dreamteam`` manages ``self.org_project``, so joining it is gated, and
+    can only read a project ``otherinc`` owns and requires the action for."""
+
+    def setUp(self):
+        super().setUp()
+        self.other = self._other_org()
+        self._project_create(
+            {"name": "other project", "owner": _url("users", self.other.user.username)}
+        )
+        self.other_project = self.project
+        self.assert_org_owns(self.other_project.organization, self.other)
+        ShareTeamProject(self.team, self.org_project, ManagerRole.name).save()
+        ShareTeamProject(self.team, self.other_project, ReadOnlyRole.name).save()
+        self.assertTrue(team_reaches_admin_role(self.team))
+        self._require([])
+        self._require_of(self.other, [GATE_SHARE_TEAM_ADMIN])
+
+    def _team_role_on(self, project):
+        return get_role(get_perms(self.team, project), project)
+
+    def test_joining_ignores_the_org_of_a_project_the_team_only_reads(self):
+        self.assertEqual(self._team_role_on(self.other_project), ReadOnlyRole.name)
+
+        response = self._join(self.team)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.org_project))
+        self.assertTrue(ReadOnlyRole.user_has_role(self.alice, self.other_project))
+        self.assertFalse(ManagerRole.user_has_role(self.alice, self.other_project))
+
+    def test_joining_counts_the_org_once_the_team_manages_its_project(self):
+        ShareTeamProject(self.team, self.other_project, ManagerRole.name).save()
+        self.assertEqual(self._team_role_on(self.other_project), ManagerRole.name)
+
+        self.assert_enrol_required(self._join(self.team))
+        self.assertFalse(self._in_team(self.team))
+
+
+@gating(GATE_SHARE_TEAM_ADMIN)
+class TestMembersTeamLesserHoldingsOwners(OrgWiringTestCase):
+    """``denoinc``'s members team manages ``self.org_project``, so adding a
+    member is gated, and only enters data on a project ``otherinc`` owns and
+    requires the action for."""
+
+    def setUp(self):
+        super().setUp()
+        self.alice = self._create_user("alice", "alice", create_profile=True)
+        self.other = self._other_org()
+        self._project_create(
+            {"name": "other project", "owner": _url("users", self.other.user.username)}
+        )
+        self.other_project = self.project
+        self.assert_org_owns(self.other_project.organization, self.other)
+        self.members_team = get_organization_members_team(self.organization)
+        ShareTeamProject(self.members_team, self.org_project, ManagerRole.name).save()
+        self.assertTrue(team_reaches_admin_role(self.members_team))
+        self._require([])
+        self._require_of(self.other, [GATE_SHARE_TEAM_ADMIN])
+
+    def _add_member(self):
+        view = OrganizationProfileViewSet.as_view({"post": "members"})
+        request = self.factory.post(
+            "/", data={"username": "alice"}, format="json", **self.extra
+        )
+        return view(request, user=self.organization.user.username)
+
+    def _share_other_project(self, role):
+        ShareTeamProject(self.members_team, self.other_project, role.name).save()
+        self.assertEqual(
+            get_role(
+                get_perms(self.members_team, self.other_project), self.other_project
+            ),
+            role.name,
+        )
+
+    def test_adding_a_member_ignores_the_org_of_a_project_the_team_enters_data_on(
+        self,
+    ):
+        self._share_other_project(DataEntryRole)
+
+        self.assertEqual(self._add_member().status_code, 201)
+        self.assertTrue(DataEntryRole.user_has_role(self.alice, self.other_project))
+        self.assertFalse(ManagerRole.user_has_role(self.alice, self.other_project))
+
+    def test_adding_a_member_counts_the_org_once_the_team_manages_its_project(self):
+        self._share_other_project(ManagerRole)
+
+        self.assert_enrol_required(self._add_member())
+        self.assertFalse(ManagerRole.user_has_role(self.alice, self.other_project))
 
 
 @gating(GATE_SHARE_TEAM_ADMIN)
