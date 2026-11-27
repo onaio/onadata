@@ -47,6 +47,7 @@ def team_holding_owners(teams):
 
 
 def team_owners(team):
-    """The account owning ``team``, and the owners of what it holds roles on."""
+    """The account owning ``team``, and the owners of what it owns or
+    manages."""
     yield team.organization_id
     yield from team_holding_owners((team,))

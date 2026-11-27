@@ -335,7 +335,7 @@ In local mode, a user with no second factor is then refused with **403** and
 ``"error": "enrol_required"`` when the action touches a project, form, team or
 setting owned by such an organisation. A transfer counts both the account it
 leaves and the one it moves to. Joining, moving or adding members to a team
-counts the owners of every project and form the team holds a role on, since
+counts the owners of every project and form the team owns or manages, since
 the team's roles pass on with it. A request that makes more than one gated
 change is refused if the organisation requires any of them. Any non-empty
 requirement also covers ``org-two-factor-policy``, so the members it binds
