@@ -338,7 +338,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             with self.subTest(default=default), override_settings(
                 REQUIRE_ODK_AUTHENTICATION=default
             ):
-                org = f"default{default}inc"
+                org = f"default{str(default).lower()}inc"
                 data = {
                     "org": org,
                     "name": org,
