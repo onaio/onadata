@@ -1,3 +1,9 @@
+# syntax=docker/dockerfile:1.6
+
+FROM scratch AS odk-validate
+ADD --checksum=sha256:7967ec26282ad29117820543fb212aff09fc28c8a813042366025092de94ecfc \
+  https://github.com/onaio/validate/releases/download/v1.21.0-fb8835a31b1c/ODK-Validate-v1.21.0-fb8835a31b1c.jar /ODK_Validate.jar
+
 FROM python:3.13-alpine3.23
 
 ENV PYTHONUNBUFFERED 1
@@ -66,7 +72,12 @@ RUN chown -R onadata:onadata /srv/onadata
 
 # Upgrade pip's vendored CA bundle before downloading dependencies.
 RUN python -m pip install --no-cache-dir --upgrade "pip>=26.2.2"
-RUN pip install --no-cache-dir -r requirements/base.pip
+# Replace the bundled validator in the layer that installs pyxform.
+RUN --mount=type=bind,from=odk-validate,source=/ODK_Validate.jar,target=/tmp/ODK_Validate.jar \
+  pip install --no-cache-dir -r requirements/base.pip \
+  && jar_path="$(python -c 'from pyxform.validators.odk_validate import ODK_VALIDATE_PATH; print(ODK_VALIDATE_PATH)')" \
+  && test -f "$jar_path" \
+  && install -m 0644 /tmp/ODK_Validate.jar "$jar_path"
 RUN pip install --no-cache-dir -r requirements/s3.pip
 RUN pip install --no-cache-dir -r requirements/ses.pip
 RUN pip install --no-cache-dir -r requirements/azure.pip
@@ -78,6 +89,11 @@ RUN pip install --no-cache-dir pyyaml==6.0.3 uwsgitop==0.12
 # hadolint ignore=DL3013
 RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
+
+# Verify subsequent pip installs preserved the patched validator.
+RUN --mount=type=bind,from=odk-validate,source=/ODK_Validate.jar,target=/tmp/ODK_Validate.jar \
+  jar_path="$(python -c 'from pyxform.validators.odk_validate import ODK_VALIDATE_PATH; print(ODK_VALIDATE_PATH)')" \
+  && cmp "$jar_path" /tmp/ODK_Validate.jar
 
 # Generate documentation
 RUN make -C docs html

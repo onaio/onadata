@@ -1,3 +1,9 @@
+# syntax=docker/dockerfile:1.6
+
+FROM scratch AS odk-validate
+ADD --checksum=sha256:7967ec26282ad29117820543fb212aff09fc28c8a813042366025092de94ecfc \
+  https://github.com/onaio/validate/releases/download/v1.21.0-fb8835a31b1c/ODK-Validate-v1.21.0-fb8835a31b1c.jar /ODK_Validate.jar
+
 FROM dhi.io/python:3.13-debian13-dev AS base
 
 ARG optional_packages
@@ -59,6 +65,12 @@ ARG INSTALL_DEV_DEPENDENCIES=false
 RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
   python -m pip install --no-cache-dir -r requirements/dev.pip; \
   fi
+
+# Override the bundled validator before copying the virtualenv to the runtime.
+RUN --mount=type=bind,from=odk-validate,source=/ODK_Validate.jar,target=/tmp/ODK_Validate.jar \
+  jar_path="$(python -c 'from pyxform.validators.odk_validate import ODK_VALIDATE_PATH; print(ODK_VALIDATE_PATH)')" \
+  && test -f "$jar_path" \
+  && install -m 0644 /tmp/ODK_Validate.jar "$jar_path"
 
 FROM base AS docs
 
