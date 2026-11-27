@@ -2,11 +2,14 @@
 """Tests for which projects and forms a team owns or manages, and so which
 organisations govern joining it."""
 
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from guardian.shortcuts import get_perms
 
 from onadata.apps.api.models import Team
+from onadata.apps.api.tests.viewsets.test_merged_xform_viewset import MD
 from onadata.apps.api.tests.viewsets.test_stepup_sharing_gates import (
     EDITOR_BECOMES_MANAGER,
     EDITOR_STAYS_BELOW_ADMIN,
@@ -16,7 +19,7 @@ from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import EditorRole, ManagerRole, OwnerRole, get_role
 from onadata.libs.stepup.owners import team_holding_owners
-from onadata.libs.stepup.sharing import team_admin_holdings
+from onadata.libs.stepup.sharing import team_admin_objects, team_reaches_admin_role
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
 NOTHING = (set(), set())
@@ -51,7 +54,11 @@ class TestTeamAdminHoldings(TestBase):
         return get_role(get_perms(self.team, obj), obj)
 
     def _holdings(self):
-        return team_admin_holdings([self.team])
+        projects, xforms = team_admin_objects([self.team])
+        return (
+            set(projects.values_list("pk", flat=True)),
+            set(xforms.values_list("pk", flat=True)),
+        )
 
     def _set_meta_perms(self, value):
         MetaData.xform_meta_permission(self.xform, data_value=value)
@@ -119,3 +126,48 @@ class TestTeamAdminHoldings(TestBase):
         self.assertEqual(self._team_role_on(self.xform), EditorRole.name)
         self.assertEqual(self._holdings(), NOTHING)
         self.assertEqual(list(team_holding_owners([self.team])), [])
+
+    def test_a_team_managing_a_project_reaches_admin_in_one_query(self):
+        ManagerRole.add(self.team, self.project)
+        self.assertEqual(self._team_role_on(self.project), ManagerRole.name)
+
+        with self.assertNumQueries(1):
+            self.assertTrue(team_reaches_admin_role(self.team))
+
+    def _raise_to_manager(self, xform):
+        MetaData.xform_meta_permission(xform, data_value=EDITOR_BECOMES_MANAGER)
+        EditorRole.add(self.team, xform)
+        self.assertEqual(self._team_role_on(xform), EditorRole.name)
+
+    def _query_counts(self):
+        calls = {
+            "holdings": self._holdings,
+            "owners": lambda: list(team_holding_owners([self.team])),
+            "reaches": lambda: team_reaches_admin_role(self.team),
+        }
+        counts = {}
+        for name, call in calls.items():
+            with CaptureQueriesContext(connection) as captured:
+                call()
+            counts[name] = len(captured)
+        return counts
+
+    def test_the_query_count_does_not_grow_with_the_forms_held(self):
+        """Every form is raised to manager by its meta permissions, so
+        ``team_reaches_admin_role`` reads every query it can make."""
+        self._raise_to_manager(self.xform)
+        # Also warms the content type cache the counts would otherwise include.
+        self.assertEqual(self._holdings(), (set(), {self.xform.pk}))
+        one_form = self._query_counts()
+
+        xforms = [self.xform]
+        for id_string in ("a", "b", "c"):
+            published = self._publish_markdown(
+                MD, self.user, project=self.project, id_string=id_string
+            )
+            xform = XForm.objects.get(pk=published.pk)
+            self._raise_to_manager(xform)
+            xforms.append(xform)
+
+        self.assertEqual(self._holdings(), (set(), {xform.pk for xform in xforms}))
+        self.assertEqual(self._query_counts(), one_form)

@@ -6,7 +6,7 @@ when a gate needs the owners.
 """
 
 from onadata.apps.logger.models import Instance, Project, XForm
-from onadata.libs.stepup.sharing import team_admin_holdings
+from onadata.libs.stepup.sharing import team_admin_objects
 
 
 def project_owners(project):
@@ -37,17 +37,11 @@ def team_holding_owners(teams):
     project or form a team owns or manages governs that too, whichever
     organisation the team belongs to. A lesser role hands out nothing the
     gated actions protect, so its organisation does not count."""
-    project_pks, xform_pks = team_admin_holdings(teams)
-    yield from (
-        Project.objects.filter(pk__in=project_pks)
-        .values_list("organization_id", flat=True)
-        .distinct()
-    )
-    for user_id, organization_id in (
-        XForm.objects.filter(pk__in=xform_pks)
-        .values_list("user_id", "project__organization_id")
-        .distinct()
-    ):
+    projects, xforms = team_admin_objects(teams)
+    yield from projects.values_list("organization_id", flat=True).distinct()
+    for user_id, organization_id in xforms.values_list(
+        "user_id", "project__organization_id"
+    ).distinct():
         yield user_id
         yield organization_id
 
