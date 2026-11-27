@@ -324,6 +324,41 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(versions.count(), 1)
         self.assertEqual(versions[0].revision.user, self.user)
 
+    def test_orgs_create_applies_require_auth(self):
+        data = {"org": "openinc", "name": "Open Inc", "email": "open@mail.org"}
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertFalse(response.data["require_auth"])
+        self.assertFalse(
+            OrganizationProfile.objects.get(user__username="openinc").require_auth
+        )
+
+        self._org_create({"require_auth": True})
+        self.assertTrue(self.organization.require_auth)
+        self.organization.refresh_from_db()
+        self.assertTrue(self.organization.require_auth)
+
+    def test_orgs_create_require_auth_overrides_deployment_default(self):
+        for default, requested in ((False, True), (True, False)):
+            with self.subTest(default=default), override_settings(
+                REQUIRE_ODK_AUTHENTICATION=default
+            ):
+                org = f"default{default}inc"
+                data = {"org": org, "name": org, "require_auth": requested}
+                request = self.factory.post(
+                    "/",
+                    data=json.dumps(data),
+                    content_type="application/json",
+                    **self.extra,
+                )
+                response = self.view(request)
+                self.assertEqual(response.status_code, 201, response.data)
+                profile = OrganizationProfile.objects.get(user__username=org)
+                self.assertEqual(profile.require_auth, requested)
+
     def test_orgs_create_without_name(self):
         data = {
             "org": "denoinc",
