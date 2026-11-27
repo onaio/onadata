@@ -113,6 +113,17 @@ class TestTeamAdminHoldings(TestBase):
             {self.xform.user_id, self.organization.user_id},
         )
 
+    def test_a_deleted_form_meta_perms_raise_to_manager_is_not_counted(self):
+        self._set_meta_perms(EDITOR_BECOMES_MANAGER)
+        EditorRole.add(self.team, self.xform)
+        self.assertEqual(self._holdings(), (set(), {self.xform.pk}))
+
+        self._soft_delete(XForm, self.xform)
+
+        self.assertEqual(self._team_role_on(self.xform), EditorRole.name)
+        self.assertEqual(self._holdings(), NOTHING)
+        self.assertEqual(list(team_holding_owners([self.team])), [])
+
     def test_a_lesser_role_no_meta_perms_raise_is_not_counted(self):
         EditorRole.add(self.team, self.xform)
         self.assertEqual(self._team_role_on(self.xform), EditorRole.name)
