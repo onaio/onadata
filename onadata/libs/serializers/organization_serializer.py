@@ -153,6 +153,13 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         profile = tools.create_organization_object(org, creator, validated_data)
         profile.save()
+        # The first save applies the deployment's REQUIRE_ODK_AUTHENTICATION;
+        # a value the caller sent overrides it. Form data reads a missing
+        # boolean as False and skips an empty one, so the value must be both
+        # sent and validated.
+        if "require_auth" in self.initial_data and "require_auth" in validated_data:
+            profile.require_auth = validated_data["require_auth"]
+            profile.save(update_fields=["require_auth"])
 
         return profile
 

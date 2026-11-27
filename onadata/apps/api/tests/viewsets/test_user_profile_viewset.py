@@ -19,7 +19,9 @@ from django.utils.dateparse import parse_datetime
 
 import requests
 from django_digest.test import DigestAuth
+from django_otp.plugins.otp_totp.models import TOTPDevice
 from httmock import HTTMock, all_requests
+from oidc.stepup_grants import issue_grant, spend_grant
 from registration.models import RegistrationProfile
 from rest_framework.authtoken.models import Token
 from reversion.models import Version
@@ -36,6 +38,7 @@ from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.permissions import EditorRole
 from onadata.libs.serializers.user_profile_serializer import _get_first_last_names
+from onadata.libs.stepup.drf import RequiresStepUp
 from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX
 
 User = get_user_model()
@@ -651,6 +654,307 @@ class TestUserProfileViewSet(TestAbstractViewSet):
                 },
             },
         )
+
+    @override_settings(STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"})
+    def test_a_put_is_gated_like_a_patch(self):
+        """The gate belongs to the change, not the verb.
+
+        ``ModelViewSet`` routes PUT to ``update`` and PATCH to
+        ``partial_update``. Both write require_auth, so gating only one leaves
+        the other open.
+        """
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+        view = UserProfileViewSet.as_view({"put": "update"})
+
+        request = self.factory.put(
+            "/",
+            data={
+                "username": self.user.username,
+                "name": "Bob",
+                "email": self.user.email,
+                "password": self.login_password,
+                "require_auth": not before,
+            },
+            **self.extra,
+        )
+        response = view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["error"], "step_up_required")
+        self.assertEqual(UserProfile.objects.get(user=self.user).require_auth, before)
+
+    @override_settings(STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"})
+    @patch(
+        "onadata.libs.serializers.user_profile_serializer."
+        "send_verification_email.delay"
+    )
+    def test_a_form_put_omitting_require_auth_is_gated(self, _send_verification):
+        """A form-encoded PUT that leaves out a boolean writes it as false.
+
+        DRF reads an absent checkbox that way, so omitting the field switches
+        the setting off. The gate has to read it the same way.
+        """
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        RegistrationProfile.objects.create_profile(self.user)
+        profile = UserProfile.objects.get(user=self.user)
+        profile.require_auth = True
+        profile.save()
+        view = UserProfileViewSet.as_view({"put": "update"})
+
+        request = self.factory.put(
+            "/",
+            data={
+                "username": self.user.username,
+                "name": "Bob",
+                "email": self.user.email,
+                "password": self.login_password,
+            },
+            format="multipart",
+            **self.extra,
+        )
+        response = view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["audience"], "require-auth-toggle")
+        self.assertTrue(UserProfile.objects.get(user=self.user).require_auth)
+
+    @override_settings(STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"})
+    @patch(
+        "onadata.libs.serializers.user_profile_serializer."
+        "send_verification_email.delay"
+    )
+    def test_a_json_put_omitting_require_auth_is_not_challenged(
+        self, _send_verification
+    ):
+        """JSON has no checkbox semantics. An absent key leaves the setting
+        alone, so there is nothing to gate."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        RegistrationProfile.objects.create_profile(self.user)
+        profile = UserProfile.objects.get(user=self.user)
+        profile.require_auth = True
+        profile.save()
+        refused = self.factory.patch("/", data={"require_auth": False}, **self.extra)
+        self.assertEqual(self.view(refused, user=self.user.username).status_code, 401)
+        view = UserProfileViewSet.as_view({"put": "update"})
+
+        request = self.factory.put(
+            "/",
+            data={
+                "username": self.user.username,
+                "name": "Bob",
+                "email": self.user.email,
+                "password": self.login_password,
+            },
+            format="json",
+            **self.extra,
+        )
+        response = view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(UserProfile.objects.get(user=self.user).require_auth)
+
+    @override_settings(STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"})
+    def test_echoing_require_auth_unchanged_is_not_challenged(self):
+        """A full-profile write sends require_auth back unchanged. Gating on
+        its presence would challenge a name or city edit. Only a change is
+        gated."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+        refused = self.factory.patch(
+            "/", data={"require_auth": not before}, **self.extra
+        )
+        self.assertEqual(self.view(refused, user=self.user.username).status_code, 401)
+
+        request = self.factory.patch(
+            "/", data={"require_auth": before, "city": "Nairobi"}, **self.extra
+        )
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(UserProfile.objects.get(user=self.user).city, "Nairobi")
+
+    @override_settings(STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"})
+    def test_a_grant_lets_require_auth_change(self):
+        """With a grant for the toggle the require_auth change lands."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+        grant = issue_grant(self.user.pk, "require-auth-toggle")
+
+        request = self.factory.patch(
+            "/", data={"require_auth": not before, "grant": grant}, **self.extra
+        )
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).require_auth, not before
+        )
+
+    @override_settings(
+        STEP_UP={"ACTIONS": {"privacy-consent"}, "MODE": "local"},
+        EU_CONSENT_METADATA_PATH=("outer", "eu_citizen_consent"),
+    )
+    def test_overwrite_merge_cannot_change_nested_consent_without_step_up(self):
+        """The overwrite=false merge writes keys by name anywhere in the tree.
+        A top-level key that lands on a nested consent leaf must still be
+        gated. A path-based check on the raw payload would miss it."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        profile = UserProfile.objects.get(user=self.user)
+        profile.metadata = {"outer": {"eu_citizen_consent": "yes"}}
+        profile.save()
+
+        data = {
+            "metadata": json.dumps({"eu_citizen_consent": "no"}),
+            "overwrite": "false",
+        }
+        request = self.factory.patch("/", data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["error"], "step_up_required")
+        self.assertEqual(response.data["audience"], "privacy-consent")
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).metadata,
+            {"outer": {"eu_citizen_consent": "yes"}},
+        )
+
+    @override_settings(
+        STEP_UP={"ACTIONS": {"privacy-consent"}, "MODE": "local"},
+        EU_CONSENT_METADATA_PATH=("outer", "eu_citizen_consent"),
+    )
+    def test_overwrite_merge_leaving_consent_alone_is_not_challenged(self):
+        """Consent is gated only when the merge changes it."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        profile = UserProfile.objects.get(user=self.user)
+        profile.metadata = {"outer": {"eu_citizen_consent": "yes"}}
+        profile.save()
+        consent_change = {
+            "metadata": json.dumps({"eu_citizen_consent": "no"}),
+            "overwrite": "false",
+        }
+        refused = self.factory.patch("/", data=consent_change, **self.extra)
+        self.assertEqual(self.view(refused, user=self.user.username).status_code, 401)
+
+        data = {"metadata": json.dumps({"city": "Nairobi"}), "overwrite": "false"}
+        request = self.factory.patch("/", data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).metadata,
+            {"outer": {"eu_citizen_consent": "yes"}, "city": "Nairobi"},
+        )
+
+    @override_settings(STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"})
+    def test_an_invalid_sibling_field_keeps_the_require_auth_grant(self):
+        """The whole request is validated before the gate, so a field the
+        write would reject answers 400 and leaves the grant for the retry."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+        grant = issue_grant(self.user.pk, "require-auth-toggle")
+
+        request = self.factory.patch(
+            "/",
+            data={"require_auth": not before, "twitter": "not a handle!"},
+            format="json",
+            HTTP_X_STEP_UP_GRANT=grant,
+            **self.extra,
+        )
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("twitter", response.data)
+        self.assertEqual(UserProfile.objects.get(user=self.user).require_auth, before)
+        self.assertTrue(spend_grant(self.user.pk, "require-auth-toggle", grant))
+
+    @override_settings(STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"})
+    def test_a_patch_gates_once(self):
+        """partial_update delegates to update. The gate must run in only one
+        of them, or every check behind it runs twice. The request needs a
+        grant, because a refusal returns before a second run could happen."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+        grant = issue_grant(self.user.pk, "require-auth-toggle")
+
+        with patch.object(
+            UserProfileViewSet,
+            "gated_change_refusal",
+            autospec=True,
+            side_effect=RequiresStepUp.gated_change_refusal,
+        ) as gate:
+            request = self.factory.patch(
+                "/",
+                data={"require_auth": not before, "grant": grant},
+                format="json",
+                **self.extra,
+            )
+            response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).require_auth, not before
+        )
+        gate.assert_called_once()
+
+    @override_settings(
+        STEP_UP={"ACTIONS": {"privacy-consent"}, "MODE": "local"},
+        EU_CONSENT_METADATA_PATH=("outer", "eu_citizen_consent"),
+    )
+    def test_a_grant_lets_an_overwrite_merge_change_consent(self):
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        profile = UserProfile.objects.get(user=self.user)
+        profile.metadata = {"outer": {"eu_citizen_consent": "yes"}}
+        profile.save()
+        grant = issue_grant(self.user.pk, "privacy-consent")
+
+        data = {
+            "metadata": json.dumps({"eu_citizen_consent": "no"}),
+            "overwrite": "false",
+            "grant": grant,
+        }
+        request = self.factory.patch("/", data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).metadata,
+            {"outer": {"eu_citizen_consent": "no"}},
+        )
+
+    @override_settings(
+        STEP_UP={
+            "ACTIONS": {"privacy-consent", "require-auth-toggle", "change-email"},
+            "MODE": "local",
+        }
+    )
+    def test_an_overwrite_merge_does_not_gate_values_it_does_not_write(self):
+        """The merge writes metadata only, so a require_auth or email sent
+        alongside is ignored rather than challenged."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        profile = UserProfile.objects.get(user=self.user)
+        before = profile.require_auth
+        old_email = self.user.email
+        refused = self.factory.patch(
+            "/", data={"require_auth": not before}, **self.extra
+        )
+        self.assertEqual(self.view(refused, user=self.user.username).status_code, 401)
+
+        data = {
+            "metadata": json.dumps({"city": "Nairobi"}),
+            "overwrite": "false",
+            "require_auth": not before,
+            "email": "somewhere.else@example.org",
+        }
+        request = self.factory.patch("/", data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        profile.refresh_from_db()
+        self.assertEqual(profile.metadata.get("city"), "Nairobi")
+        self.assertEqual(profile.require_auth, before)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, old_email)
 
     def test_partial_updates_empty_metadata(self):
         profile = UserProfile.objects.get(user=self.user)
@@ -1503,7 +1807,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request, user=self.user.username)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            ["Your password is required when updating your email address."],
+            {
+                "non_field_errors": [
+                    "Your password is required when updating your email address."
+                ]
+            },
             response.data,
         )
 

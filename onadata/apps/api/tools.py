@@ -419,9 +419,13 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
     return publish_form(set_form)
 
 
-def publish_project_xform(request, project):
+def publish_project_xform(request, project, check_move=None):
     """
     Publish XLSForm to a project given a request.
+
+    With ``formid`` it moves that existing form instead. ``check_move(xform)``
+    runs after the request passes validation and before anything is written.
+    It vetoes the move by raising.
     """
 
     def set_form():
@@ -477,6 +481,8 @@ def publish_project_xform(request, project):
         # return true
         if project.organization != xform.user and id_string_exists_in_account():
             raise exceptions.ParseError(_(msg))
+        if check_move:
+            check_move(xform)
         xform.user = project.organization
         xform.project = project
 

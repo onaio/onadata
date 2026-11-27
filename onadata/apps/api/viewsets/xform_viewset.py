@@ -78,6 +78,16 @@ from onadata.libs.serializers.xform_serializer import (
     XFormSerializer,
     XFormVersionListSerializer,
 )
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.policy import (
+    GATE_DISABLE_FORM_ENCRYPTION,
+    GATE_FORM_REQUIRE_AUTH,
+    GATE_PUBLISH_DATA,
+    GATE_SHARE_FORM_ADMIN,
+    GATE_TRANSFER_PROJECT,
+    is_gated,
+)
+from onadata.libs.stepup.sharing import admin_roles_granted, holds_roles
 from onadata.libs.utils.api_export_tools import (
     _get_export_type,
     custom_response_handler,
@@ -432,6 +442,52 @@ def _format_enketo_response(urls, survey_type):
     }
 
 
+def _publishes_data(xform, validated_data):
+    return any(
+        validated_data.get(field) and not getattr(xform, field)
+        for field in ("shared", "shared_data")
+    ) or _moves_into_public_project(xform, validated_data)
+
+
+def _moves_into_public_project(xform, validated_data):
+    """Gated as a move through ``POST /projects/<pk>/forms`` is: the form is
+    listed in the public project and takes on its visibility whenever the
+    project's permissions are next applied to it."""
+    project = validated_data.get("project", xform.project)
+    return (
+        project != xform.project
+        and project.shared
+        and not (xform.shared or xform.shared_data)
+    )
+
+
+def _moves_to_another_account(xform, validated_data):
+    """Changing a form's owner, or its project to one in another account,
+    hands that account the form and its data."""
+    owner = validated_data.get("user", xform.user)
+    project = validated_data.get("project", xform.project)
+    return owner != xform.user or (
+        project != xform.project and project.organization != xform.user
+    )
+
+
+def _drops_require_auth(xform, validated_data):
+    return xform.require_auth and not validated_data.get(
+        "require_auth", xform.require_auth
+    )
+
+
+def _disables_encryption(xform, validated_data):
+    """Mirrors what ``disable_xform_encryption`` refuses, so a request it
+    would reject does not cost a grant."""
+    return (
+        validated_data.get("enable_kms_encryption") is False
+        and xform.encrypted
+        and not xform.num_of_submissions
+        and xform.kms_keys.filter(version=xform.version).exists()
+    )
+
+
 # pylint: disable=too-many-ancestors
 class XFormViewSet(
     AnonymousUserPublicFormsMixin,
@@ -439,6 +495,7 @@ class XFormViewSet(
     AuthenticateHeaderMixin,
     ETagsMixin,
     LabelsMixin,
+    RequiresStepUp,
     BaseViewset,
     ModelViewSet,
 ):
@@ -767,6 +824,22 @@ class XFormViewSet(
             meta,
         )
 
+    def _share_admin_refusal(self, request, shares):
+        """Refuse appointing a form owner or manager without a grant.
+
+        The role may be named outright or reached through the form's meta
+        permissions. A target who already holds the role needs no grant."""
+        if not is_gated(GATE_SHARE_FORM_ADMIN):
+            return None
+        for share in shares:
+            granted = admin_roles_granted([self.object], share["role"])
+            if not granted:
+                continue
+            target = User.objects.get(username=share["username"])
+            if not holds_roles(target, granted):
+                return self.check_step_up(request, GATE_SHARE_FORM_ADMIN)
+        return None
+
     @action(methods=["POST"], detail=True)
     def share(self, request, *args, **kwargs):
         """Perform form sharing."""
@@ -788,6 +861,9 @@ class XFormViewSet(
         serializer = ShareXFormSerializer(data=data_list, many=True)
 
         if serializer.is_valid():
+            refusal = self._share_admin_refusal(request, serializer.validated_data)
+            if refusal is not None:
+                return refusal
             serializer.save()
         else:
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -996,6 +1072,33 @@ class XFormViewSet(
                 if resp.get("error") is None
                 else status.HTTP_400_BAD_REQUEST
             ),
+        )
+
+    def _update_refusal(self, request, xform, validated_data):
+        """Refuse whichever gated change saving ``validated_data`` would make,
+        or None. Restoring a protection is never gated."""
+        return self.gated_change_refusal(
+            request,
+            (
+                (
+                    GATE_TRANSFER_PROJECT,
+                    _moves_to_another_account(xform, validated_data),
+                ),
+                (GATE_PUBLISH_DATA, _publishes_data(xform, validated_data)),
+                (GATE_FORM_REQUIRE_AUTH, _drops_require_auth(xform, validated_data)),
+                (
+                    GATE_DISABLE_FORM_ENCRYPTION,
+                    _disables_encryption(xform, validated_data),
+                ),
+            ),
+        )
+
+    def update(self, request, *args, **kwargs):
+        """Update a form's properties, the target of PUT and PATCH alike."""
+        return self.gated_update(
+            request,
+            lambda xform, data: self._update_refusal(request, xform, data),
+            partial=kwargs.pop("partial", False),
         )
 
     def partial_update(self, request, *args, **kwargs):

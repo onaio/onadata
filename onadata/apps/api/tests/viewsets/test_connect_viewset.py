@@ -11,6 +11,8 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.cache import cache
 from django.template.loader import render_to_string
+from django.test import override_settings
+from django.urls import reverse
 from django.utils.timezone import now
 
 from django_digest.backend.db import update_partial_digests
@@ -27,6 +29,36 @@ from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.cache_tools import safe_key
+
+
+@override_settings(STEP_UP={"MODE": "local"}, ENABLE_TWO_FACTOR=True)
+class TestCapabilitiesRoute(TestAbstractViewSet):
+    """The capabilities route is reachable and reports the current mode."""
+
+    def setUp(self):
+        super().setUp()
+        self._login_user_and_profile()
+        self.view = ConnectViewSet.as_view({"get": "capabilities"})
+
+    def test_local_mode_reports_onadata_as_the_owner(self):
+        response = self.view(self.factory.get("/", **self.extra))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["twoFactor"]["managedBy"], "onadata")
+        self.assertTrue(response.data["password"]["change"])
+        self.assertEqual(response.data["identityProvider"], "")
+
+    def test_an_anonymous_caller_is_refused(self):
+        """The response names what the caller may manage, so only the caller
+        may read it."""
+        response = self.view(self.factory.get("/"))
+
+        self.assertIn(response.status_code, (401, 403))
+
+    def test_the_route_is_registered(self):
+        """The other cases bind the method directly. They would pass even if
+        no route served it."""
+        self.assertEqual(reverse("connect-capabilities"), "/api/v1/user/capabilities")
 
 
 class TestConnectViewSet(TestAbstractViewSet):
