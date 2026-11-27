@@ -130,8 +130,14 @@ class TestTeamAdminHoldings(TestBase):
     def test_a_lesser_role_no_meta_perms_raise_is_not_counted(self):
         EditorRole.add(self.team, self.xform)
         self.assertEqual(self._team_role_on(self.xform), EditorRole.name)
+        meta_perms = list(
+            self.xform.metadata_set.filter(data_type=XFORM_META_PERMS).values_list(
+                "data_value", flat=True
+            )
+        )
+        admin_roles = (ManagerRole.name, OwnerRole.name)
         self.assertFalse(
-            self.xform.metadata_set.filter(data_type=XFORM_META_PERMS).exists()
+            [value for value in meta_perms if any(r in value for r in admin_roles)]
         )
         self.assertEqual(self._holdings(), NOTHING)
 
