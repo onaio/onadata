@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models.instance import InstanceHistory
+from onadata.apps.logger.models.instance import InstanceHistory, save_full_json
 from onadata.apps.main.models import MetaData
 from onadata.libs.models.share_xform import ShareXForm
 from onadata.libs.permissions import EditorMinorRole, EditorRole
@@ -165,6 +165,67 @@ class TestDataSignedURLs(TestAbstractViewSet):
             self.assertEqual(next_params[key], [str(value)])
         self.assertEqual(next_params["page"], ["2"])
         self.assertEqual(self.get(url=next_url, params={}).status_code, 200)
+
+    def test_count_free_pages_only_sign_returned_rows(self):
+        self._submit_transport_instance(survey_at=1)
+        other = self.xform.instances.exclude(pk=self.instance.pk).get()
+        Attachment.objects.create(
+            instance=other,
+            xform=self.xform,
+            media_file=self.attachment.media_file.name,
+            mimetype=self.attachment.mimetype,
+        )
+        save_full_json(other)
+        params = {
+            "include_count": "false",
+            "signed_urls": "true",
+            "page_size": 1,
+            "sort": '{"_id":1}',
+            "fields": '["_id","_attachments"]',
+        }
+        for streaming in (False, True):
+            with self.subTest(streaming=streaming), override_settings(
+                STREAM_DATA=streaming
+            ), patch(
+                "onadata.apps.api.viewsets.data_viewset.query_count",
+                side_effect=AssertionError("Unexpected submission count"),
+            ), patch(
+                "onadata.apps.api.viewsets.data_viewset.get_etag_hash_from_query",
+                side_effect=AssertionError("Unexpected ETag query"),
+            ):
+                cache.clear()
+                self.signer.reset_mock()
+                first = self.get(params)
+                if streaming:
+                    self.assertNotIn("ETag", first)
+                    self.assertIn("max-age=0", first["Cache-Control"])
+                    rows = json.loads(b"".join(first.streaming_content))
+                else:
+                    self.assertTrue(first["ETag"].startswith('"'))
+                    self.assertIn("private", first["Cache-Control"])
+                    rows = first.json()
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(self.signer.call_count, 1)
+                self.assertTrue(
+                    rows[0]["_attachments"][0]["download_url"].startswith(
+                        "https://storage."
+                    )
+                )
+                next_url = first["Link"].split(";")[0].strip("<>")
+                self.assertIn("include_count=false", next_url)
+                self.assertIn("signed_urls=true", next_url)
+                second = self.get(url=next_url, params={})
+                next_rows = (
+                    json.loads(b"".join(second.streaming_content))
+                    if streaming
+                    else second.json()
+                )
+                self.assertNotEqual(rows[0]["_id"], next_rows[0]["_id"])
+                self.assertEqual(self.signer.call_count, 2)
+                self.assertNotIn('rel="next"', second.get("Link", ""))
+                if not streaming:
+                    conditional = self.get(params, HTTP_IF_NONE_MATCH=first["ETag"])
+                    self.assertEqual(conditional.status_code, 304)
 
     def test_request_variants_and_users_have_separate_cache_entries(self):
         first = self.get()

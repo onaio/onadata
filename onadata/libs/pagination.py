@@ -72,6 +72,46 @@ class StandardPageNumberPagination(PageNumberPagination):
         return Response(data, headers=self.generate_link_header())
 
 
+class CountFreePageNumberPagination(StandardPageNumberPagination):
+    """Detect the next page by fetching one extra record instead of counting."""
+
+    # pylint: disable=attribute-defined-outside-init
+    def paginate_queryset(self, queryset, request, view=None):
+        self.request = request
+        self.page_size = self.get_page_size(request)
+        try:
+            self.page_number = int(request.query_params.get(self.page_query_param, 1))
+        except (TypeError, ValueError) as exc:
+            raise NotFound(self.invalid_page_message) from exc
+        if self.page_number < 1:
+            raise NotFound(self.invalid_page_message)
+
+        offset = (self.page_number - 1) * self.page_size
+        records = list(queryset[offset : offset + self.page_size + 1])
+        if not records and self.page_number > 1:
+            raise NotFound(self.invalid_page_message)
+        self.has_next = len(records) > self.page_size
+        return records[: self.page_size]
+
+    def _page_link(self, number):
+        url = replace_query_param(
+            self.request.build_absolute_uri(), self.page_query_param, number
+        )
+        return replace_query_param(url, self.page_size_query_param, self.page_size)
+
+    def get_next_link(self):
+        return self._page_link(self.page_number + 1) if self.has_next else None
+
+    def get_previous_link(self):
+        return self._page_link(self.page_number - 1) if self.page_number > 1 else None
+
+    def get_first_page_link(self):
+        return self._page_link(1) if self.page_number > 1 else None
+
+    def get_last_page_link(self):
+        return None
+
+
 class CountOverridablePaginator(Paginator):
     """Count override Paginator
 
