@@ -168,6 +168,12 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         validated_data["organization"] = org_name
 
         profile = tools.create_organization_object(org, creator, validated_data)
+        # Unlike a change, setting this on a new organisation needs no grant:
+        # it owns nothing yet, so a requirement can only add protection.
+        if "two_factor_required_actions" in validated_data:
+            profile.two_factor_required_actions = validated_data[
+                "two_factor_required_actions"
+            ]
         profile.save()
         # The first save applies the deployment's REQUIRE_ODK_AUTHENTICATION;
         # a value the caller sent overrides it. Form data reads a missing

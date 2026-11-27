@@ -292,6 +292,75 @@ class TestTwoFactorSettingOnV2(StepUpGateTestCase, OrgTwoFactorTestCase):
         self.assertTrue(spend_grant(self.user.pk, self.audience, grant))
 
 
+@gating(GATE_ORG_TWO_FACTOR_POLICY, "publish-data")
+class TestTwoFactorRequiredActionsOnCreate(StepUpGateTestCase, OrgTwoFactorTestCase):
+    """The creator sets a requirement without a grant, as with require_auth.
+    ``self.user`` has a factor here, so a gate would challenge."""
+
+    audience = GATE_ORG_TWO_FACTOR_POLICY
+
+    def _create(self, data, viewset=OrganizationProfileViewSet):
+        view = viewset.as_view({"post": "create"})
+        request = self.factory.post(
+            "/",
+            data={"org": "acme", "name": "Acme", "email": "", **data},
+            format="json",
+            **self.extra,
+        )
+        return view(request)
+
+    def _acme(self):
+        return OrganizationProfile.objects.filter(user__username="acme").first()
+
+    def test_creating_applies_the_requested_actions_without_a_grant(self):
+        for viewset, org in (
+            (OrganizationProfileViewSet, "acme"),
+            (OrganizationProfileViewSetV2, "acme2"),
+        ):
+            response = self._create(
+                {"org": org, "two_factor_required_actions": ["all"]}, viewset
+            )
+
+            self.assertEqual(response.status_code, 201, response.data)
+            self.assertEqual(response.data["two_factor_required_actions"], ["all"])
+            self.assertEqual(
+                OrganizationProfile.objects.get(
+                    user__username=org
+                ).two_factor_required_actions,
+                ["all"],
+            )
+
+    def test_creating_stores_the_actions_deduplicated_and_sorted(self):
+        response = self._create(
+            {
+                "two_factor_required_actions": [
+                    "publish-data",
+                    GATE_ORG_TWO_FACTOR_POLICY,
+                    "publish-data",
+                ]
+            }
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(
+            self._acme().two_factor_required_actions,
+            [GATE_ORG_TWO_FACTOR_POLICY, "publish-data"],
+        )
+
+    def test_creating_without_the_field_requires_nothing(self):
+        response = self._create({})
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(self._acme().two_factor_required_actions, [])
+
+    def test_creating_with_an_invalid_value_creates_nothing(self):
+        response = self._create({"two_factor_required_actions": ["all", "x"]})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("two_factor_required_actions", response.data)
+        self.assertIsNone(self._acme())
+
+
 ENFORCED = (
     "share-project-admin",
     "publish-data",
