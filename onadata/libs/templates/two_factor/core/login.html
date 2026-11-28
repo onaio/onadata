@@ -1,0 +1,15 @@
+{% extends "two_factor/core/login.html" %}
+
+{% block extra_media %}
+  {% comment %}
+    The template DIRS and the app directories both find this file, so it
+    extends itself once before the package's login template. Add the script
+    only where an earlier pass has not.
+  {% endcomment %}
+  {% with prior=block.super %}
+    {{ prior }}
+    {% if "js/password-toggle.js" not in prior %}
+      <script src="{{ STATIC_URL }}js/password-toggle.js"></script>
+    {% endif %}
+  {% endwith %}
+{% endblock %}
